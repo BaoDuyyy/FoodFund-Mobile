@@ -2,12 +2,12 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function HomePage() {
+export default function DonationPage() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Home</Text>
-        <Text style={styles.subtitle}>This is the Home tab — shown first after login.</Text>
+        <Text style={styles.title}>Donation</Text>
+        <Text style={styles.subtitle}>Placeholder Donation screen.</Text>
       </View>
     </SafeAreaView>
   );

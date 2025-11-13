@@ -1,35 +1,37 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function TabsLayout() {
+	const ICONS: Record<string, MaterialIconName> = {
+		index: 'home',
+		donation: 'favorite',
+		news: 'article',
+		discover: 'explore',
+		profile: 'person',
+	};
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+	return (
+		<Tabs
+			screenOptions={({ route }) => ({
+				headerShown: false,
+				tabBarIcon: ({ color, size }) => {
+					const name: MaterialIconName = ICONS[route.name] ?? 'circle';
+					return <MaterialIcons name={name} color={color} size={size} />;
+				},
+				tabBarActiveTintColor: '#007AFF',
+				tabBarInactiveTintColor: '#8e8e93',
+			})}
+		>
+			{/* Home is index so it shows first */}
+			<Tabs.Screen name="index" options={{ title: 'Home' }} />
+			<Tabs.Screen name="donation" options={{ title: 'Donation' }} />
+			<Tabs.Screen name="news" options={{ title: 'News' }} />
+			<Tabs.Screen name="discover" options={{ title: 'Discover' }} />
+			<Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+		</Tabs>
+	);
 }

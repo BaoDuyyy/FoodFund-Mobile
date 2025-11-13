@@ -1,13 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-export default function HomePage() {
+export default function DiscoverPage() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Home</Text>
-        <Text style={styles.subtitle}>This is the Home tab — shown first after login.</Text>
+        <Text style={styles.title}>Discover</Text>
+        <Text style={styles.subtitle}>Placeholder Discover screen.</Text>
       </View>
     </SafeAreaView>
   );

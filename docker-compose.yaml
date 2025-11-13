@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  gateway-service:
+    image: ttrece/foodfund-graphql-gateway:develop
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - AUTH_SUBGRAPH_URL=http://auth-service:8002/graphql
+      - USER_SUBGRAPH_URL=http://user-service:8003/graphql
+      - CAMPAIGN_SUBGRAPH_URL=http://campaign-service:8004/graphql
+      - OPERATION_SUBGRAPH_URL=http://operation-service:8005/graphql
+    depends_on:
+      - auth-service
+      - user-service
+      - campaign-service
+      - operation-service
+    networks:
+      - foodfund-network
+
+  auth-service:
+    image: ttrece/foodfund-auth:develop
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    networks:
+      - foodfund-network
+
+  user-service:
+    image: ttrece/foodfund-user:develop
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    networks:
+      - foodfund-network
+
+  campaign-service:
+    image: ttrece/foodfund-campaign:develop
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    env_file:
+      - .env
+    networks:
+      - foodfund-network
+
+  operation-service:
+    image: ttrece/foodfund-operation:develop
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    env_file:
+      - .env
+    networks:
+      - foodfund-network
+
+networks:
+  foodfund-network:
+    driver: bridge
