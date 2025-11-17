@@ -1,4 +1,6 @@
+import AuthService from '@/services/authService';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +9,25 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  async function handleLogin() {
+    try {
+      if (!email || !password) {
+        alert('Vui lòng nhập email và mật khẩu');
+        return;
+      }
+
+      const result = await AuthService.login(email, password);
+
+      await SecureStore.setItemAsync('accessToken', result.accessToken || '');
+      await SecureStore.setItemAsync('refreshToken', result.refreshToken || '');
+
+      console.log('LOGIN SUCCESS:', result);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      alert(err?.message || 'Đăng nhập thất bại');
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,10 +66,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => {
-            // simulate sign in -> navigate to main tabs
-            router.replace('/(tabs)');
-          }}
+          onPress={handleLogin}
         >
           <Text style={styles.primaryButtonText}>Đăng nhập</Text>
         </TouchableOpacity>
