@@ -1,13 +1,38 @@
+import CampaignCard from '@/components/CampaignCard';
+import Loading from '@/components/Loading';
+import CampaignService from '@/services/campaignService';
+import type { CampaignItem } from '@/types/api/campaign';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomePage() {
   const router = useRouter();
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      try {
+        const data = await CampaignService.listCampaigns();
+        if (mounted) setCampaigns(data);
+      } catch (err: any) {
+        console.warn('Load campaigns failed:', err?.message || err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
+      <Loading visible={loading} message="Loading campaigns..." />
+
       {/* top-left small round icon buttons */}
       <View style={styles.topButtons}>
         <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/search' as any)}>
@@ -20,8 +45,22 @@ export default function HomePage() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Home</Text>
-        <Text style={styles.subtitle}>This is the Home tab — shown first after login.</Text>
+        <Text style={styles.title}>Chiến dịch nổi bật</Text>
+
+        <FlatList
+          data={campaigns}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <CampaignCard
+              campaign={item}
+              onPress={() => {
+                router.push(`/campaign/${item.id}` as unknown as any);
+              }}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16, paddingTop: 8 }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -55,7 +94,6 @@ const styles = StyleSheet.create({
   },
   icon: { fontSize: 18 },
 
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center' },
+  content: { flex: 1, paddingTop: 56 },
+  title: { fontSize: 22, fontWeight: '800', marginBottom: 8, paddingHorizontal: 16 },
 });

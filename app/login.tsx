@@ -1,3 +1,4 @@
+import Loading from '@/components/Loading';
 import AuthService from '@/services/authService';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -9,11 +10,14 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogin() {
     try {
+      setIsLoading(true);
       if (!email || !password) {
         alert('Vui lòng nhập email và mật khẩu');
+        setIsLoading(false);
         return;
       }
 
@@ -26,11 +30,15 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (err: any) {
       alert(err?.message || 'Đăng nhập thất bại');
+    } finally {
+      setIsLoading(false);
     }
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      <Loading visible={isLoading} message="Signing in..." />
+
       {/* in-page top-left back button (updated to pill-style) */}
       <TouchableOpacity style={styles.topBack} onPress={() => router.back()}>
         <Text style={styles.topBackText}>{'‹'} Back</Text>

@@ -22,3 +22,16 @@ export type SignInPayload = {
   refreshToken?: string | null;
   user?: SignInUser | null;
 };
+
+// add signup types
+export type SignUpInput = {
+  email: string;
+  name?: string;
+  password: string;
+};
+
+export type SignUpPayload = {
+  emailSent?: boolean | null;
+  message?: string | null;
+  userSub?: string | null;
+};
