@@ -1,6 +1,7 @@
 import Loading from "@/components/Loading";
 import CampaignService from "@/services/campaignService";
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -67,21 +68,63 @@ export default function CampaignDetailPage() {
                 <Text style={styles.value}>{campaign.creator?.full_name || "—"}</Text>
               </View>
 
-              <View style={styles.row}>
-                <Text style={styles.label}>Danh mục:</Text>
-                <Text style={styles.value}>{campaign.category?.title || "—"}</Text>
-              </View>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Đã ủng hộ:</Text>
-                <Text style={styles.value}>{formatCurrency(campaign.receivedAmount)}</Text>
-              </View>
-
-              <View style={styles.progressWrap}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, Number(campaign.fundingProgress || 0)))}%` }]} />
+              {/* Thông tin tổng quan chiến dịch */}
+              <View style={styles.infoBox}>
+                <Text style={styles.infoTitle}>Tiến độ gây quỹ</Text>
+                <View style={styles.progressBarBox}>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${Math.max(0, Math.min(100, Number(campaign.fundingProgress || 0)))}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercent}>
+                    {Math.round(Number(campaign.fundingProgress || 0))}%
+                  </Text>
                 </View>
-                <Text style={styles.progressText}>{(campaign.fundingProgress ?? 0)}%</Text>
+                <View style={styles.infoRow}>
+                  <View style={styles.infoItem}>
+                    <FontAwesome name="money" size={22} color="#43b46b" style={styles.infoIcon} />
+                    <Text style={styles.infoLabel}>Đã nhận</Text>
+                    <Text style={[styles.infoValue, { color: "#43b46b" }]}>
+                      {formatCurrency(campaign.receivedAmount)}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <MaterialIcons name="emoji-events" size={22} color="#f7b500" style={styles.infoIcon} />
+                    <Text style={styles.infoLabel}>Mục tiêu</Text>
+                    <Text style={[styles.infoValue, { color: "#f7b500" }]}>
+                      {formatCurrency(campaign.targetAmount)}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <FontAwesome name="user" size={22} color="#4285F4" style={styles.infoIcon} />
+                    <Text style={styles.infoLabel}>Lượt đóng góp</Text>
+                    <Text style={[styles.infoValue, { color: "#4285F4" }]}>
+                      {campaign.donationCount ?? 0}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons name="calendar-outline" size={22} color="#888" style={styles.infoIcon} />
+                    <Text style={styles.infoLabel}>Ngày bắt đầu</Text>
+                    <Text style={styles.infoValue}>
+                      {campaign.fundraisingStartDate
+                        ? new Date(campaign.fundraisingStartDate).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons name="calendar-outline" size={22} color="#888" style={styles.infoIcon} />
+                    <Text style={styles.infoLabel}>Ngày kết thúc</Text>
+                    <Text style={styles.infoValue}>
+                      {campaign.fundraisingEndDate
+                        ? new Date(campaign.fundraisingEndDate).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               <Text style={styles.sectionTitle}>Mô tả</Text>
@@ -144,10 +187,76 @@ const styles = StyleSheet.create({
   label: { width: 110, color: "#666", fontWeight: "700" },
   value: { flex: 1, color: "#333" },
 
-  progressWrap: { marginTop: 8, marginBottom: 12, alignItems: "flex-start" },
-  progressBar: { height: 8, width: "100%", backgroundColor: "#f0e6e1", borderRadius: 6, overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: PRIMARY },
-  progressText: { marginTop: 6, color: "#666", fontWeight: "700" },
+  infoBox: {
+    backgroundColor: "#fdf7f0",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    marginTop: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  infoTitle: {
+    fontWeight: "700",
+    fontSize: 15,
+    marginBottom: 8,
+    color: "#ad4e28",
+  },
+  progressBarBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "#e6e6e6",
+    borderRadius: 8,
+    marginRight: 8,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#ff8800",
+    borderRadius: 8,
+  },
+  progressPercent: {
+    fontWeight: "700",
+    color: "#ad4e28",
+    fontSize: 13,
+    minWidth: 32,
+    textAlign: "right",
+  },
+  infoRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  infoItem: {
+    width: "48%",
+    marginBottom: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoIcon: {
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: "#888",
+    marginBottom: 2,
+    fontWeight: "600",
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#222",
+  },
 
   sectionTitle: { fontSize: 16, fontWeight: "800", marginTop: 12, marginBottom: 8, color: PRIMARY },
 

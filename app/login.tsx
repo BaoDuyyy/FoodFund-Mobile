@@ -27,7 +27,13 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync('refreshToken', result.refreshToken || '');
 
       console.log('LOGIN SUCCESS:', result);
-      router.replace('/(tabs)');
+      // Kiểm tra role và chuyển hướng tab phù hợp
+      const { role } = await AuthService.getUserInfo();
+      if (role === "KITCHEN") {
+        router.replace('/(kitchen-tabs)' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       alert(err?.message || 'Đăng nhập thất bại');
     } finally {
