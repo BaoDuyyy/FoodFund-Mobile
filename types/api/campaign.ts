@@ -40,9 +40,9 @@ export type Phase = {
   ingredientPurchaseDate?: string | null;
   cookingDate?: string | null;
   deliveryDate?: string | null;
-  ingredientBudgetPercentage?: number | null;
-  cookingBudgetPercentage?: number | null;
-  deliveryBudgetPercentage?: number | null;
+  ingredientBudgetPercentage?: number | string | null;
+  cookingBudgetPercentage?: number | string | null;
+  deliveryBudgetPercentage?: number | string | null;
   ingredientFundsAmount?: number | string | null;
   cookingFundsAmount?: number | string | null;
   deliveryFundsAmount?: number | string | null;

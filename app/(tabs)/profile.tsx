@@ -1,6 +1,10 @@
+import Loading from '@/components/Loading';
+import LoginRequire from '@/components/LoginRequire';
+import UserService from '@/services/userService';
+import type { UserProfile } from '@/types/api/user';
 import { Feather, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,13 +13,43 @@ const BG = '#fbefe6';
 
 export default function ProfilePage() {
 	const router = useRouter();
+	const [profile, setProfile] = useState<UserProfile | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [loginRequire, setLoginRequire] = useState(false);
+	const [activeTab, setActiveTab] = useState(0);
 
-	// Dummy data for demo
-	const email = 'phbaoduy2004gmailcom';
-	const username = '@phbaoduy2004gmailcom';
+	useEffect(() => {
+		let mounted = true;
+		async function load() {
+			setLoading(true);
+			try {
+				const data = await UserService.getMyProfile();
+				if (mounted) setProfile(data);
+			} catch (err: any) {
+				// handle error if needed
+			} finally {
+				if (mounted) setLoading(false);
+			}
+		}
+		load();
+		return () => { mounted = false; };
+	}, []);
+
+	function checkLoginAndSetTab(idx: number) {
+		const token = typeof window !== "undefined"
+			? window.localStorage?.getItem("token")
+			: null;
+		if (!token) {
+			setLoginRequire(true);
+			return;
+		}
+		setActiveTab(idx);
+	}
 
 	return (
 		<SafeAreaView style={styles.container}>
+			<Loading visible={loading} message="Đang tải thông tin..." />
+			<LoginRequire visible={loginRequire} onClose={() => setLoginRequire(false)} />
 			{/* Cover image */}
 			<View style={styles.coverWrap}>
 				<Image
@@ -26,7 +60,7 @@ export default function ProfilePage() {
 				<View style={styles.avatarWrap}>
 					<View style={styles.avatarCircle}>
 						<Image
-							source={{ uri: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=duy' }}
+							source={{ uri: profile?.avatar_url || 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=duy' }}
 							style={styles.avatarImg}
 						/>
 						<View style={styles.avatarCamera}>
@@ -38,8 +72,8 @@ export default function ProfilePage() {
 
 			{/* Info */}
 			<View style={styles.infoWrap}>
-				<Text style={styles.email}>{email}</Text>
-				<Text style={styles.username}>{username}</Text>
+				<Text style={styles.email}>{profile?.email || ''}</Text>
+				<Text style={styles.username}>{profile?.user_name || ''}</Text>
 				<View style={styles.statsRow}>
 					<FontAwesome name="rss" size={18} color="#ad4e28" />
 					<Text style={styles.statsNum}>0</Text>
@@ -66,9 +100,15 @@ export default function ProfilePage() {
 
 			{/* Tabs */}
 			<View style={styles.tabRow}>
-				<Text style={[styles.tab, styles.tabActive]}>Hoạt động</Text>
-				<Text style={styles.tab}>Sự kiện quan tâm</Text>
-				<Text style={styles.tab}>Danh sách theo dõi</Text>
+				<TouchableOpacity onPress={() => checkLoginAndSetTab(0)}>
+					<Text style={[styles.tab, activeTab === 0 && styles.tabActive]}>Hoạt động</Text>
+				</TouchableOpacity>
+				<TouchableOpacity onPress={() => checkLoginAndSetTab(1)}>
+					<Text style={[styles.tab, activeTab === 1 && styles.tabActive]}>Sự kiện quan tâm</Text>
+				</TouchableOpacity>
+				<TouchableOpacity onPress={() => checkLoginAndSetTab(2)}>
+					<Text style={[styles.tab, activeTab === 2 && styles.tabActive]}>Danh sách theo dõi</Text>
+				</TouchableOpacity>
 			</View>
 
 			{/* Nổi bật */}

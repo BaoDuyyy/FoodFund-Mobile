@@ -1,4 +1,5 @@
 import Loading from "@/components/Loading";
+import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
 import DonationService from "@/services/donationService";
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
@@ -7,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { PieChart } from 'react-native-chart-kit';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CampaignDetailPage() {
@@ -44,11 +46,6 @@ export default function CampaignDetailPage() {
       mounted = false;
     };
   }, [id]);
-
-  function formatCurrency(v?: string | number | null) {
-    const n = Number(v || 0);
-    return n.toLocaleString("vi-VN") + " đ";
-  }
 
   async function handleDonateSubmit() {
     if (!id || !amount || amount < 1000) {
@@ -169,24 +166,19 @@ export default function CampaignDetailPage() {
               <Text style={styles.sectionTitle}>Mô tả</Text>
               <Text style={styles.description}>{campaign.description || "—"}</Text>
 
-              <Text style={styles.sectionTitle}>Các giai đoạn</Text>
-              {(campaign.phases && campaign.phases.length) ? (
-                campaign.phases.map((p: Phase) => (
-                  <View key={p.id} style={styles.phase}>
-                    <Text style={styles.phaseTitle}>{p.phaseName}</Text>
-                    <Text style={styles.phaseMeta}>Địa điểm: {p.location || "—"}</Text>
-                    <Text style={styles.phaseMeta}>Trạng thái: {p.status || "—"}</Text>
-                    <View style={styles.phaseAmounts}>
-                      <Text style={styles.phaseAmount}>Nguyên liệu: {formatCurrency(p.ingredientFundsAmount)}</Text>
-                      <Text style={styles.phaseAmount}>Nấu nướng: {formatCurrency(p.cookingFundsAmount)}</Text>
-                      <Text style={styles.phaseAmount}>Giao hàng: {formatCurrency(p.deliveryFundsAmount)}</Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.description}>Chưa có giai đoạn</Text>
-              )}
+              {/* Tabs: Giai đoạn & Mốc thời gian */}
+              <TimelineTabs campaign={campaign}>
+                {/* Tab "Giai đoạn" sẽ render các giai đoạn */}
+                {(campaign.phases && campaign.phases.length) ? (
+                  campaign.phases.map((p: Phase) => (
+                    <PhaseBudget key={p.id} phase={p} />
+                  ))
+                ) : (
+                  <Text style={styles.description}>Chưa có giai đoạn</Text>
+                )}
+              </TimelineTabs>
 
+              {/* Nút ủng hộ */}
               <TouchableOpacity style={styles.primaryButton} onPress={() => setDonateModal(true)}>
                 <Text style={styles.primaryButtonText}>Ủng hộ</Text>
               </TouchableOpacity>
@@ -276,6 +268,133 @@ export default function CampaignDetailPage() {
       </Modal>
     </SafeAreaView>
   );
+}
+
+function PhaseBudget({ phase }: { phase: Phase }) {
+  const ingredientFunds = Number(phase.ingredientFundsAmount ?? 0);
+  const cookingFunds = Number(phase.cookingFundsAmount ?? 0);
+  const deliveryFunds = Number(phase.deliveryFundsAmount ?? 0);
+
+  const total = ingredientFunds + cookingFunds + deliveryFunds;
+
+  const ingredientPercent = Number(phase.ingredientBudgetPercentage ?? 0);
+  const cookingPercent = Number(phase.cookingBudgetPercentage ?? 0);
+  const deliveryPercent = Number(phase.deliveryBudgetPercentage ?? 0);
+
+  const ingredientReceived = ingredientFunds;
+  const cookingReceived = cookingFunds;
+  const deliveryReceived = deliveryFunds;
+
+  const allFunds = ingredientFunds + cookingFunds + deliveryFunds;
+  const ingredientExpected = Math.round(ingredientPercent / 100 * allFunds);
+  const cookingExpected = Math.round(cookingPercent / 100 * allFunds);
+  const deliveryExpected = Math.round(deliveryPercent / 100 * allFunds);
+
+  const chartData = [
+    {
+      name: 'Nguyên liệu',
+      population: ingredientPercent,
+      color: '#ff8800',
+      legendFontColor: '#222',
+      legendFontSize: 14,
+    },
+    {
+      name: 'Nấu ăn',
+      population: cookingPercent,
+      color: '#4b5cff',
+      legendFontColor: '#222',
+      legendFontSize: 14,
+    },
+    {
+      name: 'Vận chuyển',
+      population: deliveryPercent,
+      color: '#43b46b',
+      legendFontColor: '#222',
+      legendFontSize: 14,
+    },
+  ];
+
+  return (
+    <View style={phaseBudgetStyles.box}>
+      <Text style={phaseBudgetStyles.title}>{phase.phaseName} - {phase.location}</Text>
+      <Text style={phaseBudgetStyles.totalLabel}>Tổng giai đoạn</Text>
+      <Text style={phaseBudgetStyles.totalValue}>{formatCurrency(total)}</Text>
+      <View style={phaseBudgetStyles.row}>
+        <PieChart
+          data={chartData}
+          width={120}
+          height={120}
+          chartConfig={{
+            color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+          }}
+          accessor={"population"}
+          backgroundColor={"transparent"}
+          paddingLeft={"0"}
+          hasLegend={false}
+          center={[0, 0]}
+        />
+        <View style={{ marginLeft: 18, flex: 1 }}>
+          {chartData.map((item, idx) => (
+            <View key={item.name} style={phaseBudgetStyles.legendRow}>
+              <View style={[phaseBudgetStyles.legendDot, { backgroundColor: item.color }]} />
+              <Text style={phaseBudgetStyles.legendLabel}>{item.name}</Text>
+              <Text style={phaseBudgetStyles.legendPercent}>{item.population}%</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+      {/* Nguyên liệu */}
+      <View style={[phaseBudgetStyles.section, { borderColor: "#ff8800" }]}>
+        <View style={phaseBudgetStyles.sectionHeader}>
+          <View style={[phaseBudgetStyles.sectionBar, { backgroundColor: "#ff8800" }]} />
+          <Text style={phaseBudgetStyles.sectionTitle}>Nguyên liệu</Text>
+          <View style={phaseBudgetStyles.sectionPercent}>
+            <Text style={{ color: "#ff8800", fontWeight: "700" }}>{ingredientPercent}%</Text>
+          </View>
+        </View>
+        <Text style={phaseBudgetStyles.sectionReceived}>Đã nhận: <Text style={{ fontWeight: "700" }}>{formatCurrency(ingredientReceived)}</Text></Text>
+        <Text style={phaseBudgetStyles.sectionExpected}>Dự kiến: {formatCurrency(ingredientExpected)}</Text>
+        <View style={phaseBudgetStyles.progressBarBg}>
+          <View style={[phaseBudgetStyles.progressBarFill, { backgroundColor: "#ff8800", width: `${Math.min(100, ingredientReceived / (ingredientExpected || 1) * 100)}%` }]} />
+        </View>
+      </View>
+      {/* Nấu ăn */}
+      <View style={[phaseBudgetStyles.section, { borderColor: "#4b5cff" }]}>
+        <View style={phaseBudgetStyles.sectionHeader}>
+          <View style={[phaseBudgetStyles.sectionBar, { backgroundColor: "#4b5cff" }]} />
+          <Text style={phaseBudgetStyles.sectionTitle}>Nấu ăn</Text>
+          <View style={phaseBudgetStyles.sectionPercent}>
+            <Text style={{ color: "#4b5cff", fontWeight: "700" }}>{cookingPercent}%</Text>
+          </View>
+        </View>
+        <Text style={phaseBudgetStyles.sectionReceived}>Đã nhận: <Text style={{ fontWeight: "700" }}>{formatCurrency(cookingReceived)}</Text></Text>
+        <Text style={phaseBudgetStyles.sectionExpected}>Dự kiến: {formatCurrency(cookingExpected)}</Text>
+        <View style={phaseBudgetStyles.progressBarBg}>
+          <View style={[phaseBudgetStyles.progressBarFill, { backgroundColor: "#4b5cff", width: `${Math.min(100, cookingReceived / (cookingExpected || 1) * 100)}%` }]} />
+        </View>
+      </View>
+      {/* Vận chuyển */}
+      <View style={[phaseBudgetStyles.section, { borderColor: "#43b46b" }]}>
+        <View style={phaseBudgetStyles.sectionHeader}>
+          <View style={[phaseBudgetStyles.sectionBar, { backgroundColor: "#43b46b" }]} />
+          <Text style={phaseBudgetStyles.sectionTitle}>Vận chuyển</Text>
+          <View style={phaseBudgetStyles.sectionPercent}>
+            <Text style={{ color: "#43b46b", fontWeight: "700" }}>{deliveryPercent}%</Text>
+          </View>
+        </View>
+        <Text style={phaseBudgetStyles.sectionReceived}>Đã nhận: <Text style={{ fontWeight: "700" }}>{formatCurrency(deliveryReceived)}</Text></Text>
+        <Text style={phaseBudgetStyles.sectionExpected}>Dự kiến: {formatCurrency(deliveryExpected)}</Text>
+        <View style={phaseBudgetStyles.progressBarBg}>
+          <View style={[phaseBudgetStyles.progressBarFill, { backgroundColor: "#43b46b", width: `${Math.min(100, deliveryReceived / (deliveryExpected || 1) * 100)}%` }]} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function formatCurrency(v?: string | number | null) {
+  const n = Number(v || 0);
+  return n.toLocaleString("vi-VN") + " đ";
 }
 
 const PRIMARY = "#ad4e28";
@@ -583,5 +702,119 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "center",
     lineHeight: 20,
+  },
+});
+
+const phaseBudgetStyles = StyleSheet.create({
+  box: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  title: {
+    fontWeight: "900",
+    fontSize: 18,
+    color: "#ad4e28",
+    marginBottom: 2,
+  },
+  totalLabel: {
+    color: "#888",
+    fontWeight: "700",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  totalValue: {
+    color: "#ad4e28",
+    fontWeight: "900",
+    fontSize: 20,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  legendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 8,
+  },
+  legendLabel: {
+    color: "#222",
+    fontWeight: "700",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  legendPercent: {
+    color: "#888",
+    fontWeight: "700",
+    fontSize: 14,
+    marginLeft: "auto",
+  },
+  section: {
+    backgroundColor: "#f7f8fa",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    padding: 12,
+    marginBottom: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  sectionBar: {
+    width: 4,
+    height: 24,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontWeight: "800",
+    fontSize: 15,
+    color: "#222",
+    marginRight: 8,
+  },
+  sectionPercent: {
+    marginLeft: "auto",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  sectionReceived: {
+    color: "#222",
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  sectionExpected: {
+    color: "#888",
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  progressBarBg: {
+    height: 7,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginTop: 2,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 6,
   },
 });
