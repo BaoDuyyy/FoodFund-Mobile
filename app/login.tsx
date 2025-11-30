@@ -1,5 +1,7 @@
 import Loading from '@/components/Loading';
+import { GOOGLE_CLIENT_ID } from '@/config/google'; // dùng config
 import AuthService from '@/services/authService';
+import * as AuthSession from 'expo-auth-session';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
@@ -36,6 +38,42 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       alert(err?.message || 'Đăng nhập thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    try {
+      setIsLoading(true);
+      const redirectUri = AuthSession.makeRedirectUri({});
+      const discovery = {
+        authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+        tokenEndpoint: "https://oauth2.googleapis.com/token",
+      };
+      const config = {
+        clientId: GOOGLE_CLIENT_ID,
+        redirectUri,
+        responseType: "id_token",
+        scopes: ["openid", "profile", "email"],
+        extraParams: { nonce: "randomnonce" },
+      };
+      const authRequest = new AuthSession.AuthRequest(config);
+      const result = await authRequest.promptAsync(discovery);
+
+      // Kiểm tra kiểu kết quả và lấy id_token đúng cách
+      if (result.type === "success" && "id_token" in result.params) {
+        const idToken = (result as AuthSession.AuthSessionResult & { params: { id_token: string } }).params.id_token;
+        const payload = await AuthService.loginWithGoogle(idToken);
+        await SecureStore.setItemAsync('accessToken', payload.accessToken || '');
+        await SecureStore.setItemAsync('refreshToken', payload.refreshToken || '');
+        router.replace('/(tabs)');
+      } else {
+        setIsLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Google login failed');
     } finally {
       setIsLoading(false);
     }
@@ -91,10 +129,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.googleButton}
-          onPress={() => {
-            // stub: google sign-in -> navigate to main tabs
-            router.replace('/(tabs)');
-          }}
+          onPress={handleGoogleLogin}
         >
           <View style={styles.googleLeft}>
             <Text style={styles.googleG}>G</Text>

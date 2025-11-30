@@ -1,9 +1,12 @@
+import Loading from '@/components/Loading';
+import { GOOGLE_CLIENT_ID } from '@/config/google'; // dùng config
 import AuthService from '@/services/authService';
+import * as AuthSession from 'expo-auth-session';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -11,6 +14,7 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // modal state for "check your email" popup
   const [modalVisible, setModalVisible] = useState(false);
@@ -62,8 +66,45 @@ export default function SignupScreen() {
     }
   }
 
+  async function handleGoogleSignup() {
+    try {
+      setIsLoading(true);
+      const redirectUri = AuthSession.makeRedirectUri({});
+      const discovery = {
+        authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+        tokenEndpoint: "https://oauth2.googleapis.com/token",
+      };
+      const config = {
+        clientId: GOOGLE_CLIENT_ID,
+        redirectUri,
+        responseType: "id_token",
+        scopes: ["openid", "profile", "email"],
+        extraParams: { nonce: "randomnonce" },
+      };
+      const authRequest = new AuthSession.AuthRequest(config);
+      const result = await authRequest.promptAsync(discovery);
+
+      // Kiểm tra kiểu kết quả và lấy id_token đúng cách
+      if (result.type === "success" && "id_token" in result.params) {
+        const idToken = (result as AuthSession.AuthSessionResult & { params: { id_token: string } }).params.id_token;
+        const payload = await AuthService.loginWithGoogle(idToken);
+        await SecureStore.setItemAsync('accessToken', payload.accessToken || '');
+        await SecureStore.setItemAsync('refreshToken', payload.refreshToken || '');
+        router.replace('/(tabs)');
+      } else {
+        setIsLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Google signup failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      <Loading visible={isLoading} message="Signing up..." />
       {/* in-page top-left back button (pill-style like login) */}
       <TouchableOpacity style={styles.topBack} onPress={() => router.back()}>
         <Text style={styles.topBackText}>{'‹'} Back</Text>
@@ -122,10 +163,7 @@ export default function SignupScreen() {
 
         <TouchableOpacity
           style={styles.googleButton}
-          onPress={() => {
-            // stub: google sign-up -> navigate to main tabs
-            router.replace('/(tabs)');
-          }}
+          onPress={handleGoogleSignup}
         >
           <View style={styles.googleLeft}>
             <Text style={styles.googleG}>G</Text>

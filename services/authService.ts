@@ -1,5 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { getGraphqlUrl } from "../config/api";
+import { GOOGLE_AUTHENTICATION_MUTATION } from "../graphql/mutation/googleAuthentication";
 import { LOGIN_MUTATION } from "../graphql/mutation/login";
 import { SIGNUP_MUTATION } from "../graphql/mutation/signup";
 import {
@@ -127,6 +128,36 @@ export const AuthService = {
     const payload: SignUpPayload | undefined = json.data?.signUp;
     if (!payload) throw new Error("Empty signUp response");
 
+    return payload;
+  },
+
+  async loginWithGoogle(idToken: string, overrideUrl?: string): Promise<SignInPayload> {
+    const url = getGraphqlUrl(overrideUrl);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: GOOGLE_AUTHENTICATION_MUTATION,
+          variables: { input: { idToken } },
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Network error ${res.status}: ${text}`);
+    }
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error("Invalid JSON from server");
+    if (json.errors?.length) {
+      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join("; ");
+      throw new Error(errMsg);
+    }
+    const payload: SignInPayload | undefined = json.data?.googleAuthentication;
+    if (!payload) throw new Error("Google authentication failed");
     return payload;
   },
 

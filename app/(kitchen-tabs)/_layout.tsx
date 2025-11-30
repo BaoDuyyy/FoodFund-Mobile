@@ -28,11 +28,11 @@ export default function KitchenTabsLayout() {
 			})}
 		>
 			<Tabs.Screen name="index" options={{ title: 'Home' }} />
-			<Tabs.Screen name="donation" options={{ title: 'Donation' }} />
+			<Tabs.Screen name="donation" options={{ title: 'Campaign' }} />
 			<Tabs.Screen name="news" options={{ title: 'News' }} />
-			<Tabs.Screen name="discover" options={{ title: 'Discover' }} />
-			<Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+			{/* <Tabs.Screen name="discover" options={{ title: 'Discover' }} /> */}
 			<Tabs.Screen name="staff" options={{ title: 'Staff' }} />
+			<Tabs.Screen name="profile" options={{ title: 'Profile' }} />
 		</Tabs>
 	);
 }

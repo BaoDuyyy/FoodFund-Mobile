@@ -2,6 +2,7 @@ import CampaignCard from '@/components/CampaignCard';
 import Loading from '@/components/Loading';
 import CampaignService from '@/services/campaignService';
 import type { CampaignItem } from '@/types/api/campaign';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -33,14 +34,13 @@ export default function HomePage() {
     <SafeAreaView style={styles.container}>
       <Loading visible={loading} message="Loading campaigns..." />
 
-      {/* top-left small round icon buttons */}
-      <View style={styles.topButtons}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/search' as any)}>
-          <Text style={styles.icon}>🔍</Text>
+      {/* top-right modern icon buttons */}
+      <View style={styles.topButtonsRight}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/search')}>
+          <Feather name="search" size={22} color="#ad4e28" />
         </TouchableOpacity>
-
         <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/profile')}>
-          <Text style={styles.icon}>👤</Text>
+          <FontAwesome name="user-circle" size={22} color="#ad4e28" />
         </TouchableOpacity>
       </View>
 
@@ -68,31 +68,32 @@ export default function HomePage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  // top-left icon buttons
-  topButtons: {
+  // top-right modern icon buttons
+  topButtonsRight: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: 16,
+    right: 16,
     zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#eee',
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#f7f7f7',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-    // subtle shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
+    marginLeft: 8,
+    shadowColor: '#ad4e28',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f3f3f3',
   },
-  icon: { fontSize: 18 },
 
   content: { flex: 1, paddingTop: 56 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 8, paddingHorizontal: 16 },
