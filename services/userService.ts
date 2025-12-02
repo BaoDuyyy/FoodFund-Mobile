@@ -1,15 +1,20 @@
 import { getGraphqlUrl } from "../config/api";
 import { GET_MY_PROFILE_QUERY } from "../graphql/query/getMyProfile";
 import type { GetMyProfileResponse } from "../types/api/user";
+import AuthService from "./authService";
 
 export const UserService = {
   async getMyProfile(overrideUrl?: string) {
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ query: GET_MY_PROFILE_QUERY }),
       });
     } catch (err: any) {

@@ -10,7 +10,6 @@ export default function TabsLayout() {
 		home: 'home',
 		campaign: 'favorite',
 		news: 'article',
-		donation: 'volunteer-activism',
 		profile: 'person',
 	};
 
@@ -28,7 +27,6 @@ export default function TabsLayout() {
 		>
 			<Tabs.Screen name="home" options={{ title: 'Home' }} />
 			<Tabs.Screen name="campaign" options={{ title: 'Campaign' }} />
-			<Tabs.Screen name="donation" options={{ title: 'Donation' }} />
 			<Tabs.Screen name="news" options={{ title: 'News' }} />
 			<Tabs.Screen name="profile" options={{ title: 'Profile' }} />
 		</Tabs>

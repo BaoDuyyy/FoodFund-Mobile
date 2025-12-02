@@ -2,6 +2,7 @@ import { getGraphqlUrl } from "../config/api";
 import { CREATE_DONATION_MUTATION } from "../graphql/mutation/createDonation";
 import { SEARCH_DONATION_STATEMENTS_QUERY } from "../graphql/query/searchDonationStatements";
 import type { CreateDonationInput, CreateDonationResult } from "../types/api/donation";
+import AuthService from "./authService";
 
 export const DonationService = {
   async createDonation(
@@ -9,12 +10,15 @@ export const DonationService = {
     overrideUrl?: string
   ): Promise<CreateDonationResult> {
     const url = getGraphqlUrl(overrideUrl);
-
+    const token = await AuthService.getAccessToken();
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: CREATE_DONATION_MUTATION,
           variables: { input },
@@ -58,11 +62,15 @@ export const DonationService = {
     overrideUrl?: string
   ) {
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: SEARCH_DONATION_STATEMENTS_QUERY,
           variables: { searchDonationStatementsInput2: input },

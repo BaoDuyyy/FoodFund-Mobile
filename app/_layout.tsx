@@ -14,9 +14,11 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       {/* hide native headers for all stack screens here so page-level headerShown isn't ignored */}
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Make welcome the first screen shown on app open */}
-        <Stack.Screen name="welcome" />
+        {/* entry screens */}
+        <Stack.Screen name="login" />
+        {/* groups */}
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(kitchen-tabs)" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

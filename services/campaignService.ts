@@ -7,6 +7,7 @@ import type {
   ListCampaignsResponse,
   ListCampaignsVars,
 } from "../types/api/campaign";
+import AuthService from "./authService";
 
 const DEFAULT_VARS: ListCampaignsVars = {
   filter: {
@@ -33,12 +34,16 @@ export const CampaignService = {
     };
 
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
 
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: LIST_CAMPAIGNS_QUERY,
           variables,
@@ -78,12 +83,16 @@ export const CampaignService = {
   async getCampaign(id: string, overrideUrl?: string): Promise<CampaignDetail> {
     if (!id) throw new Error("campaign id is required");
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
 
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: GET_CAMPAIGN_QUERY,
           variables: { id },

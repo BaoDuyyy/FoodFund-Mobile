@@ -2,19 +2,24 @@ import { getGraphqlUrl } from "../config/api";
 import { GET_ORGANIZATION_BY_ID_QUERY } from "../graphql/query/getOrganizationById";
 import { LIST_ACTIVE_ORGANIZATIONS_QUERY } from "../graphql/query/listActiveOrganizations";
 import type {
-    GetOrganizationByIdResponse,
-    ListActiveOrganizationsResponse,
+  GetOrganizationByIdResponse,
+  ListActiveOrganizationsResponse,
 } from "../types/api/organization";
+import AuthService from "./authService";
 
 export const OrganizationService = {
   async getOrganizationById(id: string, overrideUrl?: string) {
     if (!id) throw new Error("organization id is required");
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: GET_ORGANIZATION_BY_ID_QUERY,
           variables: { getOrganizationByIdId: id },
@@ -42,11 +47,15 @@ export const OrganizationService = {
 
   async listActiveOrganizations(overrideUrl?: string) {
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
     let res: Response;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           query: LIST_ACTIVE_ORGANIZATIONS_QUERY,
         }),

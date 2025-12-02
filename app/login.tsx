@@ -74,8 +74,10 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync('refreshToken', result.refreshToken || '');
 
       const { role } = await AuthService.getUserInfo();
-      if (role === 'KITCHEN') {
-        router.replace('/(kitchen-tabs)' as any);
+
+      if (role === 'KITCHEN_STAFF') {
+        // cast để bỏ qua lỗi type, route này chạy OK ở runtime
+        router.replace('/k-home');
       } else {
         router.replace('/home');
       }
@@ -124,7 +126,8 @@ export default function LoginScreen() {
         await SecureStore.setItemAsync('accessToken', payload.accessToken || '');
         await SecureStore.setItemAsync('refreshToken', payload.refreshToken || '');
 
-        router.replace('/home');
+        // user Google -> group tabs thường
+        router.replace('/(tabs)' as any);
       }
     } catch (err: any) {
       if (isNetworkError(err)) {
@@ -139,7 +142,6 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   }
-
 
   return (
     <SafeAreaView style={styles.container}>
