@@ -43,6 +43,22 @@ export default function DiscoverPage() {
     <SafeAreaView style={styles.container}>
       <Loading visible={loading} message="Loading..." />
 
+      {/* Banner Top Section */}
+      <View style={styles.bannerContainer}>
+        <View style={styles.bannerContent}>
+          <View style={styles.bannerLogoWrapper}>
+            <Image
+              source={require("../../assets/images/icon.png")}
+              style={styles.bannerLogo}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={styles.bannerTitle}>
+            Chào mừng bạn đến với FoodFund
+          </Text>
+        </View>
+      </View>
+
       {/* Tổ chức gây quỹ hiệu quả */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -60,10 +76,11 @@ export default function DiscoverPage() {
           renderItem={({ item }) =>
             item ? (
               <View style={styles.orgCard}>
-                <Image
-                  source={{ uri: item.avatar_url || PLACEHOLDER_IMAGE }}
-                  style={styles.orgImage}
-                />
+                <View style={styles.orgAvatar}>
+                  <Text style={styles.orgAvatarText}>
+                    {item.name?.charAt(0)?.toUpperCase() || "?"}
+                  </Text>
+                </View>
                 <Text style={styles.orgName} numberOfLines={2}>{item.name}</Text>
                 <TouchableOpacity style={styles.orgFollowBtn}>
                   <Text style={styles.orgFollowText}>Theo dõi</Text>
@@ -124,8 +141,50 @@ function formatCurrency(v?: string | number | null) {
 }
 
 const PRIMARY = "#ad4e28";
+const ORANGE_GRADIENT = ["#d16b2b", "#ad4e28"];
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
+
+  // Banner styles
+  bannerContainer: {
+    height: 110,
+    marginBottom: 18,
+    borderRadius: 18,
+    marginHorizontal: 12,
+    backgroundColor: "#f7e9e2",
+    justifyContent: "center",
+  },
+  bannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 22,
+    height: "100%",
+  },
+  bannerLogoWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 18,
+    shadowColor: "#ad4e28",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  bannerLogo: {
+    width: 38,
+    height: 38,
+  },
+  bannerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#ad4e28",
+    flexShrink: 1,
+  },
+
   section: { marginBottom: 18, paddingHorizontal: 12 },
   sectionHeader: {
     flexDirection: "row",
@@ -139,44 +198,66 @@ const styles = StyleSheet.create({
 
   // Organization card styles
   orgCard: {
-    width: 160,
+    width: 200,
+    minHeight: 210,
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 12,
-    marginRight: 12,
+    borderRadius: 20,
+    padding: 18,
+    marginRight: 18,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
     borderWidth: 1,
     borderColor: "#f3f3f3",
   },
-  orgImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    marginBottom: 8,
-    backgroundColor: "#eee",
+  orgAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#d16b2b",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#ad4e28",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  orgAvatarText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 28,
   },
   orgName: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: 16,
     color: "#222",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 16,
   },
   orgFollowBtn: {
-    backgroundColor: PRIMARY,
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 18,
+    backgroundColor: "#ffa63a",
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    width: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#ffa63a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   orgFollowText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
+    letterSpacing: 0.2,
   },
 
   // Campaign card styles

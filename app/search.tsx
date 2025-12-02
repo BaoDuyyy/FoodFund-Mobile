@@ -1,26 +1,55 @@
+import CampaignService from '@/services/campaignService';
+import OrganizationService from '@/services/organizationService';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'accounts' | 'campaigns'>('accounts');
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'organizations'>('campaigns');
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const mockAccounts = [
-    { id: 'a1', name: 'Lưu Trung Thái', handle: '@luutrungthai1' },
-    { id: 'a2', name: 'CLB THIỆN NGUYỆN NHỮNG ĐÔI CHÂN TRẦN', handle: '@clbthiennguyen...' },
-    { id: 'a3', name: 'Thiện nguyện Hoa Hướng Dương', handle: '@ngocanh1987' },
-    { id: 'a4', name: 'Trương Tâm Như', handle: '@tamnhu9597' },
-  ].filter((a) => (a.name + a.handle).toLowerCase().includes(query.toLowerCase()));
-
-  const mockCampaigns = [
-    { id: 'c1', title: 'kêu gọi ủng hộ ạaaa', supports: 2, daysLeft: 17, amount: '60.000 đ', percent: 1 },
-    { id: 'c2', title: 'QUỸ GIEO 3CG', supports: 1, daysLeft: 1874, amount: '7.550.198 đ', percent: 2 },
-    { id: 'c3', title: '12000 cuốn Kinh Dược Sư', supports: 1, daysLeft: 394, amount: '1.000.000 đ', percent: 0 },
-    { id: 'c4', title: 'ÁO ẤM CHO EM 2025', supports: 0, daysLeft: 45, amount: 'Hãy là người ủng hộ đầu tiên', percent: 0 },
-  ].filter((c) => (c.title).toLowerCase().includes(query.toLowerCase()));
+  useEffect(() => {
+    let mounted = true;
+    async function fetchData() {
+      setLoading(true);
+      try {
+        if (activeTab === 'campaigns') {
+          const data = await CampaignService.listCampaigns({ sortBy: 'MOST_DONATED', limit: 20 });
+          if (mounted) {
+            const filtered = query
+              ? data.filter((c: any) =>
+                  (c.title || '').toLowerCase().includes(query.toLowerCase())
+                )
+              : data;
+            setCampaigns(filtered);
+          }
+        } else {
+          const data = await OrganizationService.listActiveOrganizations();
+          if (mounted) {
+            const filtered = query
+              ? data.filter((o: any) =>
+                  (o.name || '').toLowerCase().includes(query.toLowerCase())
+                )
+              : data;
+            setOrganizations(filtered);
+          }
+        }
+      } catch (err) {
+        // handle error if needed
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, query]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,64 +71,75 @@ export default function SearchPage() {
         {/* tabs ngay dưới search */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'accounts' && styles.tabActive]}
-            onPress={() => setActiveTab('accounts')}
-          >
-            <Text style={[styles.tabText, activeTab === 'accounts' && styles.tabTextActive]}>Tài khoản</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.tabButton, activeTab === 'campaigns' && styles.tabActive]}
             onPress={() => setActiveTab('campaigns')}
           >
             <Text style={[styles.tabText, activeTab === 'campaigns' && styles.tabTextActive]}>Chiến dịch</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'organizations' && styles.tabActive]}
+            onPress={() => setActiveTab('organizations')}
+          >
+            <Text style={[styles.tabText, activeTab === 'organizations' && styles.tabTextActive]}>Tổ chức</Text>
+          </TouchableOpacity>
         </View>
 
-        {activeTab === 'accounts' ? (
+        {activeTab === 'campaigns' ? (
           <FlatList
-            data={mockAccounts}
+            data={campaigns}
             keyExtractor={(i) => i.id}
+            refreshing={loading}
             renderItem={({ item }) => (
-              <View style={styles.accountItem}>
-                <View style={styles.avatar}><Text style={styles.avatarText}>{item.name.split(' ').slice(-1)[0][0]}</Text></View>
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.accountName}>{item.name}</Text>
-                  <Text style={styles.accountHandle}>{item.handle}</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push(`/campaign/${item.id}`)}
+              >
+                <View style={styles.campaignItem}>
+                  <View style={styles.thumb}>
+                    {item.coverImage ? (
+                      <Image
+                        source={{ uri: item.coverImage }}
+                        style={styles.thumbImage}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.campaignTitle}>{item.title}</Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.metaText}>{item.donationCount ?? 0} lượt ủng hộ</Text>
+                      <Text style={[styles.metaText, { marginLeft: 8 }]}>•</Text>
+                      <Text style={[styles.metaText, { marginLeft: 8 }]}>Còn lại {item.daysLeft ?? '--'} ngày</Text>
+                    </View>
+                    <Text style={[styles.amount, { marginTop: 8 }]}>
+                      {item.receivedAmount ? Number(item.receivedAmount).toLocaleString('vi-VN') + ' đ' : 'Hãy là người ủng hộ đầu tiên'}
+                    </Text>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${Math.min(item.fundingProgress ?? 0, 100)}%` }]} />
+                    </View>
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             ListEmptyComponent={<Text style={styles.empty}>Không có kết quả</Text>}
           />
         ) : (
           <FlatList
-            data={mockCampaigns}
+            data={organizations}
             keyExtractor={(i) => i.id}
+            refreshing={loading}
             renderItem={({ item }) => (
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => {
-                  // navigate to campaign page with id
-                  // example path: /campaign?id=c1
-                  // expo-router will expose params on the campaign page
-                  // keep it simple and use query param
-                  router.push(`/campaign?id=${item.id}`);
-                }}
-                style={{}}
+                onPress={() => router.push(`/organization/${item.id}`)}
               >
-                <View style={styles.campaignItem}>
-                  <View style={styles.thumb} />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.campaignTitle}>{item.title}</Text>
-                    <View style={styles.metaRow}>
-                      <Text style={styles.metaText}>{item.supports} lượt ủng hộ</Text>
-                      <Text style={[styles.metaText, { marginLeft: 8 }]}>•</Text>
-                      <Text style={[styles.metaText, { marginLeft: 8 }]}>Còn lại {item.daysLeft} ngày</Text>
-                    </View>
-                    {/* amount then progress bar below */}
-                    <Text style={[styles.amount, { marginTop: 8 }]}>{item.amount}</Text>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: `${Math.min(item.percent, 100)}%` }]} />
-                    </View>
+                <View style={styles.accountItem}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{item.name?.charAt(0)?.toUpperCase() || '?'}</Text>
+                  </View>
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.accountName}>{item.name}</Text>
+                    <Text style={styles.accountHandle}>{item.email || item.phone || ''}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -169,7 +209,20 @@ const styles = StyleSheet.create({
 
   /* campaigns */
   campaignItem: { flexDirection: 'row', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5', alignItems: 'flex-start' },
-  thumb: { width: 84, height: 84, borderRadius: 10, backgroundColor: '#f2d9b8' },
+  thumb: {
+    width: 84,
+    height: 84,
+    borderRadius: 10,
+    backgroundColor: '#f2d9b8',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
   campaignTitle: { fontSize: 17, fontWeight: '700', color: '#111' },
   metaRow: { flexDirection: 'row', marginTop: 6, alignItems: 'center' },
   metaText: { color: '#9b9b9b', fontSize: 13 },

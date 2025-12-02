@@ -49,7 +49,7 @@ function getTimeline(campaign: CampaignDetail): TimelineItem[] {
   // Các phase
   const phases = (campaign.phases || []).slice();
 
-  phases.forEach((p, idx) => {
+  phases.forEach((p) => {
     // Ingredient purchase
     if (p.ingredientPurchaseDate) {
       const dt = formatDateTime(p.ingredientPurchaseDate);
@@ -83,16 +83,18 @@ function getTimeline(campaign: CampaignDetail): TimelineItem[] {
   });
 
   // Đánh dấu mốc hiện tại
-  let currentIdx = items.findIndex(i => i.status === "upcoming");
+  let currentIdx = items.findIndex((i) => i.status === "upcoming");
   if (currentIdx === -1) currentIdx = items.length - 1;
+
   const finalItems: TimelineItem[] = items.map((item, idx) => ({
     ...item,
-    status: idx < currentIdx
-      ? "done"
-      : idx === currentIdx
-      ? "current"
-      : "upcoming"
-  }) as TimelineItem);
+    status:
+      idx < currentIdx
+        ? "done"
+        : idx === currentIdx
+        ? "current"
+        : "upcoming",
+  }));
 
   return finalItems;
 }
@@ -114,53 +116,114 @@ export default function TimelineTabs({
           style={[styles.tabBtn, activeTab === "phases" && styles.tabActive]}
           onPress={() => setActiveTab("phases")}
         >
-          <Text style={[styles.tabText, activeTab === "phases" && styles.tabTextActive]}>Giai đoạn</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "phases" && styles.tabTextActive,
+            ]}
+          >
+            Giai đoạn
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === "timeline" && styles.tabActive]}
           onPress={() => setActiveTab("timeline")}
         >
-          <Text style={[styles.tabText, activeTab === "timeline" && styles.tabTextActive]}>Mốc thời gian</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "timeline" && styles.tabTextActive,
+            ]}
+          >
+            Mốc thời gian
+          </Text>
         </TouchableOpacity>
       </View>
+
       {activeTab === "phases" ? (
-        <View>
-          {/* Render children (giai đoạn) từ parent */}
-          {children}
-        </View>
+        <View>{children}</View>
       ) : (
-        <FlatList
+        <FlatList<TimelineItem>
           data={timeline}
           keyExtractor={(_, idx) => idx.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.timelineItem}>
-              <View
-                style={[
-                  styles.statusDot,
-                  item.status === "done"
-                    ? { backgroundColor: "#43b46b" }
-                    : item.status === "current"
-                    ? { backgroundColor: "#ffb86c" }
-                    : { backgroundColor: "#ccc" },
-                ]}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.timelineLabel}>{item.label}</Text>
-                <Text style={styles.timelineDate}>{item.date} {item.time && `- ${item.time}`}</Text>
+          contentContainerStyle={{ paddingTop: 4 }}
+          renderItem={({ item, index }) => {
+            const isFirst = index === 0;
+            const isLast = index === timeline.length - 1;
+
+            const statusColor =
+              item.status === "done"
+                ? "#16a34a"
+                : item.status === "current"
+                ? "#f97316"
+                : "#d4d4d4";
+
+            const statusText =
+              item.status === "done"
+                ? "Hoàn thành"
+                : item.status === "current"
+                ? "Đang thực hiện"
+                : "Sắp tới";
+
+            const cardBg =
+              item.status === "done"
+                ? "#ecfdf3"
+                : item.status === "current"
+                ? "#fff7ed"
+                : "#f9fafb";
+
+            return (
+              <View style={styles.timelineRow}>
+                {/* Cột line + chấm tròn */}
+                <View style={styles.timelineCol}>
+                  {!isFirst && <View style={styles.line} />}
+                  <View
+                    style={[
+                      styles.bulletOuter,
+                      { borderColor: statusColor },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.bulletInner,
+                        { backgroundColor: statusColor },
+                      ]}
+                    />
+                  </View>
+                  {!isLast && <View style={styles.line} />}
+                </View>
+
+                {/* Card nội dung */}
+                <View style={[styles.timelineCard, { backgroundColor: cardBg }]}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.timelineLabel}>{item.label}</Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: `${statusColor}22` },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          { color: statusColor },
+                        ]}
+                      >
+                        {statusText}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.dateRow}>
+                    <Text style={styles.calendarIcon}>📅</Text>
+                    <Text style={styles.timelineDate}>
+                      {item.date}
+                      {item.time ? ` | ${item.time}` : ""}
+                    </Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.statusBox}>
-                {item.status === "done" && (
-                  <Text style={styles.statusDone}>Hoàn thành</Text>
-                )}
-                {item.status === "current" && (
-                  <Text style={styles.statusCurrent}>Đang thực hiện</Text>
-                )}
-                {item.status === "upcoming" && (
-                  <Text style={styles.statusUpcoming}>Sắp tới</Text>
-                )}
-              </View>
-            </View>
-          )}
+            );
+          }}
         />
       )}
     </View>
@@ -177,26 +240,83 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignItems: "center",
   },
-  tabActive: { backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  tabActive: {
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   tabText: { color: "#333", fontWeight: "600" },
   tabTextActive: { color: "#ad4e28" },
-  timelineItem: {
+
+  // Timeline
+  timelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  timelineCol: {
+    width: 34,
+    alignItems: "center",
+  },
+  line: {
+    width: 2,
+    flex: 1,
+    backgroundColor: "#f97316",
+  },
+  bulletOuter: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 3,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  bulletInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  timelineCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    marginBottom: 4,
   },
-  statusDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    marginRight: 12,
+  timelineLabel: {
+    fontWeight: "700",
+    color: "#222",
+    fontSize: 15,
+    flexShrink: 1,
   },
-  timelineLabel: { fontWeight: "700", color: "#222", fontSize: 15 },
-  timelineDate: { color: "#888", fontSize: 13, marginTop: 2 },
-  statusBox: { marginLeft: 12 },
-  statusDone: { color: "#43b46b", fontWeight: "700" },
-  statusCurrent: { color: "#ffb86c", fontWeight: "700" },
-  statusUpcoming: { color: "#888", fontWeight: "700" },
+  statusBadge: {
+    marginLeft: "auto",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  calendarIcon: {
+    marginRight: 6,
+  },
+  timelineDate: {
+    color: "#888",
+    fontSize: 13,
+    fontWeight: "500",
+  },
 });
