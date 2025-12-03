@@ -1,5 +1,6 @@
 import { getGraphqlUrl } from "../config/api";
 import { CREATE_DONATION_MUTATION } from "../graphql/mutation/createDonation";
+import { GET_MY_DONATIONS } from "../graphql/query/getMyDonations";
 import { SEARCH_DONATION_STATEMENTS_QUERY } from "../graphql/query/searchDonationStatements";
 import type { CreateDonationInput, CreateDonationResult } from "../types/api/donation";
 import AuthService from "./authService";
@@ -91,6 +92,56 @@ export const DonationService = {
     }
     const payload = json.data?.searchDonationStatements;
     if (!payload) throw new Error("No donation statements found");
+    return payload;
+  },
+
+  // Lịch sử ủng hộ của current user (không cần input, chỉ dùng token)
+  async getMyDonations(
+    overrideUrl?: string,
+    options: { skip?: number; take?: number } = {}
+  ) {
+    const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
+
+    const skip = options.skip ?? 0;
+    const take = options.take ?? 10;
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: GET_MY_DONATIONS,
+          variables: { skip, take },
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Network error ${res.status}: ${text}`);
+    }
+
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error("Invalid JSON from server");
+
+    if (json.errors?.length) {
+      const errMsg = json.errors
+        .map((e: any) => e.message || JSON.stringify(e))
+        .join("; ");
+      throw new Error(errMsg);
+    }
+
+    const payload = json.data?.getMyDonations;
+    if (!payload) {
+      throw new Error("Empty getMyDonations response");
+    }
     return payload;
   },
 };

@@ -95,60 +95,72 @@ export default function IngredientRequestPage() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              {/* Header card */}
-              <View style={styles.cardHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>
-                    Yêu cầu #{item.shortCode || item.id?.slice(0, 8) || "—"}
-                  </Text>
-                  <Text style={styles.cardMeta}>
-                    Ngày tạo:{" "}
-                    {item.created_at
-                      ? new Date(item.created_at).toLocaleString("vi-VN")
-                      : "—"}
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/expenseProof",
+                  params: {
+                    requestId: item.id,
+                  },
+                })
+              }
+              activeOpacity={0.9}
+            >
+              <View style={styles.card}>
+                {/* Header card */}
+                <View style={styles.cardHeaderRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>
+                      Yêu cầu #{item.shortCode || item.id?.slice(0, 8) || "—"}
+                    </Text>
+                    <Text style={styles.cardMeta}>
+                      Ngày tạo:{" "}
+                      {item.created_at
+                        ? new Date(item.created_at).toLocaleString("vi-VN")
+                        : "—"}
+                    </Text>
+                  </View>
+                  {renderStatusChip(item.status)}
+                </View>
+
+                {/* Tổng tiền */}
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Tổng chi phí dự kiến</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(item.totalCost)}
                   </Text>
                 </View>
-                {renderStatusChip(item.status)}
-              </View>
 
-              {/* Tổng tiền */}
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Tổng chi phí dự kiến</Text>
-                <Text style={styles.totalValue}>
-                  {formatCurrency(item.totalCost)}
-                </Text>
-              </View>
-
-              {/* Danh sách nguyên liệu */}
-              <View style={styles.divider} />
-              <Text style={styles.cardSectionTitle}>Danh sách nguyên liệu</Text>
-              {Array.isArray(item.items) && item.items.length > 0 ? (
-                item.items.map((ing: any) => (
-                  <View key={ing.id} style={styles.ingredientRow}>
-                    <View style={styles.ingredientBullet} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.ingredientName}>
-                        {ing.ingredientName}
-                      </Text>
-                      <Text style={styles.ingredientDetail}>
-                        Số lượng: {ing.quantity} • Thành tiền ước tính:{" "}
-                        {formatCurrency(ing.estimatedTotalPrice)}
-                      </Text>
-                      {ing.supplier ? (
-                        <Text style={styles.ingredientSupplier}>
-                          Nhà cung cấp: {ing.supplier}
+                {/* Danh sách nguyên liệu */}
+                <View style={styles.divider} />
+                <Text style={styles.cardSectionTitle}>Danh sách nguyên liệu</Text>
+                {Array.isArray(item.items) && item.items.length > 0 ? (
+                  item.items.map((ing: any) => (
+                    <View key={ing.id} style={styles.ingredientRow}>
+                      <View style={styles.ingredientBullet} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.ingredientName}>
+                          {ing.ingredientName}
                         </Text>
-                      ) : null}
+                        <Text style={styles.ingredientDetail}>
+                          Số lượng: {ing.quantity} • Thành tiền ước tính:{" "}
+                          {formatCurrency(ing.estimatedTotalPrice)}
+                        </Text>
+                        {ing.supplier ? (
+                          <Text style={styles.ingredientSupplier}>
+                            Nhà cung cấp: {ing.supplier}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.emptyItemsText}>
-                  Không có nguyên liệu nào trong yêu cầu này.
-                </Text>
-              )}
-            </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyItemsText}>
+                    Không có nguyên liệu nào trong yêu cầu này.
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
             <View style={styles.emptyBox}>

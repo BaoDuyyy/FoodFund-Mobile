@@ -1,6 +1,8 @@
 import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
+import ExpenseProofService from "@/services/expenseProofService";
 import type { CampaignDetail } from "@/types/api/campaign";
+import type { ExpenseProof } from "@/types/api/expenseProof";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -24,6 +26,8 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expenseProofs, setExpenseProofs] = useState<ExpenseProof[]>([]);
+  const [loadingExpenseProofs, setLoadingExpenseProofs] = useState(false);
   const { width } = useWindowDimensions();
 
   useEffect(() => {
@@ -33,7 +37,30 @@ export default function CampaignDetailPage() {
     async function load() {
       try {
         const detail = await CampaignService.getCampaign(id as string);
-        if (mounted) setCampaign(detail);
+        if (!mounted) return;
+        setCampaign(detail);
+
+        // load expense proofs gắn với campaignId = campaign.id
+        if (detail?.id) {
+          setLoadingExpenseProofs(true);
+          try {
+            const proofs = await ExpenseProofService.getExpenseProofs({
+              filter: {
+                campaignId: detail.id,
+                campaignPhaseId: null,
+                requestId: null,
+                status: null,
+              },
+              limit: 5,
+              offset: 0,
+            });
+            if (mounted) setExpenseProofs(proofs || []);
+          } catch (err) {
+            console.error("Error loading expense proofs:", err);
+          } finally {
+            if (mounted) setLoadingExpenseProofs(false);
+          }
+        }
       } catch (err) {
         console.error("Error loading campaign detail:", err);
       } finally {
@@ -259,6 +286,76 @@ export default function CampaignDetailPage() {
                   <Text style={styles.desc}>Không có giai đoạn nào.</Text>
                 )}
               </TimelineTabs>
+            </View>
+
+            {/* EXPENSE PROOFS SECTION */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Chứng từ chi tiêu</Text>
+
+              {loadingExpenseProofs ? (
+                <ActivityIndicator
+                  color={PRIMARY}
+                  size="small"
+                  style={{ marginTop: 8 }}
+                />
+              ) : expenseProofs.length === 0 ? (
+                <Text style={styles.desc}>
+                  Chưa có chứng từ chi tiêu nào cho chiến dịch này.
+                </Text>
+              ) : (
+                expenseProofs.map((proof, idx) => (
+                  <View
+                    key={proof.id || `${proof.requestId}-${idx}`}
+                    style={styles.expenseProofBlock}
+                  >
+                    <Text style={styles.expenseProofTitle}>
+                      Chứng từ #{idx + 1}
+                    </Text>
+                    <Text style={styles.expenseProofAmount}>
+                      Số tiền: {Number(proof.amount || 0).toLocaleString("vi-VN")} đ
+                    </Text>
+                    <Text style={styles.expenseProofMeta}>
+                      Trạng thái: {proof.status}
+                    </Text>
+                    <Text style={styles.expenseProofMeta}>
+                      Ngày tạo:{" "}
+                      {proof.created_at
+                        ? new Date(proof.created_at).toLocaleString("vi-VN")
+                        : "—"}
+                    </Text>
+
+                    {Array.isArray(proof.media) && proof.media.length > 0 && (
+                      <View style={styles.expenseProofImagesRow}>
+                        {proof.media.map((url, i) => {
+                          if (typeof url !== "string") return null;
+                          const lower = url.toLowerCase();
+                          const isImage =
+                            lower.endsWith(".jpg") ||
+                            lower.endsWith(".jpeg") ||
+                            lower.endsWith(".png") ||
+                            lower.includes("image");
+                          if (!isImage) return null;
+
+                          return (
+                            <Image
+                              key={`${proof.id}-img-${i}`}
+                              source={{ uri: url }}
+                              style={styles.expenseProofImage}
+                              resizeMode="cover"
+                            />
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    {proof.adminNote ? (
+                      <Text style={styles.expenseProofNote}>
+                        Ghi chú: {proof.adminNote}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))
+              )}
             </View>
           </View>
         }
@@ -555,5 +652,46 @@ const styles = StyleSheet.create({
     marginTop: 40,
     color: "red",
     fontWeight: "600",
+  },
+
+  // Expense Proofs
+  expenseProofBlock: {
+    marginTop: 8,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f1e4dd",
+  },
+  expenseProofTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: PRIMARY,
+    marginBottom: 2,
+  },
+  expenseProofAmount: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#222",
+  },
+  expenseProofMeta: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 1,
+  },
+  expenseProofNote: {
+    fontSize: 12,
+    color: "#b45309",
+    marginTop: 2,
+  },
+  expenseProofImagesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 6,
+    gap: 6,
+  },
+  expenseProofImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: "#eee",
   },
 });

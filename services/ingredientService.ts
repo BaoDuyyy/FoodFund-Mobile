@@ -5,13 +5,21 @@ import type { CreateIngredientRequestInput, CreateIngredientRequestPayload } fro
 import AuthService from "./authService";
 
 export const IngredientService = {
-  async createIngredientRequest(input: CreateIngredientRequestInput, overrideUrl?: string): Promise<CreateIngredientRequestPayload> {
+  async createIngredientRequest(
+    input: CreateIngredientRequestInput,
+    overrideUrl?: string
+  ): Promise<CreateIngredientRequestPayload> {
     const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();   // 👈 Lấy access token
+
     let res: Response;
     try {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}), // 👈 Gửi kèm
+        },
         body: JSON.stringify({
           query: CREATE_INGREDIENT_REQUEST_MUTATION,
           variables: { input },
@@ -20,20 +28,28 @@ export const IngredientService = {
     } catch (err: any) {
       throw new Error(`Cannot connect to server: ${err?.message || err}`);
     }
+
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`Network error ${res.status}: ${text}`);
     }
+
     const json = await res.json().catch(() => null);
     if (!json) throw new Error('Invalid JSON from server');
+
     if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join('; ');
+      const errMsg = json.errors
+        .map((e: any) => e.message || JSON.stringify(e))
+        .join('; ');
       throw new Error(errMsg);
     }
-    const payload: CreateIngredientRequestPayload | undefined = json.data?.createIngredientRequest;
+
+    const payload: CreateIngredientRequestPayload | undefined =
+      json.data?.createIngredientRequest;
     if (!payload) throw new Error('Empty createIngredientRequest response');
     return payload;
   },
+
 
   async getMyIngredientRequests({ limit = 10, offset = 0 } = {}) {
     const url = getGraphqlUrl();
