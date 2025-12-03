@@ -7,16 +7,26 @@ import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+type StatusKey = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'IN_PROGRESS' | 'APPROVED';
+
+const STATUS_TABS: { key: StatusKey; label: string; backendStatus: string | null }[] = [
+  { key: 'ALL', label: 'Tất cả trạng thái', backendStatus: null },
+  { key: 'ACTIVE', label: 'Đang gây quỹ', backendStatus: 'ACTIVE' },
+  { key: 'COMPLETED', label: 'Hoàn thành', backendStatus: 'COMPLETED' },
+  { key: 'IN_PROGRESS', label: 'Đang trong tiến trình', backendStatus: 'IN_PROGRESS' },
+  { key: 'APPROVED', label: 'Đã duyệt', backendStatus: 'APPROVED' },
+];
 
 export default function HomePage() {
   const router = useRouter();
@@ -24,7 +34,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
 
   // Filter state
-  const [status, setStatus] = useState<'ACTIVE' | 'CANCELLED'>('ACTIVE');
+  const [statusTabs, setStatusTabs] = useState(STATUS_TABS);
+  const [selectedStatusKey, setSelectedStatusKey] = useState<StatusKey>('ACTIVE');
   const [categories, setCategories] = useState<
     { id: string; title: string; description?: string }[]
   >([]);
@@ -62,9 +73,13 @@ export default function HomePage() {
     async function load() {
       setLoading(true);
       try {
+        const current = statusTabs.find((t) => t.key === selectedStatusKey) || STATUS_TABS[0];
+        const statusFilter =
+          current.backendStatus === null ? null : [current.backendStatus];
+
         const data = await CampaignService.listCampaigns({
           filter: {
-            status: [status],
+            status: statusFilter as any, // null hoặc string[]
             creatorId: null,
             categoryId: categoryId || null,
           },
@@ -84,7 +99,19 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [status, categoryId]);
+  }, [selectedStatusKey, categoryId, statusTabs]);
+
+  const handleSelectStatus = (key: StatusKey) => {
+    setSelectedStatusKey(key);
+    setStatusTabs((prev) => {
+      const idx = prev.findIndex((t) => t.key === key);
+      if (idx <= 0) return prev;
+      const copy = [...prev];
+      const [item] = copy.splice(idx, 1);
+      copy.unshift(item);
+      return copy;
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,39 +136,34 @@ export default function HomePage() {
       <View style={styles.content}>
         <Text style={styles.title}>Chiến dịch nổi bật</Text>
 
-        {/* Block filter: dòng 1 là trạng thái, dòng 2 là danh mục */}
+        {/* Block filter: dòng 1 là trạng thái (scroll ngang), dòng 2 là danh mục */}
         <View style={styles.filterBlock}>
-          {/* Row 1: trạng thái */}
-          <View style={styles.segmentedControl}>
-            <TouchableOpacity
-              style={[styles.segmentBtn, status === 'ACTIVE' && styles.segmentActive]}
-              onPress={() => setStatus('ACTIVE')}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  status === 'ACTIVE' && styles.segmentTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                Đang hoạt động
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.segmentBtn, status === 'CANCELLED' && styles.segmentActive]}
-              onPress={() => setStatus('CANCELLED')}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  status === 'CANCELLED' && styles.segmentTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                Đã hủy
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Row 1: trạng thái dạng thẻ ngang */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.statusTabsRow}
+          >
+            {statusTabs.map((tab) => {
+              const active = tab.key === selectedStatusKey;
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.statusChip, active && styles.statusChipActive]}
+                  onPress={() => handleSelectStatus(tab.key)}
+                >
+                  <Text
+                    style={[
+                      styles.statusChipText,
+                      active && styles.statusChipTextActive,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
           {/* Row 2: danh mục */}
           <TouchableOpacity
@@ -209,7 +231,8 @@ export default function HomePage() {
                 router.push(`/campaign/${item.id}` as unknown as any);
               }}
             />
-          )}
+          )
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16, paddingTop: 8 }}
         />
@@ -262,37 +285,36 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // row 1: segmented control full width
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: '#f7f7f7',
-    borderRadius: 8,
+  // hàng status tags
+  statusTabsRow: {
+    paddingVertical: 4,
+  },
+  statusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: '#eee',
-    overflow: 'hidden',
+    backgroundColor: '#f7f7f7',
+    marginRight: 8,
   },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentActive: {
+  statusChipActive: {
     backgroundColor: '#ad4e28',
+    borderColor: '#ad4e28',
   },
-  segmentText: {
-    color: '#ad4e28',
+  statusChipText: {
+    fontSize: 13,
     fontWeight: '700',
-    fontSize: 15,
+    color: '#ad4e28',
   },
-  segmentTextActive: {
+  statusChipTextActive: {
     color: '#fff',
   },
 
-  // row 2: category
+  // giữ nguyên category styles
   categoryBtn: {
     marginTop: 8,
-    alignSelf: 'flex-start', // chỉ vừa nội dung, không kéo full màn
+    alignSelf: 'flex-start',
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,

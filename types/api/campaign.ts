@@ -75,3 +75,27 @@ export type CampaignDetail = {
   } | null;
   phases?: Phase[] | null;
 };
+
+export type CampaignDonationStatementTransaction = {
+  donationId: string;
+  transactionDateTime: string | null;
+  donorName: string | null;
+  amount: string;
+  receivedAmount: string;
+  transactionStatus: string;
+  paymentStatus: string;
+  gateway: string | null;
+  orderCode: string;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  description: string | null;
+};
+
+export type CampaignDonationStatement = {
+  campaignId: string;
+  campaignTitle: string;
+  totalReceived: string;
+  totalDonations: number;
+  generatedAt: string;
+  transactions: CampaignDonationStatementTransaction[];
+};

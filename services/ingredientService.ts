@@ -4,6 +4,23 @@ import { GET_MY_INGREDIENT_REQUESTS_QUERY } from '@/graphql/query/getMyIngredien
 import type { CreateIngredientRequestInput, CreateIngredientRequestPayload } from '@/types/api/ingredientRequest';
 import AuthService from "./authService";
 
+// kiểu dữ liệu đơn giản cho getMyIngredientRequests (tạm thời, có thể tách sang types/api sau)
+export type MyIngredientRequestItem = {
+  id: string;
+  ingredientName: string;
+  quantity: string;
+  estimatedTotalPrice: number;
+};
+
+export type MyIngredientRequest = {
+  id: string;
+  campaignPhaseId: string;
+  totalCost: string;
+  status: string;
+  created_at: string;
+  items: MyIngredientRequestItem[];
+};
+
 export const IngredientService = {
   async createIngredientRequest(
     input: CreateIngredientRequestInput,
@@ -51,7 +68,9 @@ export const IngredientService = {
   },
 
 
-  async getMyIngredientRequests({ limit = 10, offset = 0 } = {}) {
+  async getMyIngredientRequests(
+    { limit = 10, offset = 0 } = {}
+  ): Promise<MyIngredientRequest[]> {
     const url = getGraphqlUrl();
     const token = await AuthService.getAccessToken();
     let res: Response;
@@ -84,7 +103,7 @@ export const IngredientService = {
     if (!Array.isArray(payload)) {
       throw new Error('Empty or invalid getMyIngredientRequests response');
     }
-    return payload;
+    return payload as MyIngredientRequest[];
   },
 };
 

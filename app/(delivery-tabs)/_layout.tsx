@@ -1,4 +1,3 @@
-// app/(kitchen-tabs)/_layout.tsx
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
@@ -6,14 +5,14 @@ import React from 'react';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
-export default function KitchenTabsLayout() {
+export default function DeliveryTabsLayout() {
   const ICONS: Record<string, MaterialIconName> = {
-    'k-home': 'home',
-    'k-campaign': 'favorite',
-    'k-news': 'article',
-    'k-staff': 'group',
-    'k-organization': 'group',
-    'k-profile': 'person',
+    'd-home': 'home',
+    'd-campaign': 'favorite',
+    'd-news': 'article',
+    'd-staff': 'group',
+    'd-organization': 'group',
+    'd-profile': 'person',
   };
 
   return (
@@ -28,10 +27,11 @@ export default function KitchenTabsLayout() {
         tabBarInactiveTintColor: '#8e8e93',
       })}
     >
-      <Tabs.Screen name="k-home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="k-campaign" options={{ title: 'Campaign' }} />
-      <Tabs.Screen name="k-organization" options={{ title: 'Organization' }} />
-      <Tabs.Screen name="k-profile" options={{ title: 'Profile' }} />
+      <Tabs.Screen name="d-home" options={{ title: 'Home' }} />
+      <Tabs.Screen name="d-campaign" options={{ title: 'Campaign' }} />
+      {/* <Tabs.Screen name="d-news" options={{ title: 'News' }} /> */}
+      <Tabs.Screen name="d-organization" options={{ title: 'Organization' }} />
+      <Tabs.Screen name="d-profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }

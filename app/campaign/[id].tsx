@@ -5,7 +5,15 @@ import DonationService from "@/services/donationService";
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import RenderHTML from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,12 +25,12 @@ import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PRIMARY = "#ad4e28";
-const { width } = useWindowDimensions();
 
 export default function CampaignDetailPage() {
   const router = useRouter();
   const params = useLocalSearchParams() as { id?: string };
   const id = params?.id;
+  const { width } = useWindowDimensions(); // 👈 chuyển hook vào trong component
 
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,12 +55,10 @@ export default function CampaignDetailPage() {
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
   const [agreedRefundPolicy, setAgreedRefundPolicy] = useState(false);
 
-  // Giả sử có biến kiểm tra đăng nhập
-  const isLoggedIn = true; // Thay bằng logic thực tế
+  const isLoggedIn = true; // TODO: thay bằng logic thực tế
 
   useEffect(() => {
-    // Kiểm tra đã đồng ý quy định hoàn tiền chưa
-    AsyncStorage.getItem("agreedRefundPolicy").then(val => {
+    AsyncStorage.getItem("agreedRefundPolicy").then((val) => {
       setAgreedRefundPolicy(val === "true");
     });
   }, []);
@@ -149,7 +155,159 @@ export default function CampaignDetailPage() {
     setDonateModal(true);
   };
 
-  const progress = Math.max(0, Math.min(100, Number(campaign?.fundingProgress || 0)));
+  const progress = Math.max(
+    0,
+    Math.min(100, Number(campaign?.fundingProgress || 0))
+  );
+
+  const headerContent = () => {
+    if (error) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      );
+    }
+
+    if (!campaign) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.placeholder}>No campaign selected</Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {/* Cover */}
+        <Image
+          source={{ uri: campaign.coverImage || undefined }}
+          style={styles.image}
+        />
+
+        <View style={styles.content}>
+          {/* Tiêu đề + creator */}
+          <Text style={styles.title}>{campaign.title}</Text>
+          <View style={styles.creatorRow}>
+            <Text style={styles.creatorLabel}>Người tạo:</Text>
+            <Text style={styles.creatorName}>
+              {campaign.creator?.full_name || "—"}
+            </Text>
+          </View>
+
+          {/* Card tiến độ */}
+          <View style={styles.campaignCard}>
+            <View style={styles.orgRow}>
+              <Ionicons name="business" size={22} color="#ff8800" />
+              <View style={{ marginLeft: 8 }}>
+                <Text style={styles.orgName}>
+                  {campaign.creator?.full_name || "—"}
+                </Text>
+                <TouchableOpacity>
+                  <Text style={styles.orgLink}>Xem sao kê tài khoản →</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.infoTitleRow}>
+              <Ionicons
+                name="information-circle"
+                size={18}
+                color="#222"
+              />
+              <Text style={styles.infoTitle2}>Thông tin chiến dịch</Text>
+            </View>
+
+            <View style={styles.campaignMetaRow}>
+              <View style={styles.campaignMetaCol}>
+                <FontAwesome name="bullseye" size={16} color="#ad4e28" />
+                <Text style={styles.campaignMetaLabel}>
+                  Mục tiêu chiến dịch
+                </Text>
+                <Text style={styles.campaignMetaValue}>
+                  {formatCurrency(campaign.targetAmount)}
+                </Text>
+              </View>
+              <View style={styles.campaignMetaCol}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color="#4285F4"
+                />
+                <Text style={styles.campaignMetaLabel}>
+                  Thời gian còn lại
+                </Text>
+                <Text style={styles.campaignMetaValue}>
+                  {getDaysLeft(campaign.fundraisingEndDate)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.campaignProgressBarBg}>
+              <View
+                style={[
+                  styles.campaignProgressBarFill,
+                  { width: `${progress}%` },
+                ]}
+              />
+            </View>
+
+            <View style={styles.campaignAchievedRow}>
+              <Text style={styles.campaignAchievedText}>
+                {formatCurrency(campaign.receivedAmount)} /{" "}
+                {formatCurrency(campaign.targetAmount)}
+              </Text>
+              <Text style={styles.campaignAchievedPercent}>
+                {Math.round(progress)}%
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.campaignDonateBtn}
+              onPress={handleDonatePress}
+            >
+              <Text style={styles.campaignDonateBtnText}>Ủng hộ</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.campaignDirectionBtn}>
+              <Ionicons name="navigate" size={18} color="#ad4e28" />
+              <Text style={styles.campaignDirectionBtnText}>
+                Chỉ đường
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.campaignShareBtn}>
+              <Text style={styles.campaignShareText}>
+                Chia sẻ chiến dịch để lan tỏa yêu thương
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Mô tả */}
+          <Text style={styles.sectionTitle}>Mô tả</Text>
+          <RenderHTML
+            contentWidth={width}
+            source={{ html: campaign.description || "<p>—</p>" }}
+            baseStyle={styles.descriptionHtml}
+          />
+
+          {/* Danh sách ủng hộ */}
+          <DonationList donationStats={donationStats} campaign={campaign} />
+
+          {/* Timeline / Giai đoạn */}
+          <TimelineTabs campaign={campaign}>
+            {campaign.phases && campaign.phases.length ? (
+              campaign.phases.map((p: Phase) => (
+                <PhaseBudget key={p.id} phase={p} />
+              ))
+            ) : (
+              <Text style={styles.description}>Chưa có giai đoạn</Text>
+            )}
+          </TimelineTabs>
+        </View>
+      </>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,139 +316,25 @@ export default function CampaignDetailPage() {
         message={donating ? "Đang tạo giao dịch..." : "Loading campaign..."}
       />
 
-      {/* Header giống login/signup */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+        >
           <Text style={styles.backText}>‹ Quay lại</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {error ? (
-          <View style={styles.center}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : campaign ? (
-          <>
-            {/* Ảnh cover */}
-            <Image
-              source={{ uri: campaign.coverImage || undefined }}
-              style={styles.image}
-            />
+      {/* ✅ Dùng FlatList thay cho ScrollView */}
+      <FlatList
+        data={[1]} // dummy
+        keyExtractor={() => "header"}
+        renderItem={null as any}
+        ListHeaderComponent={headerContent}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      />
 
-            {/* Nội dung */}
-            <View style={styles.content}>
-              <Text style={styles.title}>{campaign.title}</Text>
-              <View style={styles.creatorRow}>
-                <Text style={styles.creatorLabel}>Người tạo:</Text>
-                <Text style={styles.creatorName}>
-                  {campaign.creator?.full_name || "—"}
-                </Text>
-              </View>
-
-              {/* Card tiến độ gây quỹ - THAY THẾ BẰNG CARD MỚI */}
-              <View style={styles.campaignCard}>
-                {/* Tổ chức / Người đại diện */}
-                <View style={styles.orgRow}>
-                  <Ionicons name="business" size={22} color="#ff8800" />
-                  <View style={{ marginLeft: 8 }}>
-                    <Text style={styles.orgName}>
-                      {campaign.creator?.full_name || "—"}
-                    </Text>
-                    <TouchableOpacity>
-                      <Text style={styles.orgLink}>Xem sao kê tài khoản →</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Thông tin chiến dịch */}
-                <View style={styles.infoTitleRow}>
-                  <Ionicons name="information-circle" size={18} color="#222" />
-                  <Text style={styles.infoTitle2}>Thông tin chiến dịch</Text>
-                </View>
-                <View style={styles.campaignMetaRow}>
-                  <View style={styles.campaignMetaCol}>
-                    {/* Đổi sang FontAwesome bullseye */}
-                    <FontAwesome name="bullseye" size={16} color="#ad4e28" />
-                    <Text style={styles.campaignMetaLabel}>Mục tiêu chiến dịch</Text>
-                    <Text style={styles.campaignMetaValue}>
-                      {formatCurrency(campaign.targetAmount)}
-                    </Text>
-                  </View>
-                  <View style={styles.campaignMetaCol}>
-                    <Ionicons name="time-outline" size={16} color="#4285F4" />
-                    <Text style={styles.campaignMetaLabel}>Thời gian còn lại</Text>
-                    <Text style={styles.campaignMetaValue}>
-                      {getDaysLeft(campaign.fundraisingEndDate)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Progress bar */}
-                <View style={styles.campaignProgressBarBg}>
-                  <View style={[styles.campaignProgressBarFill, { width: `${progress}%` }]} />
-                </View>
-
-                {/* Đã đạt được */}
-                <View style={styles.campaignAchievedRow}>
-                  <Text style={styles.campaignAchievedText}>
-                    {formatCurrency(campaign.receivedAmount)} / {formatCurrency(campaign.targetAmount)}
-                  </Text>
-                  <Text style={styles.campaignAchievedPercent}>{Math.round(progress)}%</Text>
-                </View>
-
-                {/* Nút ủng hộ */}
-                <TouchableOpacity
-                  style={styles.campaignDonateBtn}
-                  onPress={handleDonatePress}
-                >
-                  <Text style={styles.campaignDonateBtnText}>Ủng hộ</Text>
-                </TouchableOpacity>
-
-                {/* Nút chỉ đường */}
-                <TouchableOpacity style={styles.campaignDirectionBtn}>
-                  <Ionicons name="navigate" size={18} color="#ad4e28" />
-                  <Text style={styles.campaignDirectionBtnText}>Chỉ đường</Text>
-                </TouchableOpacity>
-
-                {/* Chia sẻ */}
-                <TouchableOpacity style={styles.campaignShareBtn}>
-                  <Text style={styles.campaignShareText}>
-                    Chia sẻ chiến dịch để lan tỏa yêu thương
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Mô tả */}
-              <Text style={styles.sectionTitle}>Mô tả</Text>
-              <RenderHTML
-                contentWidth={width}
-                source={{ html: campaign.description || "<p>—</p>" }}
-                baseStyle={styles.descriptionHtml}
-              />
-
-
-              {/* Danh sách ủng hộ */}
-              <DonationList donationStats={donationStats} campaign={campaign} />
-
-              {/* Giai đoạn / mốc thời gian */}
-              <TimelineTabs campaign={campaign}>
-                {campaign.phases && campaign.phases.length ? (
-                  campaign.phases.map((p: Phase) => <PhaseBudget key={p.id} phase={p} />)
-                ) : (
-                  <Text style={styles.description}>Chưa có giai đoạn</Text>
-                )}
-              </TimelineTabs>
-            </View>
-          </>
-        ) : (
-          <View style={styles.center}>
-            <Text style={styles.placeholder}>No campaign selected</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Popup nhập thông tin ủng hộ */}
       <DonateModal
         visible={donateModal}
         onClose={() => setDonateModal(false)}
@@ -319,7 +363,9 @@ function getDaysLeft(endDate?: string | null) {
   if (!endDate) return "—";
   const now = new Date();
   const end = new Date(endDate);
-  const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const diff = Math.ceil(
+    (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
   return diff > 0 ? diff : 0;
 }
 

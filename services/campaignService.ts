@@ -1,9 +1,11 @@
 import { getGraphqlUrl } from "../config/api";
 import { GET_CAMPAIGN_QUERY } from "../graphql/query/getCampaign";
+import { GET_CAMPAIGN_DONATION_STATEMENT } from "../graphql/query/getCampaignDonationStatement";
 import { LIST_CAMPAIGNS_QUERY } from "../graphql/query/listCampaigns";
 import { SEARCH_CAMPAIGNS_QUERY } from "../graphql/query/searchCampaigns";
 import type {
   CampaignDetail,
+  CampaignDonationStatement,
   CampaignItem,
   ListCampaignsResponse,
   ListCampaignsVars,
@@ -20,6 +22,10 @@ const DEFAULT_VARS: ListCampaignsVars = {
   sortBy: "MOST_DONATED",
   limit: 10,
   offset: 0,
+};
+
+type GetCampaignDonationStatementPayload = {
+  getCampaignDonationStatement: CampaignDonationStatement;
 };
 
 export const CampaignService = {
@@ -163,6 +169,55 @@ export const CampaignService = {
       throw new Error("Empty or invalid searchCampaigns response");
     }
     return payload.items;
+  },
+
+  async getCampaignDonationStatement(
+    campaignId: string,
+    overrideUrl?: string
+  ): Promise<CampaignDonationStatement> {
+    if (!campaignId) throw new Error("campaignId is required");
+
+    const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: GET_CAMPAIGN_DONATION_STATEMENT,
+          variables: { campaignId },
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Network error ${res.status}: ${text}`);
+    }
+
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error("Invalid JSON from server");
+
+    if (json.errors?.length) {
+      const errMsg = json.errors
+        .map((e: any) => e.message || JSON.stringify(e))
+        .join("; ");
+      throw new Error(errMsg);
+    }
+
+    const payload: GetCampaignDonationStatementPayload | undefined = json.data;
+    if (!payload || !payload.getCampaignDonationStatement) {
+      throw new Error("Empty or invalid getCampaignDonationStatement response");
+    }
+
+    return payload.getCampaignDonationStatement;
   },
 };
 

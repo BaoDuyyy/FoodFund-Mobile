@@ -76,8 +76,9 @@ export default function LoginScreen() {
       const { role } = await AuthService.getUserInfo();
 
       if (role === 'KITCHEN_STAFF') {
-        // cast để bỏ qua lỗi type, route này chạy OK ở runtime
-        router.replace('/k-home');
+        router.replace('/k-organization');
+      } else if (role === 'DELIVERY_STAFF') {
+        router.replace('/d-home');
       } else {
         router.replace('/home');
       }
