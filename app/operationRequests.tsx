@@ -66,11 +66,30 @@ export default function OperationRequestsPage() {
             </Text>
           </View>
         </View>
+
+        <View style={styles.metaRow}>
+          <View style={styles.metaChip}>
+            <Text style={styles.metaChipLabel}>Loại chi phí</Text>
+            <Text style={styles.metaChipValue}>
+              {item.expenseType === "COOKING"
+                ? "Nấu ăn"
+                : item.expenseType === "DELIVERY"
+                ? "Vận chuyển"
+                : item.expenseType}
+            </Text>
+          </View>
+          <View style={styles.metaChip}>
+            <Text style={styles.metaChipLabel}>Ngày tạo</Text>
+            <Text style={styles.metaChipValue}>{createdAt}</Text>
+          </View>
+        </View>
+
         <Text style={styles.metaText}>
-          Loại chi phí: {item.expenseType === "COOKING" ? "Nấu ăn" : item.expenseType}
+          Tổng chi phí:{" "}
+          <Text style={styles.metaStrong}>
+            {amountNum.toLocaleString("vi-VN")} đ
+          </Text>
         </Text>
-        <Text style={styles.metaText}>Tổng chi phí: {amountNum.toLocaleString("vi-VN")} đ</Text>
-        <Text style={styles.metaText}>Ngày tạo: {createdAt}</Text>
       </View>
     );
   };
@@ -79,12 +98,18 @@ export default function OperationRequestsPage() {
     <SafeAreaView style={styles.container}>
       <Loading visible={false} message="" />
 
-      {/* HEADER */}
+      {/* HEADER có nền cong giống các màn khác */}
+      <View style={styles.headerBg} />
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yêu cầu giải ngân của tôi</Text>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerTitle}>Yêu cầu giải ngân của tôi</Text>
+          <Text style={styles.headerSubtitle}>
+            Theo dõi các khoản chi đã gửi xét duyệt
+          </Text>
+        </View>
         <View style={{ width: 32 }} />
       </View>
 
@@ -97,7 +122,8 @@ export default function OperationRequestsPage() {
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>Chưa có yêu cầu giải ngân nào</Text>
           <Text style={styles.emptyDesc}>
-            Hãy tạo yêu cầu đầu tiên từ trang chi tiết chiến dịch.
+            Hãy tạo yêu cầu đầu tiên từ trang chi tiết chiến dịch để kế toán có
+            thể xử lý.
           </Text>
         </View>
       ) : (
@@ -106,6 +132,7 @@ export default function OperationRequestsPage() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
@@ -129,35 +156,15 @@ function getStatusChipTextStyle(status: string) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: "#fff",
-  },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#f3e1d6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backIcon: {
-    color: PRIMARY,
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: -2,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "700",
-    color: PRIMARY,
+  headerBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,                // tăng nhẹ để chữ thoáng
+    backgroundColor: PRIMARY,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
 
   loadingBox: {
@@ -170,50 +177,124 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 14,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#ffe6d8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backIcon: {
+    color: PRIMARY,
+    fontSize: 22,
+    fontWeight: "900",
+  },
+
+  headerTextWrap: { flex: 1, marginLeft: 10 },
+  headerTitle: {
+    fontSize: 20,               // bigger
+    fontWeight: "800",
+    color: "#fff",
+  },
+  headerSubtitle: {
+    fontSize: 14,               // bigger
+    color: "#ffead4",
+    marginTop: 3,
+  },
+
+  legendRow: {
+    flexDirection: "row",
+    paddingHorizontal: 18,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 16,
+  },
+  legendItem: { flexDirection: "row", alignItems: "center" },
+  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
+  legendText: { fontSize: 14, color: "#374151" },
 
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingBottom: 40,
   },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 10,
+    borderRadius: 16,
+    padding: 16,                // tăng padding
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#f0d6c7",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeaderRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 10,
   },
   cardTitle: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 17,               // bigger
+    fontWeight: "800",
     color: PRIMARY,
-    marginRight: 8,
   },
+
   statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    minWidth: 80,
+    alignItems: "center",
   },
   statusChipText: {
-    fontSize: 11,
+    fontSize: 13,               // bigger
     fontWeight: "700",
   },
+
+  metaRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 6,
+    flexWrap: "wrap",
+  },
+  metaChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "#f9fafb",
+  },
+  metaChipLabel: {
+    fontSize: 13,               // bigger
+    color: "#6b7280",
+  },
+  metaChipValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+
   metaText: {
-    fontSize: 12,
-    color: "#4b5563",
-    marginTop: 2,
+    fontSize: 14,               // bigger
+    color: "#374151",
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  metaStrong: {
+    fontWeight: "700",
+    color: "#111827",
   },
 
   emptyBox: {
@@ -223,15 +304,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 4,
-    textAlign: "center",
+    marginBottom: 6,
   },
   emptyDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#6b7280",
     textAlign: "center",
   },
 });
+
+

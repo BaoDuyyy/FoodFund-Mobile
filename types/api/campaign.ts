@@ -26,6 +26,10 @@ export type CampaignItem = {
     id: string;
     title?: string | null;
   } | null;
+  organization?: {
+    id: string;
+    name?: string | null;
+  } | null;
 };
 
 export type ListCampaignsResponse = {
@@ -72,6 +76,10 @@ export type CampaignDetail = {
   creator?: {
     id: string;
     full_name?: string | null;
+  } | null;
+  organization?: {
+    id: string;
+    name?: string | null;
   } | null;
   phases?: Phase[] | null;
 };

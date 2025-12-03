@@ -14,12 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PRIMARY = "#ad4e28";
-const BG = "#fff7f2";
+const BG = "#f5f7fb";
 
 type Phase = {
   id: string;
   phaseName: string;
-  // ...other fields ignored
 };
 
 const EXPENSE_TYPES = ["COOKING", "DELIVERY"] as const;
@@ -96,11 +95,17 @@ export default function OperationRequestPage() {
       <Loading visible={submitting} message="Đang gửi yêu cầu..." />
 
       {/* HEADER */}
+      <View style={styles.headerBg} />
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tạo yêu cầu giải ngân</Text>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerTitle}>Tạo yêu cầu giải ngân</Text>
+          <Text style={styles.headerSubtitle}>
+            Hỗ trợ bếp minh bạch trong từng khoản chi
+          </Text>
+        </View>
         <View style={{ width: 32 }} />
       </View>
 
@@ -109,82 +114,111 @@ export default function OperationRequestPage() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Chọn phase */}
-        <Text style={styles.label}>Giai đoạn chiến dịch</Text>
-        {phases.length === 0 ? (
-          <Text style={styles.helperText}>
-            Không có giai đoạn nào được truyền vào.
+        {/* Card 1: giai đoạn + loại chi phí */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Thông tin chung</Text>
+          <Text style={styles.cardDesc}>
+            Chọn giai đoạn chiến dịch và loại chi phí bạn muốn xin giải ngân.
           </Text>
-        ) : (
+
+          {/* Chọn phase */}
+          <Text style={styles.label}>Giai đoạn chiến dịch</Text>
+          {phases.length === 0 ? (
+            <Text style={styles.helperText}>
+              Không có giai đoạn nào được truyền vào.
+            </Text>
+          ) : (
+            <View style={styles.chipRow}>
+              {phases.map((p) => {
+                const active = p.id === selectedPhaseId;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => setSelectedPhaseId(p.id)}
+                  >
+                    <Text
+                      style={[styles.chipText, active && styles.chipTextActive]}
+                      numberOfLines={1}
+                    >
+                      {p.phaseName}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Expense type */}
+          <Text style={styles.label}>Loại chi phí</Text>
           <View style={styles.chipRow}>
-            {phases.map((p) => {
-              const active = p.id === selectedPhaseId;
+            {EXPENSE_TYPES.map((t) => {
+              const active = t === expenseType;
               return (
                 <TouchableOpacity
-                  key={p.id}
-                  style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => setSelectedPhaseId(p.id)}
+                  key={t}
+                  style={[styles.chip, active && styles.chipActiveSoft]}
+                  onPress={() => setExpenseType(t)}
                 >
                   <Text
-                    style={[styles.chipText, active && styles.chipTextActive]}
+                    style={[
+                      styles.chipText,
+                      active && styles.chipTextActiveSoft,
+                    ]}
                   >
-                    {p.phaseName}
+                    {t === "COOKING" ? "Nấu ăn" : "Vận chuyển"}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        )}
-
-        {/* Expense type */}
-        <Text style={styles.label}>Loại chi phí</Text>
-        <View style={styles.chipRow}>
-          {EXPENSE_TYPES.map((t) => {
-            const active = t === expenseType;
-            return (
-              <TouchableOpacity
-                key={t}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => setExpenseType(t)}
-              >
-                <Text
-                  style={[styles.chipText, active && styles.chipTextActive]}
-                >
-                  {t === "COOKING" ? "Nấu ăn" : "Vận chuyển"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
         </View>
 
-        {/* Title */}
-        <Text style={styles.label}>Tiêu đề</Text>
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Ví dụ: Chi phí nguyên liệu"
-        />
+        {/* Card 2: chi tiết yêu cầu */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Chi tiết yêu cầu</Text>
+          <Text style={styles.cardDesc}>
+            Mô tả ngắn gọn nội dung và số tiền cần giải ngân để bộ phận kế toán
+            dễ theo dõi.
+          </Text>
 
-        {/* Total cost */}
-        <Text style={styles.label}>Tổng chi phí</Text>
-        <TextInput
-          style={styles.input}
-          value={totalCost}
-          onChangeText={(t) => setTotalCost(t.replace(/[^0-9]/g, ""))}
-          keyboardType="number-pad"
-          placeholder="Nhập số tiền"
-        />
+          {/* Title */}
+          <Text style={styles.label}>Tiêu đề</Text>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Ví dụ: Chi phí nguyên liệu"
+            placeholderTextColor="#9ca3af"
+          />
 
+          {/* Total cost */}
+          <Text style={styles.label}>Tổng chi phí (VND)</Text>
+          <TextInput
+            style={styles.input}
+            value={totalCost}
+            onChangeText={(t) => setTotalCost(t.replace(/[^0-9]/g, ""))}
+            keyboardType="number-pad"
+            placeholder="Nhập số tiền"
+            placeholderTextColor="#9ca3af"
+          />
+          <Text style={styles.helperText}>
+            Số tiền sẽ được đối chiếu với chứng từ chi sau khi gửi.
+          </Text>
+        </View>
+
+        {/* Buttons */}
         <TouchableOpacity
-          style={styles.submitBtn}
+          style={[
+            styles.submitBtn,
+            (submitting || phases.length === 0) && { opacity: 0.7 },
+          ]}
           onPress={handleSubmit}
           disabled={submitting || phases.length === 0}
         >
           <Text style={styles.submitBtnText}>Tạo yêu cầu</Text>
         </TouchableOpacity>
 
-        {/* Nút xem danh sách yêu cầu */}
         <TouchableOpacity
           style={styles.listBtn}
           onPress={() => router.push("/operationRequests")}
@@ -199,20 +233,29 @@ export default function OperationRequestPage() {
 const styles = StyleSheet.create({
   // layout
   container: { flex: 1, backgroundColor: BG },
+
+  headerBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 110,
+    backgroundColor: PRIMARY,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: "#fff",
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   backBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#f3e1d6",
+    backgroundColor: "#ffe4d5",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -222,37 +265,70 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: -2,
   },
-  headerTitle: {
+  headerTextWrap: {
     flex: 1,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "700",
-    color: PRIMARY,
+    marginLeft: 10,
   },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: "#fed7aa",
+    marginTop: 2,
+  },
+
   content: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 24,
+  },
+
+  // cards
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: PRIMARY,
+    marginBottom: 4,
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 8,
   },
 
   label: {
     fontSize: 13,
     fontWeight: "700",
-    color: PRIMARY,
-    marginTop: 12,
+    color: "#374151",
+    marginTop: 10,
     marginBottom: 4,
   },
   helperText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6b7280",
-    marginBottom: 8,
+    marginTop: 4,
   },
 
   chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 4,
   },
   chip: {
     paddingHorizontal: 10,
@@ -266,6 +342,10 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY,
     borderColor: PRIMARY,
   },
+  chipActiveSoft: {
+    backgroundColor: "#fff7ed",
+    borderColor: PRIMARY,
+  },
   chipText: {
     fontSize: 12,
     color: "#374151",
@@ -274,25 +354,33 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: "#fff",
   },
+  chipTextActiveSoft: {
+    color: PRIMARY,
+  },
 
   input: {
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     backgroundColor: "#fff",
     fontSize: 14,
     color: "#111827",
   },
 
   submitBtn: {
-    marginTop: 20,
+    marginTop: 18,
     backgroundColor: PRIMARY,
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitBtnText: {
     color: "#fff",
@@ -300,7 +388,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   listBtn: {
-    marginTop: 12,
+    marginTop: 10,
     borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",

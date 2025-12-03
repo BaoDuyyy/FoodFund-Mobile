@@ -2,6 +2,7 @@ import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
 import DonationService from "@/services/donationService";
+import OrganizationService from "@/services/organizationService"; // 👈 NEW
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -30,7 +31,7 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const params = useLocalSearchParams() as { id?: string };
   const id = params?.id;
-  const { width } = useWindowDimensions(); // 👈 chuyển hook vào trong component
+  const { width } = useWindowDimensions();
 
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,9 @@ export default function CampaignDetailPage() {
 
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
   const [agreedRefundPolicy, setAgreedRefundPolicy] = useState(false);
+
+  // 👇 đại diện tổ chức (id cần truyền sang /statement)
+  const [representativeId, setRepresentativeId] = useState<string | null>(null);
 
   const isLoggedIn = true; // TODO: thay bằng logic thực tế
 
@@ -85,6 +89,31 @@ export default function CampaignDetailPage() {
       mounted = false;
     };
   }, [id]);
+
+  // 👇 Khi đã có campaign và organizationId → gọi OrganizationService lấy representative.id
+  useEffect(() => {
+    if (!campaign?.organization?.id) return;
+
+    let mounted = true;
+    const loadOrg = async () => {
+      try {
+        const org = await OrganizationService.getOrganizationById(
+          campaign.organization!.id
+        );
+        if (!mounted) return;
+        const repId = org?.representative?.id ?? null;
+        setRepresentativeId(repId);
+      } catch (err) {
+        console.error("Error loading organization:", err);
+        if (mounted) setRepresentativeId(null);
+      }
+    };
+
+    loadOrg();
+    return () => {
+      mounted = false;
+    };
+  }, [campaign?.organization?.id]);
 
   useEffect(() => {
     async function loadDonationStats() {
@@ -155,6 +184,15 @@ export default function CampaignDetailPage() {
     setDonateModal(true);
   };
 
+  // 👇 nhấn "Xem sao kê tài khoản →"
+  const handleViewStatement = () => {
+    if (!representativeId) return;
+    router.push({
+      pathname: "/statement",
+      params: { representativeId },
+    });
+  };
+
   const progress = Math.max(
     0,
     Math.min(100, Number(campaign?.fundingProgress || 0))
@@ -186,57 +224,62 @@ export default function CampaignDetailPage() {
         />
 
         <View style={styles.content}>
-          {/* Tiêu đề + creator */}
+          {/* Tiêu đề + tổ chức */}
           <Text style={styles.title}>{campaign.title}</Text>
+
           <View style={styles.creatorRow}>
-            <Text style={styles.creatorLabel}>Người tạo:</Text>
+            <Text style={styles.creatorLabel}>Tổ chức nhận quyên góp:</Text>
             <Text style={styles.creatorName}>
-              {campaign.creator?.full_name || "—"}
+              {campaign.organization?.name ||
+                campaign.creator?.full_name ||
+                "—"}
             </Text>
           </View>
 
-          {/* Card tiến độ */}
+          {/* Card tiến độ + thông tin tổ chức */}
           <View style={styles.campaignCard}>
             <View style={styles.orgRow}>
               <Ionicons name="business" size={22} color="#ff8800" />
               <View style={{ marginLeft: 8 }}>
                 <Text style={styles.orgName}>
-                  {campaign.creator?.full_name || "—"}
+                  {campaign.organization?.name ||
+                    campaign.creator?.full_name ||
+                    "—"}
                 </Text>
-                <TouchableOpacity>
-                  <Text style={styles.orgLink}>Xem sao kê tài khoản →</Text>
+
+                <TouchableOpacity
+                  onPress={handleViewStatement}
+                  disabled={!representativeId}
+                >
+                  <Text
+                    style={[
+                      styles.orgLink,
+                      !representativeId && { opacity: 0.5 },
+                    ]}
+                  >
+                    Xem sao kê tài khoản →
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* ... phần còn lại giữ nguyên ... */}
             <View style={styles.infoTitleRow}>
-              <Ionicons
-                name="information-circle"
-                size={18}
-                color="#222"
-              />
+              <Ionicons name="information-circle" size={18} color="#222" />
               <Text style={styles.infoTitle2}>Thông tin chiến dịch</Text>
             </View>
 
             <View style={styles.campaignMetaRow}>
               <View style={styles.campaignMetaCol}>
-                <FontAwesome name="bullseye" size={16} color="#ad4e28" />
-                <Text style={styles.campaignMetaLabel}>
-                  Mục tiêu chiến dịch
-                </Text>
+                <FontAwesome name="bullseye" size={16} color={PRIMARY} />
+                <Text style={styles.campaignMetaLabel}>Mục tiêu chiến dịch</Text>
                 <Text style={styles.campaignMetaValue}>
                   {formatCurrency(campaign.targetAmount)}
                 </Text>
               </View>
               <View style={styles.campaignMetaCol}>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color="#4285F4"
-                />
-                <Text style={styles.campaignMetaLabel}>
-                  Thời gian còn lại
-                </Text>
+                <Ionicons name="time-outline" size={16} color="#4285F4" />
+                <Text style={styles.campaignMetaLabel}>Thời gian còn lại</Text>
                 <Text style={styles.campaignMetaValue}>
                   {getDaysLeft(campaign.fundraisingEndDate)}
                 </Text>
@@ -270,10 +313,8 @@ export default function CampaignDetailPage() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.campaignDirectionBtn}>
-              <Ionicons name="navigate" size={18} color="#ad4e28" />
-              <Text style={styles.campaignDirectionBtnText}>
-                Chỉ đường
-              </Text>
+              <Ionicons name="navigate" size={18} color={PRIMARY} />
+              <Text style={styles.campaignDirectionBtnText}>Chỉ đường</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.campaignShareBtn}>
@@ -317,17 +358,13 @@ export default function CampaignDetailPage() {
       />
 
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹ Quay lại</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Dùng FlatList thay cho ScrollView */}
       <FlatList
-        data={[1]} // dummy
+        data={[1]}
         keyExtractor={() => "header"}
         renderItem={null as any}
         ListHeaderComponent={headerContent}
@@ -353,6 +390,7 @@ export default function CampaignDetailPage() {
     </SafeAreaView>
   );
 }
+
 
 function formatCurrency(v?: string | number | null) {
   const n = Number(v || 0);
