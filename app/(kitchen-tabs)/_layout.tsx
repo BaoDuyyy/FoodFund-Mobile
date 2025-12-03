@@ -11,7 +11,8 @@ export default function KitchenTabsLayout() {
     'k-home': 'home',
     'k-campaign': 'favorite',
     'k-news': 'article',
-    staff: 'group',
+    'k-staff': 'group',
+    'k-organization': 'group',
     'k-profile': 'person',
   };
 
@@ -30,7 +31,7 @@ export default function KitchenTabsLayout() {
       <Tabs.Screen name="k-home" options={{ title: 'Home' }} />
       <Tabs.Screen name="k-campaign" options={{ title: 'Campaign' }} />
       <Tabs.Screen name="k-news" options={{ title: 'News' }} />
-      <Tabs.Screen name="k-staff" options={{ title: 'Staff' }} />
+      <Tabs.Screen name="k-organization" options={{ title: 'Organization' }} />
       <Tabs.Screen name="k-profile" options={{ title: 'Profile' }} />
     </Tabs>
   );

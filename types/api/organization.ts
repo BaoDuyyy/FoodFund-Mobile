@@ -23,6 +23,7 @@ export interface OrganizationRepresentative {
   avatar_url?: string;
   is_active?: boolean;
   role?: string;
+  cognito_id?: string;
 }
 
 export interface Organization {

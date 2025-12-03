@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
 
   repBox: {
     // bỏ flex: 1
-    width: "100%",               // card người đại diện cũng full chiều ngang
+    width: "100%",
     backgroundColor: "#fff",
     borderRadius: 14,
     padding: 14,

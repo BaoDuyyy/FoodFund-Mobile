@@ -1,6 +1,7 @@
 import { getGraphqlUrl } from "../config/api";
 import { GET_CAMPAIGN_QUERY } from "../graphql/query/getCampaign";
 import { LIST_CAMPAIGNS_QUERY } from "../graphql/query/listCampaigns";
+import { SEARCH_CAMPAIGNS_QUERY } from "../graphql/query/searchCampaigns";
 import type {
   CampaignDetail,
   CampaignItem,
@@ -121,6 +122,47 @@ export const CampaignService = {
     if (!campaign) throw new Error("Campaign not found");
 
     return campaign;
+  },
+
+  async searchCampaigns(
+    input: any, // input.creatorId should now be cognito_id
+    overrideUrl?: string
+  ): Promise<CampaignItem[]> {
+    const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: SEARCH_CAMPAIGNS_QUERY,
+          variables: { input },
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Network error ${res.status}: ${text}`);
+    }
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error("Invalid JSON from server");
+    if (json.errors?.length) {
+      const errMsg = json.errors
+        .map((e: any) => e.message || JSON.stringify(e))
+        .join("; ");
+      throw new Error(errMsg);
+    }
+    const payload = json.data?.searchCampaigns;
+    if (!payload || !Array.isArray(payload.items)) {
+      throw new Error("Empty or invalid searchCampaigns response");
+    }
+    return payload.items;
   },
 };
 

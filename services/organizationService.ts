@@ -79,6 +79,25 @@ export const OrganizationService = {
     }
     return payload.listActiveOrganizations.organizations;
   },
+
+  async getMyOrganizationId(overrideUrl?: string) {
+    const organizations = await OrganizationService.listActiveOrganizations(overrideUrl);
+    const userInfo = await AuthService.getUserInfo();
+    const myEmail = userInfo.email;
+    if (!myEmail) throw new Error("User email not found in SecureStore");
+
+    for (const org of organizations) {
+      if (Array.isArray(org.members)) {
+        for (const m of org.members) {
+          if (m?.member?.email === myEmail) {
+            // Trả về user id của người đại diện (chủ sở hữu) organization này
+            return org.representative?.id || null;
+          }
+        }
+      }
+    }
+    throw new Error("No organization found for current user");
+  },
 };
 
 export default OrganizationService;

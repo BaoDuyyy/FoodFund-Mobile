@@ -32,6 +32,7 @@ query($getOrganizationByIdId: String!) {
       is_active
       phone_number
       user_name
+      cognito_id
     }
     status
     total_members
