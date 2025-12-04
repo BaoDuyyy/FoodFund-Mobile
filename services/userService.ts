@@ -106,6 +106,27 @@ export const UserService = {
     return payload.generateAvatarUploadUrl;
   },
 
+  // Helper: upload avatar file to presigned URL with public-read ACL
+  async uploadAvatarToSignedUrl(
+    uploadUrl: string,
+    file: Blob | ArrayBuffer,
+    contentType = "application/octet-stream"
+  ): Promise<void> {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+        "x-amz-acl": "public-read",
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Avatar upload failed ${res.status}: ${text}`);
+    }
+  },
+
   async updateMyProfile(
     input: UpdateMyProfileInput,
     overrideUrl?: string

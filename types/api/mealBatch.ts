@@ -18,6 +18,7 @@ export interface MealBatchIngredientUsage {
 
 export interface MealBatch {
   id: string;
+  campaignPhaseId?: string; // thêm để khớp với query getMealBatch
   foodName: string;
   quantity: number;
   media: string[] | null; // hoặc string, tùy backend
@@ -77,4 +78,10 @@ export interface UpdateMealBatchStatusPayload {
   status: MealBatchStatus;
   cookedDate?: string | null;
   media: string[] | null;
+}
+
+// ----- Query payloads -----
+
+export interface GetMealBatchResponse {
+  getMealBatch: MealBatch;
 }

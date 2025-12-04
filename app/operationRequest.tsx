@@ -3,13 +3,13 @@ import OperationService from "@/services/operationService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,6 +19,8 @@ const BG = "#f5f7fb";
 type Phase = {
   id: string;
   phaseName: string;
+  cookingFundsAmount?: number | string | null;
+  deliveryFundsAmount?: number | string | null;
 };
 
 const EXPENSE_TYPES = ["COOKING", "DELIVERY"] as const;
@@ -36,7 +38,12 @@ export default function OperationRequestPage() {
       if (Array.isArray(parsed)) {
         return parsed
           .filter((p) => p && p.id && p.phaseName)
-          .map((p) => ({ id: p.id, phaseName: p.phaseName }));
+          .map((p) => ({
+            id: p.id,
+            phaseName: p.phaseName,
+            cookingFundsAmount: p.cookingFundsAmount ?? null,
+            deliveryFundsAmount: p.deliveryFundsAmount ?? null,
+          }));
       }
       return [];
     } catch {
@@ -48,11 +55,21 @@ export default function OperationRequestPage() {
     phases[0]?.id || ""
   );
   const [expenseType, setExpenseType] = useState<ExpenseType>("COOKING");
-  const [title, setTitle] = useState("Chi phí nguyên liệu");
-  const [totalCost, setTotalCost] = useState("0");
+  const [title, setTitle] = useState("Chi phí");
+  const [totalCost, setTotalCost] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || null;
+
+  const currentBudget = (() => {
+    if (!selectedPhase) return 0;
+    const raw =
+      expenseType === "COOKING"
+        ? selectedPhase.cookingFundsAmount
+        : selectedPhase.deliveryFundsAmount;
+    const n = Number(raw ?? 0);
+    return isNaN(n) ? 0 : n;
+  })();
 
   const handleSubmit = async () => {
     if (!selectedPhase) {
@@ -79,7 +96,7 @@ export default function OperationRequestPage() {
       Alert.alert("Thành công", "Đã tạo yêu cầu giải ngân.", [
         {
           text: "OK",
-          onPress: () => router.back(),
+          onPress: () => router.push("/operationRequests"),
         },
       ]);
     } catch (err: any) {
@@ -172,6 +189,21 @@ export default function OperationRequestPage() {
               );
             })}
           </View>
+
+          {currentBudget > 0 && (
+            <View style={styles.budgetBox}>
+              <Text style={styles.budgetLabel}>
+                Ngân sách cho loại chi phí này
+              </Text>
+              <Text style={styles.budgetValue}>
+                {currentBudget.toLocaleString("vi-VN")} VND
+              </Text>
+              <Text style={styles.budgetHint}>
+                Bạn nên tạo yêu cầu giải ngân tổng cộng không vượt quá số tiền
+                này cho giai đoạn đang chọn.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Card 2: chi tiết yêu cầu */}
@@ -199,7 +231,11 @@ export default function OperationRequestPage() {
             value={totalCost}
             onChangeText={(t) => setTotalCost(t.replace(/[^0-9]/g, ""))}
             keyboardType="number-pad"
-            placeholder="Nhập số tiền"
+            placeholder={
+              currentBudget > 0
+                ? `${currentBudget.toLocaleString("vi-VN")} VND`
+                : "Nhập số tiền"
+            }
             placeholderTextColor="#9ca3af"
           />
           <Text style={styles.helperText}>
@@ -401,5 +437,31 @@ const styles = StyleSheet.create({
     color: PRIMARY,
     fontSize: 14,
     fontWeight: "700",
+  },
+
+  budgetBox: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#f97316",
+    backgroundColor: "#fff7ed",
+  },
+  budgetLabel: {
+    fontSize: 12,
+    color: "#b45309",
+    fontWeight: "600",
+  },
+  budgetValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: PRIMARY,
+    fontWeight: "800",
+  },
+  budgetHint: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#6b7280",
   },
 });

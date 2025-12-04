@@ -3,14 +3,14 @@ import type { MealBatch } from "@/types/api/mealBatch";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -125,63 +125,76 @@ export default function MealBatchListPage() {
   };
 
   const renderItem = ({ item }: { item: MealBatch }) => (
-    <View style={styles.card}>
-      <View style={styles.cardRowTop}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.titleRow}>
-            <Text style={styles.foodName} numberOfLines={1}>
-              {item.foodName}
-            </Text>
-            <View
-              style={[
-                styles.statusPill,
-                { borderColor: getStatusColor(item.status) },
-              ]}
-            >
-              <Text
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() =>
+        router.push({
+          pathname: "/mealbatchDetail",
+          params: {
+            mealBatchId: item.id,
+            campaignId: campaignId || "",
+          },
+        })
+      }
+    >
+      <View style={styles.card}>
+        <View style={styles.cardRowTop}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.titleRow}>
+              <Text style={styles.foodName} numberOfLines={1}>
+                {item.foodName}
+              </Text>
+              <View
                 style={[
-                  styles.statusPillText,
-                  { color: getStatusColor(item.status) },
+                  styles.statusPill,
+                  { borderColor: getStatusColor(item.status) },
                 ]}
               >
-                {item.status}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.metaChipsRow}>
-            <View style={styles.metaChip}>
-              <Text style={styles.metaChipLabel}>Số lượng</Text>
-              <Text style={styles.metaChipValue}>{item.quantity}</Text>
-            </View>
-            {item.cookedDate && (
-              <View style={styles.metaChip}>
-                <Text style={styles.metaChipLabel}>Ngày nấu</Text>
-                <Text style={styles.metaChipValue}>
-                  {new Date(item.cookedDate).toLocaleString("vi-VN")}
+                <Text
+                  style={[
+                    styles.statusPillText,
+                    { color: getStatusColor(item.status) },
+                  ]}
+                >
+                  {item.status}
                 </Text>
               </View>
+            </View>
+
+            <View style={styles.metaChipsRow}>
+              <View style={styles.metaChip}>
+                <Text style={styles.metaChipLabel}>Số lượng</Text>
+                <Text style={styles.metaChipValue}>{item.quantity}</Text>
+              </View>
+              {item.cookedDate && (
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaChipLabel}>Ngày nấu</Text>
+                  <Text style={styles.metaChipValue}>
+                    {new Date(item.cookedDate).toLocaleString("vi-VN")}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {item.kitchenStaff && (
+              <Text style={styles.metaText}>
+                Bếp phụ trách:{" "}
+                <Text style={styles.metaStrong}>{item.kitchenStaff.full_name}</Text>
+              </Text>
             )}
           </View>
+        </View>
 
-          {item.kitchenStaff && (
-            <Text style={styles.metaText}>
-              Bếp phụ trách:{" "}
-              <Text style={styles.metaStrong}>{item.kitchenStaff.full_name}</Text>
-            </Text>
-          )}
+        <View style={styles.cardRowBottom}>
+          <TouchableOpacity
+            style={styles.updateBtn}
+            onPress={() => handleUpdateStatus(item)}
+          >
+            <Text style={styles.updateBtnText}>Cập nhật trạng thái</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.cardRowBottom}>
-        <TouchableOpacity
-          style={styles.updateBtn}
-          onPress={() => handleUpdateStatus(item)}
-        >
-          <Text style={styles.updateBtnText}>Cập nhật trạng thái</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (

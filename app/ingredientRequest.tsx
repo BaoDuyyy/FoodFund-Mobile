@@ -2,12 +2,12 @@ import IngredientService from "@/services/ingredientService";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -101,6 +101,7 @@ export default function IngredientRequestPage() {
                   pathname: "/expenseProof",
                   params: {
                     requestId: item.id,
+                    totalCost: String(item.totalCost ?? ""),
                   },
                 })
               }

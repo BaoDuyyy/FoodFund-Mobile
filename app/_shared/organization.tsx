@@ -7,12 +7,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -23,11 +24,30 @@ export type KOrganizationPageProps = {
   initialOrgId?: string | null;
 };
 
+type TabType = "CAMPAIGNS" | "MEMBERS";
+
+// Map role code -> Vietnamese label
+const MEMBER_ROLE_LABELS: Record<string, string> = {
+  FUNDRAISER: "Người gây quỹ",
+  KITCHEN_STAFF: "Nhân viên bếp",
+  DELIVERY_STAFF: "Nhân viên giao hàng",
+};
+
+function getMemberRoleLabel(role?: string | null) {
+  if (!role) return "Không xác định";
+  const key = role.toUpperCase();
+  return MEMBER_ROLE_LABELS[key] || role;
+}
+
 export default function KOrganizationPage({ initialOrgId }: KOrganizationPageProps) {
   const router = useRouter();
   const [org, setOrg] = useState<Organization | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // tab + search state
+  const [activeTab, setActiveTab] = useState<TabType>("CAMPAIGNS");
+  const [campaignSearch, setCampaignSearch] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -94,6 +114,24 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
       mounted = false;
     };
   }, [initialOrgId]);
+
+  // Filter campaigns by search text
+  const visibleCampaigns = campaigns.filter((c) => {
+    const keyword = campaignSearch.trim().toLowerCase();
+    if (!keyword) return true;
+    const title = c.title?.toLowerCase() ?? "";
+    const category = c.category?.title?.toLowerCase() ?? "";
+    return title.includes(keyword) || category.includes(keyword);
+  });
+
+  // Sort members: FUNDRAISER on top
+  const sortedMembers = (org?.members || []).slice().sort((a, b) => {
+    const roleA = a.member_role;
+    const roleB = b.member_role;
+    if (roleA === "FUNDRAISER" && roleB !== "FUNDRAISER") return -1;
+    if (roleB === "FUNDRAISER" && roleA !== "FUNDRAISER") return 1;
+    return 0;
+  });
 
   if (loading) {
     return (
@@ -165,88 +203,134 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
 
       {/* BODY */}
       <View style={styles.content}>
-        {/* Chiến dịch */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>
-            Chiến dịch ({campaigns.length})
-          </Text>
+        {/* Tabs */}
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "CAMPAIGNS" && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab("CAMPAIGNS")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                activeTab === "CAMPAIGNS" && styles.tabButtonTextActive,
+              ]}
+            >
+              Chiến dịch ({campaigns.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "MEMBERS" && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab("MEMBERS")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                activeTab === "MEMBERS" && styles.tabButtonTextActive,
+              ]}
+            >
+              Thành viên ({sortedMembers.length})
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={campaigns}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const isActive = item.status === "ACTIVE";
-            return (
-              <TouchableOpacity
-                onPress={() => router.push(`/k-campaign/${item.id}` as any)}
-                activeOpacity={0.85}
-                style={styles.campaignCard}
-              >
-                <View style={styles.campaignHeaderRow}>
-                  <Text style={styles.campaignTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: isActive ? "#dcfce7" : "#fee2e2",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusBadgeText,
-                        { color: isActive ? "#16a34a" : "#b91c1c" },
-                      ]}
-                    >
-                      {item.status}
-                    </Text>
-                  </View>
-                </View>
-                {item.category?.title ? (
-                  <Text style={styles.campaignCategory}>
-                    {item.category.title}
-                  </Text>
-                ) : null}
-                <View style={styles.campaignMetaRow}>
-                  <Text style={styles.campaignMetaLabel}>Mục tiêu</Text>
-                  <Text style={styles.campaignMetaValue}>
-                    {item.targetAmount} VND
-                  </Text>
-                </View>
-                <View style={styles.campaignMetaRow}>
-                  <Text style={styles.campaignMetaLabel}>Đã nhận</Text>
-                  <Text style={styles.campaignMetaValue}>
-                    {item.receivedAmount} VND
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-          ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Ionicons
-                name="grid"
-                size={40}
-                color="#d7bfae"
-                style={{ marginBottom: 8 }}
+        {/* Tab content */}
+        {activeTab === "CAMPAIGNS" && (
+          <>
+            {/* Search box */}
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={16} color="#999" style={{ marginRight: 6 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm kiếm chiến dịch..."
+                placeholderTextColor="#999"
+                value={campaignSearch}
+                onChangeText={setCampaignSearch}
+                returnKeyType="search"
               />
-              <Text style={styles.emptyTitle}>Chưa có chiến dịch nào</Text>
-              <Text style={styles.emptyDesc}>
-                Tổ chức này chưa tạo chiến dịch nào.
-              </Text>
             </View>
-          }
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
 
-        {/* Thành viên */}
-        <View style={{ marginTop: 12 }}>
-          <Text style={styles.sectionTitle}>Thành viên</Text>
+            <FlatList
+              data={visibleCampaigns}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isActive = item.status === "ACTIVE";
+                return (
+                  <TouchableOpacity
+                    onPress={() => router.push(`/k-campaign/${item.id}` as any)}
+                    activeOpacity={0.85}
+                    style={styles.campaignCard}
+                  >
+                    <View style={styles.campaignHeaderRow}>
+                      <Text style={styles.campaignTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          {
+                            backgroundColor: isActive ? "#dcfce7" : "#fee2e2",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusBadgeText,
+                            { color: isActive ? "#16a34a" : "#b91c1c" },
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      </View>
+                    </View>
+                    {item.category?.title ? (
+                      <Text style={styles.campaignCategory}>
+                        {item.category.title}
+                      </Text>
+                    ) : null}
+                    <View style={styles.campaignMetaRow}>
+                      <Text style={styles.campaignMetaLabel}>Mục tiêu</Text>
+                      <Text style={styles.campaignMetaValue}>
+                        {item.targetAmount} VND
+                      </Text>
+                    </View>
+                    <View style={styles.campaignMetaRow}>
+                      <Text style={styles.campaignMetaLabel}>Đã nhận</Text>
+                      <Text style={styles.campaignMetaValue}>
+                        {item.receivedAmount} VND
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <Ionicons
+                    name="grid"
+                    size={40}
+                    color="#d7bfae"
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text style={styles.emptyTitle}>Chưa có chiến dịch nào</Text>
+                  <Text style={styles.emptyDesc}>
+                    Tổ chức này chưa tạo chiến dịch nào.
+                  </Text>
+                </View>
+              }
+              contentContainerStyle={{ paddingBottom: 24 }}
+            />
+          </>
+        )}
+
+        {activeTab === "MEMBERS" && (
           <FlatList
-            data={org?.members || []}
+            data={sortedMembers}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={styles.memberCard}>
@@ -260,7 +344,9 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
                     {item.member?.full_name || "—"}
                   </Text>
                   <View style={styles.memberMetaRow}>
-                    <Text style={styles.memberRole}>{item.member_role}</Text>
+                    <Text style={styles.memberRole}>
+                      {getMemberRoleLabel(item.member_role)}
+                    </Text>
                     <Text style={styles.memberDot}>·</Text>
                     <Text style={styles.memberDate}>
                       {item.joined_at
@@ -278,7 +364,7 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
             }
             contentContainerStyle={{ paddingBottom: 24 }}
           />
-        </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -287,7 +373,6 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
 const styles = StyleSheet.create({
   // filepath styles: d:\Sem 9\FoodFund_mobile\app\_shared\k-organization.tsx
   container: { flex: 1, backgroundColor: BG },
-  // ...existing code from original styles...
   loadingWrap: {
     flex: 1,
     alignItems: "center",
@@ -398,6 +483,57 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 16,
   },
+
+  // Tabs
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 999,
+    padding: 3,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: "#fcece3",
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#7a5b4a",
+  },
+  tabButtonTextActive: {
+    color: PRIMARY,
+  },
+
+  // Search
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    paddingVertical: 4,
+    color: "#333",
+  },
+
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",

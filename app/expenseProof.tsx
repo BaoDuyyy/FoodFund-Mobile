@@ -1,19 +1,19 @@
 import ExpenseProofService, {
-    ExpenseProofFileType,
-    ExpenseProofUploadUrl,
+  ExpenseProofFileType,
+  ExpenseProofUploadUrl,
 } from "@/services/expenseProofService";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,11 +28,18 @@ type SelectedFile = {
 
 export default function ExpenseProofPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ requestId?: string }>();
+  const params = useLocalSearchParams<{ requestId?: string; totalCost?: string }>();
   const requestId = useMemo(
     () => (Array.isArray(params.requestId) ? params.requestId[0] : params.requestId),
     [params.requestId]
   );
+  const expectedTotalCost = useMemo(() => {
+    const raw = Array.isArray(params.totalCost)
+      ? params.totalCost[0]
+      : params.totalCost;
+    const n = Number(raw || 0);
+    return Number.isNaN(n) ? 0 : n;
+  }, [params.totalCost]);
 
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [amount, setAmount] = useState("");
@@ -47,37 +54,88 @@ export default function ExpenseProofPage() {
     return "jpg";
   };
 
-  // Chọn file từ thư viện (ảnh/video)
-  const handlePickFiles = async () => {
+  const mapAssetsToFiles = (
+    assets: ImagePicker.ImagePickerAsset[]
+  ): SelectedFile[] =>
+    assets.map((asset) => ({
+      uri: asset.uri,
+      type: detectTypeFromUri(asset.fileName || asset.uri),
+      name: asset.fileName || asset.uri.split("/").pop() || "file",
+    }));
+
+  // Chọn file từ camera hoặc thư viện (ảnh/video)
+  const handlePickMedia = async () => {
     try {
-      // xin quyền (optional nhưng nice-to-have)
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Quyền truy cập", "Ứng dụng cần quyền truy cập thư viện để chọn file.");
-        return;
-      }
+      Alert.alert(
+        "Thêm chứng từ",
+        "Chọn nguồn hình ảnh / video",
+        [
+          {
+            text: "Chụp từ camera",
+            onPress: async () => {
+              try {
+                const perm = await ImagePicker.requestCameraPermissionsAsync();
+                if (!perm.granted) {
+                  Alert.alert(
+                    "Quyền truy cập",
+                    "Ứng dụng cần quyền sử dụng camera."
+                  );
+                  return;
+                }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsMultipleSelection: true,
-        quality: 0.8,
-      });
+                const result = await ImagePicker.launchCameraAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.All,
+                  quality: 0.8,
+                });
 
-      if (result.canceled) return;
+                if (result.canceled || !result.assets?.length) return;
 
-      const assets = result.assets.slice(0, 5); // tối đa 5 file
-      const detectedFiles: SelectedFile[] = assets.map(
-        (asset: ImagePicker.ImagePickerAsset) => ({
-          uri: asset.uri,
-          type: detectTypeFromUri(asset.fileName || asset.uri),
-          name: asset.fileName || asset.uri.split("/").pop() || "file",
-        })
+                const files = mapAssetsToFiles(result.assets);
+                // ghép vào danh sách hiện tại, giới hạn tối đa 5
+                setSelectedFiles((prev) => [...prev, ...files].slice(0, 5));
+              } catch (err: any) {
+                console.error("camera error:", err);
+                Alert.alert("Lỗi", "Không chụp được ảnh/video, vui lòng thử lại.");
+              }
+            },
+          },
+          {
+            text: "Chọn từ thư viện",
+            onPress: async () => {
+              try {
+                const perm =
+                  await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (!perm.granted) {
+                  Alert.alert(
+                    "Quyền truy cập",
+                    "Ứng dụng cần quyền truy cập thư viện để chọn file."
+                  );
+                  return;
+                }
+
+                const result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.All,
+                  allowsMultipleSelection: true,
+                  quality: 0.8,
+                });
+
+                if (result.canceled || !result.assets) return;
+
+                const assets = result.assets.slice(0, 5); // tối đa 5 file
+                const detectedFiles = mapAssetsToFiles(assets);
+                setSelectedFiles(detectedFiles);
+              } catch (err: any) {
+                console.error("pick files error:", err);
+                Alert.alert("Lỗi", "Không chọn được file, vui lòng thử lại.");
+              }
+            },
+          },
+          { text: "Hủy", style: "cancel" },
+        ]
       );
-
-      setSelectedFiles(detectedFiles);
     } catch (err: any) {
-      console.error("pick files error:", err);
-      Alert.alert("Lỗi", "Không chọn được file, vui lòng thử lại.");
+      console.error("pick media error:", err);
+      Alert.alert("Lỗi", "Không thể mở lựa chọn file, vui lòng thử lại.");
     }
   };
 
@@ -204,6 +262,19 @@ export default function ExpenseProofPage() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Upload chứng từ</Text>
 
+          {expectedTotalCost > 0 && (
+            <View style={styles.expectedBox}>
+              <Text style={styles.expectedLabel}>Tổng chi phí dự kiến</Text>
+              <Text style={styles.expectedValue}>
+                {expectedTotalCost.toLocaleString("vi-VN")} đ
+              </Text>
+              <Text style={styles.expectedHint}>
+                Số tiền chi tiêu thực tế nên gần bằng hoặc bằng tổng chi phí dự kiến
+                này.
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.label}>Số tiền chi tiêu (VND)</Text>
           <TextInput
             style={styles.inputFull}
@@ -214,8 +285,10 @@ export default function ExpenseProofPage() {
           />
 
           <Text style={[styles.label, { marginTop: 10 }]}>File chứng từ</Text>
-          <TouchableOpacity style={styles.pickBtn} onPress={handlePickFiles}>
-            <Text style={styles.pickBtnText}>Chọn ảnh / video từ thiết bị</Text>
+          <TouchableOpacity style={styles.pickBtn} onPress={handlePickMedia}>
+            <Text style={styles.pickBtnText}>
+              Chụp ảnh / Chọn ảnh, video từ thiết bị
+            </Text>
           </TouchableOpacity>
 
           {selectedFiles.length > 0 ? (
@@ -472,5 +545,31 @@ const styles = StyleSheet.create({
   urlValue: {
     fontSize: 12,
     color: "#222",
+  },
+
+  expectedBox: {
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    backgroundColor: "#fff7ed",
+  },
+  expectedLabel: {
+    fontSize: 12,
+    color: "#b45309",
+    fontWeight: "600",
+  },
+  expectedValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: PRIMARY,
+    fontWeight: "800",
+  },
+  expectedHint: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#6b7280",
   },
 });

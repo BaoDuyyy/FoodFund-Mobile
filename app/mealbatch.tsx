@@ -127,36 +127,93 @@ export default function MealBatchPage() {
         return "jpg";
     };
 
-    const handlePickFiles = async () => {
+    const mapAssetsToFiles = (assets: ImagePicker.ImagePickerAsset[]): SelectedFile[] => {
+        return assets.map((asset) => ({
+            uri: asset.uri,
+            type: detectTypeFromUri(asset.fileName || asset.uri),
+            name: asset.fileName || asset.uri.split("/").pop() || "file",
+        }));
+    };
+
+    const handlePickMedia = async () => {
         try {
-            const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!perm.granted) {
-                Alert.alert(
-                    "Quyền truy cập",
-                    "Ứng dụng cần quyền truy cập thư viện để chọn ảnh / video."
-                );
-                return;
-            }
+            Alert.alert(
+                "Thêm hình ảnh / video",
+                "Chọn nguồn file bạn muốn sử dụng",
+                [
+                    {
+                        text: "Chụp từ camera",
+                        onPress: async () => {
+                            try {
+                                const perm = await ImagePicker.requestCameraPermissionsAsync();
+                                if (!perm.granted) {
+                                    Alert.alert(
+                                        "Quyền truy cập",
+                                        "Ứng dụng cần quyền sử dụng camera."
+                                    );
+                                    return;
+                                }
+                                const result = await ImagePicker.launchCameraAsync({
+                                    mediaTypes: ImagePicker.MediaTypeOptions.All,
+                                    quality: 0.8,
+                                });
+                                if (result.canceled || !result.assets || result.assets.length === 0) {
+                                    return;
+                                }
+                                const files = mapAssetsToFiles(result.assets);
+                                // thêm vào danh sách hiện tại, giới hạn tối đa 5
+                                setSelectedFiles((prev) =>
+                                    [...prev, ...files].slice(0, 5)
+                                );
+                            } catch (err: any) {
+                                console.error("camera error:", err);
+                                Alert.alert("Lỗi", "Không chụp được, vui lòng thử lại.");
+                            }
+                        },
+                    },
+                    {
+                        text: "Chọn từ thư viện",
+                        onPress: async () => {
+                            try {
+                                const perm =
+                                    await ImagePicker.requestMediaLibraryPermissionsAsync();
+                                if (!perm.granted) {
+                                    Alert.alert(
+                                        "Quyền truy cập",
+                                        "Ứng dụng cần quyền truy cập thư viện để chọn ảnh / video."
+                                    );
+                                    return;
+                                }
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.All,
-                allowsMultipleSelection: true,
-                quality: 0.8,
-            });
+                                const result = await ImagePicker.launchImageLibraryAsync({
+                                    mediaTypes: ImagePicker.MediaTypeOptions.All,
+                                    allowsMultipleSelection: true,
+                                    quality: 0.8,
+                                });
 
-            if (result.canceled) return;
+                                if (result.canceled || !result.assets) return;
 
-            const assets = result.assets.slice(0, 5);
-            const files: SelectedFile[] = assets.map((asset) => ({
-                uri: asset.uri,
-                type: detectTypeFromUri(asset.fileName || asset.uri),
-                name: asset.fileName || asset.uri.split("/").pop() || "file",
-            }));
-
-            setSelectedFiles(files);
+                                const assets = result.assets.slice(0, 5);
+                                const files = mapAssetsToFiles(assets);
+                                setSelectedFiles(files);
+                            } catch (err: any) {
+                                console.error("pick files error:", err);
+                                Alert.alert(
+                                    "Lỗi",
+                                    "Không chọn được file từ thư viện, vui lòng thử lại."
+                                );
+                            }
+                        },
+                    },
+                    {
+                        text: "Hủy",
+                        style: "cancel",
+                    },
+                ]
+            );
         } catch (err: any) {
-            console.error("pick files error:", err);
-            Alert.alert("Lỗi", "Không chọn được file, vui lòng thử lại.");
+            console.error("pick media error:", err);
+            Alert.alert("Lỗi", "Không thể mở lựa chọn file, vui lòng thử lại.");
         }
     };
 
@@ -383,10 +440,10 @@ export default function MealBatchPage() {
                             <Text style={styles.label}>Hình ảnh / video minh chứng</Text>
                             <TouchableOpacity
                                 style={styles.pickBtn}
-                                onPress={handlePickFiles}
+                                onPress={handlePickMedia}
                             >
                                 <Text style={styles.pickBtnText}>
-                                    Chọn ảnh / video từ thiết bị
+                                    Chụp ảnh / Chọn ảnh, video
                                 </Text>
                             </TouchableOpacity>
 

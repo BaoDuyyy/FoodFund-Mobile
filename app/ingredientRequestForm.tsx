@@ -2,13 +2,13 @@ import IngredientService from "@/services/ingredientService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,7 +29,7 @@ type IngredientItemField =
 
 export default function IngredientRequestFormPage() {
   const router = useRouter();
-  const { phases } = useLocalSearchParams();
+  const { phases, ingredientFundsAmount } = useLocalSearchParams();
 
   // Parse phases from params (JSON string)
   let phaseList: Phase[] = [];
@@ -41,6 +41,16 @@ export default function IngredientRequestFormPage() {
     }
   } catch {}
   const hasPhases = phaseList.length > 0;
+
+  // Parse ingredientFundsAmount from params
+  const ingredientFundsAmountNumber = (() => {
+    const raw = Array.isArray(ingredientFundsAmount)
+      ? ingredientFundsAmount[0]
+      : (ingredientFundsAmount as string | undefined);
+    if (!raw) return 0;
+    const n = Number(raw);
+    return isNaN(n) ? 0 : n;
+  })();
 
   const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0);
   const [totalCost, setTotalCost] = useState("");
@@ -133,7 +143,9 @@ export default function IngredientRequestFormPage() {
 
   const handleSubmit = async () => {
     const campaignPhaseId = phaseList[selectedPhaseIdx]?.id || "";
-    const isInvalid =
+    const totalCostNumber = Number(totalCost || 0);
+
+    const isInvalidBase =
       !campaignPhaseId ||
       !totalCost ||
       items.some(
@@ -145,8 +157,24 @@ export default function IngredientRequestFormPage() {
           !i.supplier
       );
 
-    if (isInvalid) {
+    if (isInvalidBase) {
       Alert.alert("Thiếu thông tin", "Vui lòng điền đầy đủ tất cả các trường.");
+      return;
+    }
+
+    // Validate totalCost must equal ingredientFundsAmount
+    if (
+      ingredientFundsAmountNumber > 0 &&
+      totalCostNumber !== ingredientFundsAmountNumber
+    ) {
+      Alert.alert(
+        "Sai số tiền",
+        `Tổng chi phí dự kiến (${totalCostNumber.toLocaleString(
+          "vi-VN"
+        )} VND) phải bằng đúng ngân sách nguyên liệu của giai đoạn (${ingredientFundsAmountNumber.toLocaleString(
+          "vi-VN"
+        )} VND).`
+      );
       return;
     }
 
@@ -230,12 +258,25 @@ export default function IngredientRequestFormPage() {
           </View>
         </View>
 
-        {/* CARD: Tổng chi phí */}
+        {/* CARD: Tổng chi phí dự kiến */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Tổng chi phí dự kiến</Text>
           <Text style={styles.cardSubtitle}>
             Hệ thống tự cộng từ các dòng “Thành tiền” (có thể sửa lại nếu cần).
           </Text>
+
+          {ingredientFundsAmountNumber > 0 && (
+            <View style={styles.budgetInfoBox}>
+              <Text style={styles.budgetLabel}>Ngân sách nguyên liệu giai đoạn</Text>
+              <Text style={styles.budgetValue}>
+                {ingredientFundsAmountNumber.toLocaleString("vi-VN")} VND
+              </Text>
+              <Text style={styles.budgetHint}>
+                Tổng chi phí bạn nhập phải bằng đúng số tiền này.
+              </Text>
+            </View>
+          )}
+
           <TextInput
             style={styles.input}
             value={totalCost}
@@ -595,5 +636,31 @@ const styles = StyleSheet.create({
     color: PRIMARY,
     fontWeight: "800",
     fontSize: 14,
+  },
+
+  budgetInfoBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#f4c39a",
+    backgroundColor: "#fff7ec",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  budgetLabel: {
+    fontSize: 12,
+    color: "#b06437",
+    fontWeight: "600",
+  },
+  budgetValue: {
+    fontSize: 14,
+    color: PRIMARY,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  budgetHint: {
+    fontSize: 11,
+    color: "#8c8c8c",
+    marginTop: 2,
   },
 });

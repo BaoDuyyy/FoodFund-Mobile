@@ -2,8 +2,9 @@ import { getGraphqlUrl } from "@/config/api";
 import { CREATE_MEAL_BATCH } from "@/graphql/mutation/createMealBatch";
 import { GENERATE_MEAL_BATCH_MEDIA_UPLOAD_URLS } from "@/graphql/mutation/generateMealBatchMediaUploadUrls";
 import { UPDATE_MEAL_BATCH_STATUS } from "@/graphql/mutation/updateMealBatchStatus";
+import { GET_MEAL_BATCH } from "@/graphql/query/getMealBatch";
 import { GET_MEAL_BATCHES } from "@/graphql/query/getMealBatches";
-import type { MealBatch, MealBatchStatus } from "@/types/api/mealBatch";
+import type { GetMealBatchResponse, MealBatch, MealBatchStatus } from "@/types/api/mealBatch";
 import AuthService from "./authService";
 
 export const COMMON_MEAL_BATCH_FILE_TYPES = ["jpg", "png", "mp4"] as const;
@@ -152,6 +153,7 @@ const MealBatchService = {
         method: "PUT",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
+          "x-amz-acl": "public-read",
         },
         body: blob,
       });
@@ -243,6 +245,54 @@ const MealBatchService = {
     }
 
     return payload.createMealBatch;
+  },
+
+  /**
+   * Lấy chi tiết 1 meal batch theo id.
+   */
+  async getMealBatchById(id: string, overrideUrl?: string): Promise<MealBatch> {
+    const url = getGraphqlUrl(overrideUrl);
+    const token = await AuthService.getAccessToken();
+    const variables = { id };
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: GET_MEAL_BATCH,
+          variables,
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Network error ${res.status}: ${text}`);
+    }
+
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error("Invalid JSON from server");
+
+    if (json.errors?.length) {
+      const errMsg = json.errors
+        .map((e: any) => e.message || JSON.stringify(e))
+        .join("; ");
+      throw new Error(errMsg);
+    }
+
+    const payload: GetMealBatchResponse | undefined = json.data;
+    if (!payload || !payload.getMealBatch) {
+      throw new Error("Empty or invalid getMealBatch response");
+    }
+
+    return payload.getMealBatch;
   },
 
   /**

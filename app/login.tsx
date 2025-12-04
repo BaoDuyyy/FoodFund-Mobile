@@ -110,7 +110,7 @@ export default function LoginScreen() {
         responseType: AuthSession.ResponseType.IdToken, // 'id_token'
         scopes: ['openid', 'profile', 'email'],
         extraParams: { nonce: 'randomnonce' },
-        usePKCE: false, // QUAN TRỌNG: tắt PKCE để không gửi code_challenge_method
+        usePKCE: false, 
       };
 
       const authRequest = new AuthSession.AuthRequest(config);

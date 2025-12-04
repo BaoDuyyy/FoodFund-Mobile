@@ -69,6 +69,26 @@ type GetExpenseProofsVars = {
 
 const ExpenseProofService = {
   /**
+   * Helper: upload 1 file to a presigned S3 URL,
+   * always set x-amz-acl: public-read.
+   */
+  async uploadFileToSignedUrl(uploadUrl: string, file: Blob | ArrayBuffer) {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "x-amz-acl": "public-read",
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Upload failed ${res.status}: ${text}`);
+    }
+  },
+
+  /**
    * Step 1: Lấy danh sách signed upload URLs cho chứng từ chi tiêu.
    */
   async generateExpenseProofUploadUrls(

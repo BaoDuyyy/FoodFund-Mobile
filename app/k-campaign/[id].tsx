@@ -32,6 +32,29 @@ const ACCENT_PURPLE = "#7c3aed";
 
 type UserRole = "KITCHEN_STAFF" | "DELIVERY_STAFF" | string;
 
+// Map phase status code -> Vietnamese label
+const phaseStatusLabels: Record<string, string> = {
+  PLANNING: "Đang lên kế hoạch",
+  AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân nguyên liệu",
+  INGREDIENT_PURCHASE: "Đang mua nguyên liệu",
+  AWAITING_AUDIT: "Chờ kiểm tra chứng từ",
+  AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí nấu ăn",
+  COOKING: "Đang nấu ăn",
+  AWAITING_DELIVERY_DISBURSEMENT: "Chờ giải ngân chi phí vận chuyển",
+  DELIVERY: "Đang vận chuyển",
+  COMPLETED: "Hoàn thành",
+  CANCELLED: "Đã hủy",
+  FAILED: "Thất bại",
+  NULL: "Chưa xác định",
+  DEFAULT: "Không xác định",
+};
+
+function getPhaseStatusLabel(status?: string | null): string {
+  if (!status) return "Không xác định";
+  const key = status.toUpperCase().trim();
+  return phaseStatusLabels[key] || "Không xác định";
+}
+
 export default function CampaignDetailPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -41,6 +64,7 @@ export default function CampaignDetailPage() {
   const [loadingExpenseProofs, setLoadingExpenseProofs] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const { width } = useWindowDimensions();
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -200,17 +224,6 @@ export default function CampaignDetailPage() {
 
             {/* META CHIPS */}
             <View style={styles.metaChipsRow}>
-              <View style={[styles.metaChip, { backgroundColor: "#eef2ff" }]}>
-                <View
-                  style={[
-                    styles.metaChipDot,
-                    { backgroundColor: ACCENT_PURPLE },
-                  ]}
-                />
-                <Text style={styles.metaChipText}>
-                  Mã chiến dịch: {campaign.id}
-                </Text>
-              </View>
               {campaign.category?.title && (
                 <View style={[styles.metaChip, { backgroundColor: "#ecfdf3" }]}>
                   <View
@@ -349,7 +362,9 @@ export default function CampaignDetailPage() {
 
                       <View style={styles.phaseRow}>
                         <Text style={styles.phaseLabel}>Trạng thái</Text>
-                        <Text style={styles.phaseValue}>{phase.status}</Text>
+                        <Text style={styles.phaseValue}>
+                          {getPhaseStatusLabel(phase.status)}
+                        </Text>
                       </View>
 
                       <View style={styles.phaseDatesRow}>
@@ -442,12 +457,17 @@ export default function CampaignDetailPage() {
                           if (!isImage) return null;
 
                           return (
-                            <Image
+                            <TouchableOpacity
                               key={`${proof.id}-img-${i}`}
-                              source={{ uri: url }}
-                              style={styles.expenseProofImage}
-                              resizeMode="cover"
-                            />
+                              activeOpacity={0.9}
+                              onPress={() => setZoomImageUrl(url)}
+                            >
+                              <Image
+                                source={{ uri: url }}
+                                style={styles.expenseProofImage}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
                           );
                         })}
                       </View>
@@ -474,7 +494,18 @@ export default function CampaignDetailPage() {
             onPress={() =>
               router.push({
                 pathname: "/operationRequest",
-                params: { phases: JSON.stringify(campaign.phases || []) },
+                params: {
+                  phases: JSON.stringify(
+                    Array.isArray(campaign.phases)
+                      ? campaign.phases.map((p) => ({
+                          id: p.id,
+                          phaseName: p.phaseName,
+                          cookingFundsAmount: p.cookingFundsAmount,
+                          deliveryFundsAmount: p.deliveryFundsAmount,
+                        }))
+                      : []
+                  ),
+                },
               })
             }
           >
@@ -524,37 +555,13 @@ export default function CampaignDetailPage() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/ingredientRequestForm",
-                params: { phases: JSON.stringify(campaign.phases || []) },
-              })
-            }
-          >
-            <Text style={styles.primaryText}>Yêu cầu nguyên liệu</Text>
-          </TouchableOpacity>
-        </View>
-      ) : userRole === "DELIVERY_STAFF" ? (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, { flex: 1.2 }]}
-            onPress={() =>
-              router.push({
-                pathname: "/deliveryOrders",
-                params: { campaignId: campaign.id },
-              })
-            }
-          >
-            <Text style={styles.primaryText}>Xem đơn giao hàng</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
             onPress={() => {
               const phases = Array.isArray(campaign.phases)
                 ? campaign.phases
                 : [];
               let selectedPhaseId = "";
               let selectedPhaseName = "";
+              let ingredientFundsAmount: number | string | null = null;
 
               if (phases.length > 0) {
                 const now = new Date();
@@ -575,22 +582,85 @@ export default function CampaignDetailPage() {
                 const chosen = futureOrToday[0]?.phase ?? phases[0];
                 selectedPhaseId = chosen.id;
                 selectedPhaseName = chosen.phaseName ?? "";
+                ingredientFundsAmount = chosen.ingredientFundsAmount ?? null;
               }
 
               router.push({
-                pathname: "/mealbatch",
+                pathname: "/ingredientRequestForm",
                 params: {
-                  campaignId: campaign.id,
-                  campaignPhaseId: selectedPhaseId,
-                  campaignPhaseName: selectedPhaseName,
+                  phases: JSON.stringify(campaign.phases || []),
+                  ingredientFundsAmount:
+                    ingredientFundsAmount != null
+                      ? String(ingredientFundsAmount)
+                      : "",
                 },
               });
             }}
           >
-            <Text style={styles.secondaryText}>Cập nhật suất ăn</Text>
+            <Text style={styles.primaryText}>Yêu cầu nguyên liệu</Text>
+          </TouchableOpacity>
+        </View>
+      ) : userRole === "DELIVERY_STAFF" ? (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/operationRequest",
+                params: {
+                  phases: JSON.stringify(
+                    Array.isArray(campaign.phases)
+                      ? campaign.phases.map((p) => ({
+                          id: p.id,
+                          phaseName: p.phaseName,
+                          cookingFundsAmount: p.cookingFundsAmount,
+                          deliveryFundsAmount: p.deliveryFundsAmount,
+                        }))
+                      : []
+                  ),
+                },
+              })
+            }
+          >
+            <Text style={styles.secondaryText}>Giải ngân</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { flex: 1.2 }]}
+            onPress={() =>
+              router.push({
+                pathname: "/deliveryOrders",
+                params: { campaignId: campaign.id },
+              })
+            }
+          >
+            <Text style={styles.primaryText}>Xem đơn giao hàng</Text>
           </TouchableOpacity>
         </View>
       ) : null}
+
+      {/* IMAGE ZOOM OVERLAY FOR EXPENSE PROOFS */}
+      {zoomImageUrl && (
+        <View style={styles.zoomOverlay}>
+          <TouchableOpacity
+            style={styles.zoomBackdrop}
+            activeOpacity={1}
+            onPress={() => setZoomImageUrl(null)}
+          />
+          <View style={styles.zoomContent}>
+            <Image
+              source={{ uri: zoomImageUrl }}
+              style={styles.zoomImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.zoomCloseBtn}
+              onPress={() => setZoomImageUrl(null)}
+            >
+              <Text style={styles.zoomCloseText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1013,5 +1083,48 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 10,
     backgroundColor: "#e5e7eb",
+  },
+
+  // zoom overlay reused for chứng từ chi tiêu
+  zoomOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 30,
+  },
+  zoomBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.75)",
+  },
+  zoomContent: {
+    width: "90%",
+    height: "70%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  zoomImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    backgroundColor: "#000",
+  },
+  zoomCloseBtn: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+  },
+  zoomCloseText: {
+    color: PRIMARY,
+    fontWeight: "700",
   },
 });
