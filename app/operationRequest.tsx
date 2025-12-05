@@ -1,7 +1,7 @@
 import Loading from "@/components/Loading";
 import OperationService from "@/services/operationService";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -25,6 +25,19 @@ type Phase = {
 
 const EXPENSE_TYPES = ["COOKING", "DELIVERY"] as const;
 type ExpenseType = (typeof EXPENSE_TYPES)[number];
+
+/** Helpers VND */
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+const formatVnd = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) return "";
+  const str = typeof value === "number" ? String(value) : value;
+  const digits = digitsOnly(str);
+  if (!digits) return "";
+  const n = Number(digits);
+  if (Number.isNaN(n)) return "";
+  return n.toLocaleString("vi-VN");
+};
 
 export default function OperationRequestPage() {
   const router = useRouter();
@@ -56,7 +69,7 @@ export default function OperationRequestPage() {
   );
   const [expenseType, setExpenseType] = useState<ExpenseType>("COOKING");
   const [title, setTitle] = useState("Chi phí");
-  const [totalCost, setTotalCost] = useState("");
+  const [totalCost, setTotalCost] = useState<string>(""); // lưu digits "20000"
   const [submitting, setSubmitting] = useState(false);
 
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || null;
@@ -71,6 +84,13 @@ export default function OperationRequestPage() {
     return isNaN(n) ? 0 : n;
   })();
 
+  // Prefill totalCost từ currentBudget khi user chưa gõ gì
+  useEffect(() => {
+    if (!totalCost && currentBudget > 0) {
+      setTotalCost(String(currentBudget));
+    }
+  }, [currentBudget, totalCost]);
+
   const handleSubmit = async () => {
     if (!selectedPhase) {
       Alert.alert("Lỗi", "Vui lòng chọn giai đoạn.");
@@ -80,8 +100,10 @@ export default function OperationRequestPage() {
       Alert.alert("Lỗi", "Vui lòng nhập tiêu đề.");
       return;
     }
-    if (!totalCost || isNaN(Number(totalCost))) {
-      Alert.alert("Lỗi", "Tổng chi phí phải là số.");
+
+    const totalCostNumber = totalCost ? Number(digitsOnly(totalCost)) : 0;
+    if (!totalCostNumber) {
+      Alert.alert("Lỗi", "Tổng chi phí phải là số lớn hơn 0.");
       return;
     }
 
@@ -91,7 +113,8 @@ export default function OperationRequestPage() {
         campaignPhaseId: selectedPhase.id,
         expenseType,
         title: title.trim(),
-        totalCost: totalCost.trim(),
+        // API expects string → truyền digits
+        totalCost: digitsOnly(totalCost),
       });
       Alert.alert("Thành công", "Đã tạo yêu cầu giải ngân.", [
         {
@@ -120,7 +143,7 @@ export default function OperationRequestPage() {
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerTitle}>Tạo yêu cầu giải ngân</Text>
           <Text style={styles.headerSubtitle}>
-            Hỗ trợ bếp minh bạch trong từng khoản chi
+            Minh bạch – rõ ràng – chuẩn xác trong từng khoản chi
           </Text>
         </View>
         <View style={{ width: 32 }} />
@@ -128,7 +151,7 @@ export default function OperationRequestPage() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 180 }]} // chừa chỗ cho footer
         keyboardShouldPersistTaps="handled"
       >
         {/* Card 1: giai đoạn + loại chi phí */}
@@ -196,11 +219,11 @@ export default function OperationRequestPage() {
                 Ngân sách cho loại chi phí này
               </Text>
               <Text style={styles.budgetValue}>
-                {currentBudget.toLocaleString("vi-VN")} VND
+                {formatVnd(currentBudget)} VND
               </Text>
               <Text style={styles.budgetHint}>
-                Bạn nên tạo yêu cầu giải ngân tổng cộng không vượt quá số tiền
-                này cho giai đoạn đang chọn.
+                Bạn có thể tạo nhiều yêu cầu, miễn tổng cộng không vượt quá
+                ngân sách này.
               </Text>
             </View>
           )}
@@ -210,8 +233,7 @@ export default function OperationRequestPage() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Chi tiết yêu cầu</Text>
           <Text style={styles.cardDesc}>
-            Mô tả ngắn gọn nội dung và số tiền cần giải ngân để bộ phận kế toán
-            dễ theo dõi.
+            Điền nội dung chi phí và số tiền cần giải ngân.
           </Text>
 
           {/* Title */}
@@ -228,12 +250,12 @@ export default function OperationRequestPage() {
           <Text style={styles.label}>Tổng chi phí (VND)</Text>
           <TextInput
             style={styles.input}
-            value={totalCost}
-            onChangeText={(t) => setTotalCost(t.replace(/[^0-9]/g, ""))}
+            value={formatVnd(totalCost)}
+            onChangeText={(t) => setTotalCost(digitsOnly(t))}
             keyboardType="number-pad"
             placeholder={
               currentBudget > 0
-                ? `${currentBudget.toLocaleString("vi-VN")} VND`
+                ? `${formatVnd(currentBudget)} VND`
                 : "Nhập số tiền"
             }
             placeholderTextColor="#9ca3af"
@@ -242,13 +264,12 @@ export default function OperationRequestPage() {
             Số tiền sẽ được đối chiếu với chứng từ chi sau khi gửi.
           </Text>
         </View>
+      </ScrollView>
 
-        {/* Buttons */}
+      {/* ===== FIXED FOOTER ===== */}
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.submitBtn,
-            (submitting || phases.length === 0) && { opacity: 0.7 },
-          ]}
+          style={[styles.submitBtn, (submitting || phases.length === 0) && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={submitting || phases.length === 0}
         >
@@ -261,7 +282,7 @@ export default function OperationRequestPage() {
         >
           <Text style={styles.listBtnText}>Xem danh sách yêu cầu của tôi</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -306,12 +327,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
     color: "#fff",
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#fed7aa",
     marginTop: 2,
   },
@@ -319,14 +340,13 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 24,
   },
 
   // cards
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
-    padding: 12,
+    padding: 14,
     marginTop: 10,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -337,26 +357,26 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
     color: PRIMARY,
     marginBottom: 4,
   },
   cardDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#6b7280",
-    marginBottom: 8,
+    marginBottom: 10,
   },
 
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: "#374151",
     marginTop: 10,
     marginBottom: 4,
   },
   helperText: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#6b7280",
     marginTop: 4,
   },
@@ -367,8 +387,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -383,7 +403,7 @@ const styles = StyleSheet.create({
     borderColor: PRIMARY,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#374151",
     fontWeight: "600",
   },
@@ -399,14 +419,27 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 10,
     backgroundColor: "#fff",
-    fontSize: 14,
+    fontSize: 15,
     color: "#111827",
   },
 
+  // footer fixed
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: BG,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#e0d6cf",
+  },
+
   submitBtn: {
-    marginTop: 18,
     backgroundColor: PRIMARY,
     borderRadius: 999,
     paddingVertical: 14,
@@ -420,7 +453,7 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
   },
   listBtn: {
@@ -435,33 +468,33 @@ const styles = StyleSheet.create({
   },
   listBtnText: {
     color: PRIMARY,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
 
   budgetBox: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f97316",
     backgroundColor: "#fff7ed",
   },
   budgetLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#b45309",
     fontWeight: "600",
   },
   budgetValue: {
-    marginTop: 2,
-    fontSize: 14,
+    marginTop: 4,
+    fontSize: 16,
     color: PRIMARY,
     fontWeight: "800",
   },
   budgetHint: {
-    marginTop: 2,
-    fontSize: 11,
+    marginTop: 3,
+    fontSize: 12,
     color: "#6b7280",
   },
 });

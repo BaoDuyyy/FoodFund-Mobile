@@ -593,6 +593,7 @@ export default function CampaignDetailPage() {
                     ingredientFundsAmount != null
                       ? String(ingredientFundsAmount)
                       : "",
+                  campaignPhaseId: selectedPhaseId, // <--- add this param
                 },
               });
             }}

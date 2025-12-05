@@ -20,6 +20,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const PRIMARY = "#ad4e28";
 const BG = "#f8f6f4";
 
+/** Helpers cho tiền VND */
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+const formatVnd = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) return "";
+  const str = typeof value === "number" ? String(value) : value;
+  const digits = digitsOnly(str);
+  if (!digits) return "";
+  const n = Number(digits);
+  if (Number.isNaN(n)) return "";
+  return n.toLocaleString("vi-VN");
+};
+
 type SelectedFile = {
   uri: string;
   type: ExpenseProofFileType;
@@ -29,20 +42,22 @@ type SelectedFile = {
 export default function ExpenseProofPage() {
   const router = useRouter();
   const params = useLocalSearchParams<{ requestId?: string; totalCost?: string }>();
+
   const requestId = useMemo(
     () => (Array.isArray(params.requestId) ? params.requestId[0] : params.requestId),
     [params.requestId]
   );
+
   const expectedTotalCost = useMemo(() => {
     const raw = Array.isArray(params.totalCost)
       ? params.totalCost[0]
       : params.totalCost;
-    const n = Number(raw || 0);
+    const n = Number(digitsOnly(raw || ""));
     return Number.isNaN(n) ? 0 : n;
   }, [params.totalCost]);
 
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<string>(""); // lưu dạng "80000"
   const [submitting, setSubmitting] = useState(false);
   const [uploadUrls, setUploadUrls] = useState<ExpenseProofUploadUrl[]>([]);
 
@@ -66,73 +81,68 @@ export default function ExpenseProofPage() {
   // Chọn file từ camera hoặc thư viện (ảnh/video)
   const handlePickMedia = async () => {
     try {
-      Alert.alert(
-        "Thêm chứng từ",
-        "Chọn nguồn hình ảnh / video",
-        [
-          {
-            text: "Chụp từ camera",
-            onPress: async () => {
-              try {
-                const perm = await ImagePicker.requestCameraPermissionsAsync();
-                if (!perm.granted) {
-                  Alert.alert(
-                    "Quyền truy cập",
-                    "Ứng dụng cần quyền sử dụng camera."
-                  );
-                  return;
-                }
-
-                const result = await ImagePicker.launchCameraAsync({
-                  mediaTypes: ImagePicker.MediaTypeOptions.All,
-                  quality: 0.8,
-                });
-
-                if (result.canceled || !result.assets?.length) return;
-
-                const files = mapAssetsToFiles(result.assets);
-                // ghép vào danh sách hiện tại, giới hạn tối đa 5
-                setSelectedFiles((prev) => [...prev, ...files].slice(0, 5));
-              } catch (err: any) {
-                console.error("camera error:", err);
-                Alert.alert("Lỗi", "Không chụp được ảnh/video, vui lòng thử lại.");
+      Alert.alert("Thêm chứng từ", "Chọn nguồn hình ảnh / video", [
+        {
+          text: "Chụp từ camera",
+          onPress: async () => {
+            try {
+              const perm = await ImagePicker.requestCameraPermissionsAsync();
+              if (!perm.granted) {
+                Alert.alert(
+                  "Quyền truy cập",
+                  "Ứng dụng cần quyền sử dụng camera."
+                );
+                return;
               }
-            },
+
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
+                quality: 0.8,
+              });
+
+              if (result.canceled || !result.assets?.length) return;
+
+              const files = mapAssetsToFiles(result.assets);
+              // ghép vào danh sách hiện tại, giới hạn tối đa 5
+              setSelectedFiles((prev) => [...prev, ...files].slice(0, 5));
+            } catch (err: any) {
+              console.error("camera error:", err);
+              Alert.alert("Lỗi", "Không chụp được ảnh/video, vui lòng thử lại.");
+            }
           },
-          {
-            text: "Chọn từ thư viện",
-            onPress: async () => {
-              try {
-                const perm =
-                  await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (!perm.granted) {
-                  Alert.alert(
-                    "Quyền truy cập",
-                    "Ứng dụng cần quyền truy cập thư viện để chọn file."
-                  );
-                  return;
-                }
-
-                const result = await ImagePicker.launchImageLibraryAsync({
-                  mediaTypes: ImagePicker.MediaTypeOptions.All,
-                  allowsMultipleSelection: true,
-                  quality: 0.8,
-                });
-
-                if (result.canceled || !result.assets) return;
-
-                const assets = result.assets.slice(0, 5); // tối đa 5 file
-                const detectedFiles = mapAssetsToFiles(assets);
-                setSelectedFiles(detectedFiles);
-              } catch (err: any) {
-                console.error("pick files error:", err);
-                Alert.alert("Lỗi", "Không chọn được file, vui lòng thử lại.");
+        },
+        {
+          text: "Chọn từ thư viện",
+          onPress: async () => {
+            try {
+              const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!perm.granted) {
+                Alert.alert(
+                  "Quyền truy cập",
+                  "Ứng dụng cần quyền truy cập thư viện để chọn file."
+                );
+                return;
               }
-            },
+
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
+                allowsMultipleSelection: true,
+                quality: 0.8,
+              });
+
+              if (result.canceled || !result.assets) return;
+
+              const assets = result.assets.slice(0, 5); // tối đa 5 file
+              const detectedFiles = mapAssetsToFiles(assets);
+              setSelectedFiles(detectedFiles);
+            } catch (err: any) {
+              console.error("pick files error:", err);
+              Alert.alert("Lỗi", "Không chọn được file, vui lòng thử lại.");
+            }
           },
-          { text: "Hủy", style: "cancel" },
-        ]
-      );
+        },
+        { text: "Hủy", style: "cancel" },
+      ]);
     } catch (err: any) {
       console.error("pick media error:", err);
       Alert.alert("Lỗi", "Không thể mở lựa chọn file, vui lòng thử lại.");
@@ -170,64 +180,62 @@ export default function ExpenseProofPage() {
 
   // Flow đầy đủ: generate URL -> upload file -> createExpenseProof
   const handleUploadAndCreate = async () => {
-    if (!requestId) {
-      Alert.alert("Lỗi", "Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
-      return;
+  if (!requestId) {
+    Alert.alert("Lỗi", "Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
+    return;
+  }
+
+  const amountNumber = amount ? Number(digitsOnly(amount)) : 0;
+  if (!amountNumber) {
+    Alert.alert("Lỗi", "Vui lòng nhập số tiền chi tiêu.");
+    return;
+  }
+  if (selectedFiles.length === 0) {
+    Alert.alert("Lỗi", "Vui lòng chọn ít nhất 1 file cần upload.");
+    return;
+  }
+
+  const n = selectedFiles.length;
+  const types = selectedFiles.map((f) => f.type);
+
+  setSubmitting(true);
+  try {
+    const urls = await ExpenseProofService.generateExpenseProofUploadUrls({
+      requestId,
+      fileCount: n,
+      fileTypes: types,
+    });
+    setUploadUrls(urls);
+
+    if (urls.length !== n) {
+      throw new Error("Số lượng uploadUrls trả về không khớp với số file đã chọn.");
     }
-    if (!amount) {
-      Alert.alert("Lỗi", "Vui lòng nhập số tiền chi tiêu.");
-      return;
-    }
-    if (selectedFiles.length === 0) {
-      Alert.alert("Lỗi", "Vui lòng chọn ít nhất 1 file cần upload.");
-      return;
+
+    for (let i = 0; i < n; i++) {
+      const u = urls[i];
+      const f = selectedFiles[i];
+      await uploadSingleFile(u.uploadUrl, f.uri, types[i]);
     }
 
-    const n = selectedFiles.length;
-    const types = selectedFiles.map((f) => f.type);
+    const fileKeys = urls.map((u) => u.fileKey);
+    await ExpenseProofService.createExpenseProof({
+      requestId,
+      mediaFileKeys: fileKeys,
+      amount: amount,              // ✅ dùng string "80000"
+      // hoặc amount: digitsOnly(amount) nếu muốn chắc chắn
+    });
 
-    setSubmitting(true);
-    try {
-      // 1. Generate upload URLs
-      const urls = await ExpenseProofService.generateExpenseProofUploadUrls({
-        requestId,
-        fileCount: n,
-        fileTypes: types,
-      });
-      setUploadUrls(urls);
+    Alert.alert("Thành công", "Đã tạo chứng từ chi tiêu.", [
+      { text: "OK", onPress: () => router.back() },
+    ]);
+  } catch (err: any) {
+    console.error("handleUploadAndCreate error:", err);
+    Alert.alert("Lỗi", err?.message || "Không upload được file / tạo chứng từ.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-      if (urls.length !== n) {
-        throw new Error("Số lượng uploadUrls trả về không khớp với số file đã chọn.");
-      }
-
-      // 2. Upload từng file
-      for (let i = 0; i < n; i++) {
-        const u = urls[i];
-        const f = selectedFiles[i];
-        await uploadSingleFile(u.uploadUrl, f.uri, types[i]);
-      }
-
-      // 3. Gọi createExpenseProof
-      const fileKeys = urls.map((u) => u.fileKey);
-      await ExpenseProofService.createExpenseProof({
-        requestId,
-        mediaFileKeys: fileKeys,
-        amount,
-      });
-
-      Alert.alert("Thành công", "Đã tạo chứng từ chi tiêu.", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (err: any) {
-      console.error("handleUploadAndCreate error:", err);
-      Alert.alert("Lỗi", err?.message || "Không upload được file / tạo chứng từ.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -266,11 +274,11 @@ export default function ExpenseProofPage() {
             <View style={styles.expectedBox}>
               <Text style={styles.expectedLabel}>Tổng chi phí dự kiến</Text>
               <Text style={styles.expectedValue}>
-                {expectedTotalCost.toLocaleString("vi-VN")} đ
+                {formatVnd(expectedTotalCost)} VND
               </Text>
               <Text style={styles.expectedHint}>
-                Số tiền chi tiêu thực tế nên gần bằng hoặc bằng tổng chi phí dự kiến
-                này.
+                Số tiền chi tiêu thực tế nên gần bằng hoặc bằng tổng chi phí dự
+                kiến này.
               </Text>
             </View>
           )}
@@ -279,12 +287,12 @@ export default function ExpenseProofPage() {
           <TextInput
             style={styles.inputFull}
             keyboardType="numeric"
-            placeholder="Ví dụ: 9000000"
-            value={amount}
-            onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ""))}
+            placeholder="Ví dụ: 9.000.000"
+            value={formatVnd(amount)}
+            onChangeText={(t) => setAmount(digitsOnly(t))}
           />
 
-          <Text style={[styles.label, { marginTop: 10 }]}>File chứng từ</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>File chứng từ</Text>
           <TouchableOpacity style={styles.pickBtn} onPress={handlePickMedia}>
             <Text style={styles.pickBtnText}>
               Chụp ảnh / Chọn ảnh, video từ thiết bị
@@ -292,14 +300,16 @@ export default function ExpenseProofPage() {
           </TouchableOpacity>
 
           {selectedFiles.length > 0 ? (
-            <View style={{ marginTop: 8 }}>
+            <View style={{ marginTop: 10 }}>
               {selectedFiles.map((f, idx) => (
                 <View key={idx} style={styles.fileChip}>
                   <Text style={styles.fileChipIndex}>#{idx + 1}</Text>
                   <Text style={styles.fileChipName} numberOfLines={1}>
                     {f.name}
                   </Text>
-                  <Text style={styles.fileChipType}>{f.type.toUpperCase()}</Text>
+                  <Text style={styles.fileChipType}>
+                    {f.type.toUpperCase()}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -328,9 +338,10 @@ export default function ExpenseProofPage() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Kết quả upload URLs</Text>
             <Text style={styles.noteText}>
-              Hệ thống đã tạo {uploadUrls.length} URL và dùng chúng để upload file.
-              Trường <Text style={{ fontWeight: "700" }}>fileKey</Text> đã được gửi
-              vào <Text style={{ fontWeight: "700" }}>mediaFileKeys</Text> khi gọi{" "}
+              Hệ thống đã tạo {uploadUrls.length} URL và dùng chúng để upload
+              file. Trường <Text style={{ fontWeight: "700" }}>fileKey</Text> đã
+              được gửi vào{" "}
+              <Text style={{ fontWeight: "700" }}>mediaFileKeys</Text> khi gọi{" "}
               <Text style={{ fontWeight: "700" }}>createExpenseProof</Text>.
             </Text>
 
@@ -359,8 +370,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 24,
+    paddingTop: 6,
+    paddingBottom: 26,
   },
 
   // header
@@ -369,46 +380,46 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 140,
+    height: 150,
     backgroundColor: PRIMARY,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   backIcon: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    marginRight: 2,
+    marginRight: 4,
   },
   backText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 15,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
     color: "#fff",
     marginTop: 4,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#ffe8d4",
-    marginTop: 2,
+    marginTop: 4,
   },
   requestInfo: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: 13,
     color: "#ffead0",
   },
   requestInfoBold: {
@@ -416,52 +427,53 @@ const styles = StyleSheet.create({
   },
   requestInfoError: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: 13,
     color: "#ffd1d1",
   },
 
   // card
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 10,
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sectionTitle: {
-    fontWeight: "700",
-    fontSize: 15,
+    fontWeight: "800",
+    fontSize: 17,
     color: PRIMARY,
-    marginBottom: 8,
+    marginBottom: 10,
   },
 
   label: {
-    fontSize: 13,
-    color: "#555",
+    fontSize: 14,
+    color: "#444",
+    fontWeight: "600",
   },
   inputFull: {
-    marginTop: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#fff",
-    fontSize: 14,
+    fontSize: 16,
     color: "#222",
   },
 
   // upload
   pickBtn: {
-    marginTop: 4,
+    marginTop: 6,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: PRIMARY,
-    paddingVertical: 10,
+    paddingVertical: 11,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
@@ -469,11 +481,11 @@ const styles = StyleSheet.create({
   pickBtnText: {
     color: PRIMARY,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
   },
   noFileText: {
-    marginTop: 6,
-    fontSize: 12,
+    marginTop: 8,
+    fontSize: 13,
     color: "#888",
   },
   fileChip: {
@@ -481,43 +493,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff7ed",
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     marginTop: 6,
   },
   fileChipIndex: {
     fontWeight: "700",
     color: PRIMARY,
-    marginRight: 6,
+    marginRight: 8,
+    fontSize: 14,
   },
   fileChipName: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
     color: "#222",
   },
   fileChipType: {
-    marginLeft: 8,
-    fontSize: 11,
-    fontWeight: "600",
+    marginLeft: 10,
+    fontSize: 12,
+    fontWeight: "700",
     color: PRIMARY,
   },
 
   actionBtn: {
-    marginTop: 16,
+    marginTop: 18,
     borderRadius: 999,
-    paddingVertical: 12,
+    paddingVertical: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   actionBtnText: {
     color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
+    fontWeight: "800",
+    fontSize: 16,
   },
 
   // debug urls
   noteText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
     marginBottom: 8,
   },
@@ -528,48 +541,48 @@ const styles = StyleSheet.create({
     borderTopColor: "#f1e4dd",
   },
   urlIndex: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: PRIMARY,
   },
   urlMeta: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#777",
     marginTop: 2,
   },
   urlLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#666",
     marginTop: 4,
   },
   urlValue: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#222",
   },
 
   expectedBox: {
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#fed7aa",
     backgroundColor: "#fff7ed",
   },
   expectedLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#b45309",
     fontWeight: "600",
   },
   expectedValue: {
-    marginTop: 2,
-    fontSize: 14,
+    marginTop: 4,
+    fontSize: 16,
     color: PRIMARY,
     fontWeight: "800",
   },
   expectedHint: {
-    marginTop: 2,
-    fontSize: 11,
+    marginTop: 4,
+    fontSize: 12,
     color: "#6b7280",
   },
 });

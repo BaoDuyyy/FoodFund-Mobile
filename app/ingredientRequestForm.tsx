@@ -23,9 +23,24 @@ type Phase = {
 type IngredientItemField =
   | "ingredientName"
   | "quantity"
+  | "quantityValue"
+  | "quantityUnit"
   | "estimatedUnitPrice"
   | "estimatedTotalPrice"
   | "supplier";
+
+// helpers VND
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+const formatVnd = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) return "";
+  const str = typeof value === "number" ? String(value) : value;
+  const digits = digitsOnly(str);
+  if (!digits) return "";
+  const n = Number(digits);
+  if (Number.isNaN(n)) return "";
+  return n.toLocaleString("vi-VN");
+};
 
 export default function IngredientRequestFormPage() {
   const router = useRouter();
@@ -48,24 +63,28 @@ export default function IngredientRequestFormPage() {
       ? ingredientFundsAmount[0]
       : (ingredientFundsAmount as string | undefined);
     if (!raw) return 0;
-    const n = Number(raw);
+    const n = Number(digitsOnly(raw));
     return isNaN(n) ? 0 : n;
   })();
 
   const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0);
-  const [totalCost, setTotalCost] = useState("");
+  const [totalCost, setTotalCost] = useState(""); // lưu dạng "80000"
   const [items, setItems] = useState<
     Array<{
       ingredientName: string;
       quantity: string;
-      estimatedUnitPrice: string;
-      estimatedTotalPrice: string;
+      quantityValue: string;
+      quantityUnit: string;
+      estimatedUnitPrice: string; // "25000"
+      estimatedTotalPrice: string; // "75000"
       supplier: string;
     }>
   >([
     {
       ingredientName: "",
       quantity: "",
+      quantityValue: "",
+      quantityUnit: "kg",
       estimatedUnitPrice: "",
       estimatedTotalPrice: "",
       supplier: "",
@@ -73,9 +92,13 @@ export default function IngredientRequestFormPage() {
   ]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Always get campaignPhaseId from selected phase
+  const campaignPhaseId = phaseList[selectedPhaseIdx]?.id || "";
+  console.log("[ingredientRequestForm] campaignPhaseId =", campaignPhaseId);
+
   const recalcTotalCost = (list: typeof items) => {
     const sum = list.reduce((acc, i) => {
-      const v = Number(i.estimatedTotalPrice || 0);
+      const v = Number(digitsOnly(i.estimatedTotalPrice || "0"));
       return acc + (isNaN(v) ? 0 : v);
     }, 0);
     setTotalCost(sum ? String(sum) : "");
@@ -87,6 +110,8 @@ export default function IngredientRequestFormPage() {
       {
         ingredientName: "",
         quantity: "",
+        quantityValue: "",
+        quantityUnit: "kg",
         estimatedUnitPrice: "",
         estimatedTotalPrice: "",
         supplier: "",
@@ -102,6 +127,8 @@ export default function IngredientRequestFormPage() {
           {
             ingredientName: "",
             quantity: "",
+            quantityValue: "",
+            quantityUnit: "kg",
             estimatedUnitPrice: "",
             estimatedTotalPrice: "",
             supplier: "",
@@ -125,12 +152,23 @@ export default function IngredientRequestFormPage() {
     const newItems = items.slice();
     newItems[idx][field] = value;
 
-    // Nếu thay đổi số lượng hoặc đơn giá => tự tính thành tiền
-    if (field === "quantity" || field === "estimatedUnitPrice") {
-      const qty = parseFloat(newItems[idx].quantity || "0");
-      const unit = parseFloat(newItems[idx].estimatedUnitPrice || "0");
-      if (!isNaN(qty) && !isNaN(unit)) {
-        const total = Math.round(qty * unit);
+    // Khi đổi quantityValue hoặc quantityUnit => cập nhật quantity ghép string
+    if (field === "quantityValue" || field === "quantityUnit") {
+      const qv = newItems[idx].quantityValue || "";
+      const qu = newItems[idx].quantityUnit || "";
+      newItems[idx].quantity = qv && qu ? `${qv}${qu}` : qv || "";
+    }
+
+    // Nếu thay đổi quantityValue hoặc estimatedUnitPrice => tự tính thành tiền
+    if (
+      field === "quantityValue" ||
+      field === "estimatedUnitPrice" ||
+      field === "quantity"
+    ) {
+      const qtyNum = parseFloat(newItems[idx].quantityValue || "0");
+      const unitPrice = Number(digitsOnly(newItems[idx].estimatedUnitPrice));
+      if (!isNaN(qtyNum) && !isNaN(unitPrice)) {
+        const total = Math.round(qtyNum * unitPrice);
         newItems[idx].estimatedTotalPrice = total ? String(total) : "";
       } else {
         newItems[idx].estimatedTotalPrice = "";
@@ -142,16 +180,20 @@ export default function IngredientRequestFormPage() {
   };
 
   const handleSubmit = async () => {
-    const campaignPhaseId = phaseList[selectedPhaseIdx]?.id || "";
-    const totalCostNumber = Number(totalCost || 0);
+    console.log(
+      "[ingredientRequestForm] submit campaignPhaseId =",
+      campaignPhaseId
+    );
+    const totalCostNumber = totalCost ? parseInt(totalCost, 10) : 0;
 
     const isInvalidBase =
       !campaignPhaseId ||
-      !totalCost ||
+      !totalCostNumber ||
       items.some(
         (i) =>
           !i.ingredientName ||
-          !i.quantity ||
+          !i.quantityValue || // số lượng số bắt buộc
+          !i.quantityUnit || // đơn vị bắt buộc
           !i.estimatedUnitPrice ||
           !i.estimatedTotalPrice ||
           !i.supplier
@@ -169,10 +211,10 @@ export default function IngredientRequestFormPage() {
     ) {
       Alert.alert(
         "Sai số tiền",
-        `Tổng chi phí dự kiến (${totalCostNumber.toLocaleString(
-          "vi-VN"
-        )} VND) phải bằng đúng ngân sách nguyên liệu của giai đoạn (${ingredientFundsAmountNumber.toLocaleString(
-          "vi-VN"
+        `Tổng chi phí dự kiến (${formatVnd(
+          totalCostNumber
+        )} VND) phải bằng đúng ngân sách nguyên liệu của giai đoạn (${formatVnd(
+          ingredientFundsAmountNumber
         )} VND).`
       );
       return;
@@ -182,18 +224,25 @@ export default function IngredientRequestFormPage() {
     try {
       const input = {
         campaignPhaseId,
-        totalCost,
+        totalCost: String(totalCostNumber),
         items: items.map((i) => ({
           ingredientName: i.ingredientName,
-          quantity: i.quantity,
-          estimatedUnitPrice: Number(i.estimatedUnitPrice),
-          estimatedTotalPrice: Number(i.estimatedTotalPrice),
+          // quantity string như backend mong muốn, ví dụ: "3kg"
+          quantity:
+            i.quantityValue && i.quantityUnit
+              ? `${i.quantityValue}${i.quantityUnit}`
+              : i.quantity,
+          estimatedUnitPrice: Number(digitsOnly(i.estimatedUnitPrice)),
+          estimatedTotalPrice: Number(digitsOnly(i.estimatedTotalPrice)),
           supplier: i.supplier,
         })),
       };
       await IngredientService.createIngredientRequest(input);
       Alert.alert("Thành công", "Gửi yêu cầu nguyên liệu thành công.");
-      router.back();
+      router.push({
+        pathname: "/ingredientRequest",
+        params: { campaignPhaseId }, // always use selected phase id
+      });
     } catch (err: any) {
       Alert.alert(
         "Gửi yêu cầu thất bại",
@@ -203,6 +252,11 @@ export default function IngredientRequestFormPage() {
       setSubmitting(false);
     }
   };
+
+  const totalCostNumber = totalCost ? parseInt(totalCost, 10) : 0;
+  const isTotalMatchBudget =
+    ingredientFundsAmountNumber > 0 &&
+    totalCostNumber === ingredientFundsAmountNumber;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -267,9 +321,11 @@ export default function IngredientRequestFormPage() {
 
           {ingredientFundsAmountNumber > 0 && (
             <View style={styles.budgetInfoBox}>
-              <Text style={styles.budgetLabel}>Ngân sách nguyên liệu giai đoạn</Text>
+              <Text style={styles.budgetLabel}>
+                Ngân sách nguyên liệu giai đoạn
+              </Text>
               <Text style={styles.budgetValue}>
-                {ingredientFundsAmountNumber.toLocaleString("vi-VN")} VND
+                {formatVnd(ingredientFundsAmountNumber)} VND
               </Text>
               <Text style={styles.budgetHint}>
                 Tổng chi phí bạn nhập phải bằng đúng số tiền này.
@@ -279,8 +335,8 @@ export default function IngredientRequestFormPage() {
 
           <TextInput
             style={styles.input}
-            value={totalCost}
-            onChangeText={setTotalCost}
+            value={formatVnd(totalCost)}
+            onChangeText={(v) => setTotalCost(digitsOnly(v))}
             placeholder="Nhập tổng chi phí (VND)"
             keyboardType="numeric"
           />
@@ -323,26 +379,51 @@ export default function IngredientRequestFormPage() {
 
               <View style={styles.inlineRow}>
                 <View style={styles.inlineCol}>
-                  <Text style={styles.itemLabel}>Số lượng (kg)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={item.quantity}
-                    onChangeText={(v) => handleChangeItem(idx, "quantity", v)}
-                    placeholder="Ví dụ: 10"
-                    keyboardType="numeric"
-                  />
+                  <Text style={styles.itemLabel}>Số lượng</Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      value={item.quantityValue}
+                      onChangeText={(v) =>
+                        handleChangeItem(
+                          idx,
+                          "quantityValue",
+                          v.replace(/[^0-9.]/g, "")
+                        )
+                      }
+                      placeholder="Ví dụ: 3"
+                      keyboardType="numeric"
+                    />
+                    <View style={{ flex: 1 }}>
+                      <TextInput
+                        style={styles.input}
+                        value={item.quantityUnit}
+                        onChangeText={(v) =>
+                          handleChangeItem(idx, "quantityUnit", v)
+                        }
+                        placeholder="Đơn vị (kg, chai...)"
+                      />
+                    </View>
+                  </View>
                 </View>
+              </View>
+
+              <View style={styles.inlineRow}>
                 <View style={styles.inlineCol}>
                   <Text style={styles.itemLabel}>
-                    Đơn giá ước tính (VND / kg)
+                    Đơn giá ước tính (VND / đơn vị)
                   </Text>
                   <TextInput
                     style={styles.input}
-                    value={item.estimatedUnitPrice}
+                    value={formatVnd(item.estimatedUnitPrice)}
                     onChangeText={(v) =>
-                      handleChangeItem(idx, "estimatedUnitPrice", v)
+                      handleChangeItem(
+                        idx,
+                        "estimatedUnitPrice",
+                        digitsOnly(v)
+                      )
                     }
-                    placeholder="Ví dụ: 25000"
+                    placeholder="Ví dụ: 25.000"
                     keyboardType="numeric"
                   />
                 </View>
@@ -351,9 +432,13 @@ export default function IngredientRequestFormPage() {
               <Text style={styles.itemLabel}>Thành tiền ước tính (VND)</Text>
               <TextInput
                 style={styles.input}
-                value={item.estimatedTotalPrice}
+                value={formatVnd(item.estimatedTotalPrice)}
                 onChangeText={(v) =>
-                  handleChangeItem(idx, "estimatedTotalPrice", v)
+                  handleChangeItem(
+                    idx,
+                    "estimatedTotalPrice",
+                    digitsOnly(v)
+                  )
                 }
                 placeholder="Hệ thống tự tính, có thể sửa"
                 keyboardType="numeric"
@@ -374,11 +459,35 @@ export default function IngredientRequestFormPage() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* BUTTONS BOTTOM */}
+      {/* SUMMARY + BUTTONS BOTTOM (luôn hiển thị) */}
       <View style={styles.buttonRow}>
+        <View style={styles.summaryBar}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.summaryLabel}>Ngân sách</Text>
+            <Text style={styles.summaryValue}>
+              {ingredientFundsAmountNumber
+                ? `${formatVnd(ingredientFundsAmountNumber)} VND`
+                : "—"}
+            </Text>
+          </View>
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Text style={styles.summaryLabel}>Tổng chi phí</Text>
+            <Text
+              style={[
+                styles.summaryValue,
+                ingredientFundsAmountNumber > 0 &&
+                  totalCostNumber > 0 &&
+                  !isTotalMatchBudget && { color: "#b91c1c" },
+              ]}
+            >
+              {totalCostNumber ? `${formatVnd(totalCost)} VND` : "0 VND"}
+            </Text>
+          </View>
+        </View>
+
         <TouchableOpacity
           style={[
             styles.actionBtn,
@@ -399,7 +508,12 @@ export default function IngredientRequestFormPage() {
 
         <TouchableOpacity
           style={[styles.actionBtn, styles.secondaryBtn]}
-          onPress={() => router.push("/ingredientRequest")}
+          onPress={() =>
+            router.push({
+              pathname: "/ingredientRequest",
+              params: { campaignPhaseId },
+            })
+          }
         >
           <Text style={styles.secondaryBtnText}>Yêu cầu đã gửi</Text>
         </TouchableOpacity>
@@ -413,8 +527,8 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f0e4da",
@@ -426,37 +540,37 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     color: PRIMARY,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "800",
     marginRight: 4,
   },
   backText: {
     color: PRIMARY,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "800",
     color: "#222",
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#8a7b6e",
-    marginTop: 2,
+    marginTop: 4,
   },
 
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: 24,
   },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -464,15 +578,15 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#8c8c8c",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -482,22 +596,22 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   badgeCount: {
-  position: "absolute",          // 👈 ghim vào góc phải trên của header
-  top: 0,
-  right: 0,
-  marginTop: 2,
-  marginRight: 4,
-  minWidth: 22,
-  height: 22,
-  borderRadius: 11,
-  backgroundColor: "#fff5ee",
-  alignItems: "center",
-  justifyContent: "center",
-},
+    position: "absolute",
+    top: 0,
+    right: 0,
+    marginTop: 2,
+    marginRight: 4,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#fff5ee",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   badgeCountText: {
     color: PRIMARY,
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 14,
   },
 
   chipsWrap: {
@@ -506,8 +620,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2d5c8",
@@ -518,36 +632,36 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff5ee",
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#4a4a4a",
-    maxWidth: 180,
+    maxWidth: 200,
   },
   chipTextActive: {
     color: PRIMARY,
     fontWeight: "700",
   },
   emptyPhaseText: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#999",
   },
 
   input: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#eee",
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 10,
-    fontSize: 14,
+    fontSize: 15,
   },
 
   itemBox: {
     backgroundColor: "#fffdf9",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#f4e3d6",
-    padding: 10,
+    padding: 12,
     marginBottom: 10,
   },
   itemHeaderRow: {
@@ -558,20 +672,20 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
     color: PRIMARY,
   },
   removeText: {
     color: "#d64545",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   itemLabel: {
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: 13,
     color: "#b06437",
-    marginBottom: 3,
-    marginTop: 4,
+    marginBottom: 4,
+    marginTop: 6,
   },
 
   inlineRow: {
@@ -583,8 +697,8 @@ const styles = StyleSheet.create({
   },
 
   addBtn: {
-    marginTop: 4,
-    paddingVertical: 10,
+    marginTop: 6,
+    paddingVertical: 12,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: PRIMARY,
@@ -595,7 +709,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: PRIMARY,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
   },
 
   buttonRow: {
@@ -604,16 +718,32 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 18,
     paddingTop: 10,
     backgroundColor: BG,
-    flexDirection: "row",
+    flexDirection: "column",
     gap: 10,
     borderTopWidth: 1,
     borderTopColor: "#e7ddd3",
   },
+
+  summaryBar: {
+    flexDirection: "row",
+    paddingHorizontal: 4,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: "#8a7b6e",
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: PRIMARY,
+    marginTop: 2,
+  },
+
   actionBtn: {
-    flex: 1,
     borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",
@@ -630,37 +760,37 @@ const styles = StyleSheet.create({
   actionBtnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 15,
+    fontSize: 16,
   },
   secondaryBtnText: {
     color: PRIMARY,
     fontWeight: "800",
-    fontSize: 14,
+    fontSize: 15,
   },
 
   budgetInfoBox: {
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f4c39a",
     backgroundColor: "#fff7ec",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
   },
   budgetLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#b06437",
     fontWeight: "600",
   },
   budgetValue: {
-    fontSize: 14,
+    fontSize: 16,
     color: PRIMARY,
     fontWeight: "800",
-    marginTop: 2,
+    marginTop: 4,
   },
   budgetHint: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#8c8c8c",
-    marginTop: 2,
+    marginTop: 4,
   },
 });

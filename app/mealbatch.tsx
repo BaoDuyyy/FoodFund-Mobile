@@ -1,8 +1,9 @@
-import IngredientService, {
+import IngredientService from "@/services/ingredientService";
+import MealBatchService from "@/services/mealBatchService";
+import type {
     MyIngredientRequest,
     MyIngredientRequestItem,
-} from "@/services/ingredientService";
-import MealBatchService from "@/services/mealBatchService";
+} from "@/types/api/ingredientRequest";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
