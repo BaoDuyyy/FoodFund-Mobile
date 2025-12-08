@@ -6,6 +6,16 @@ export type ListCampaignsVars = {
   offset?: number | null;
 };
 
+export type SearchCampaignInput = {
+  creatorId?: string | null;
+  categoryId?: string | null;
+  status?: string | null;
+  search?: string | null;
+  sortBy?: string | null;
+  limit?: number;
+  page?: number;
+};
+
 export type CampaignItem = {
   id: string;
   title?: string | null;
@@ -37,6 +47,19 @@ export type ListCampaignsResponse = {
 };
 
 // Detailed campaign types
+export type PlannedIngredient = {
+  id: string;
+  name?: string | null;
+  quantity?: number | string | null;
+  unit?: string | null;
+};
+
+export type PlannedMeal = {
+  id: string;
+  name?: string | null;
+  quantity?: number | string | null;
+};
+
 export type Phase = {
   id: string;
   phaseName?: string | null;
@@ -51,6 +74,8 @@ export type Phase = {
   cookingFundsAmount?: number | string | null;
   deliveryFundsAmount?: number | string | null;
   status?: string | null;
+  plannedIngredients?: PlannedIngredient[] | null;
+  plannedMeals?: PlannedMeal[] | null;
 };
 
 export type CampaignDetail = {

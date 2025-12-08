@@ -4,134 +4,118 @@ import { GENERATE_MEAL_BATCH_MEDIA_UPLOAD_URLS } from "@/graphql/mutation/genera
 import { UPDATE_MEAL_BATCH_STATUS } from "@/graphql/mutation/updateMealBatchStatus";
 import { GET_MEAL_BATCH } from "@/graphql/query/getMealBatch";
 import { GET_MEAL_BATCHES } from "@/graphql/query/getMealBatches";
-import type { GetMealBatchResponse, MealBatch, MealBatchStatus } from "@/types/api/mealBatch";
+import type {
+  CreateMealBatchMutationInput,
+  CreateMealBatchResponse,
+  CreateMealBatchServiceInput,
+  GenerateMealBatchMediaUploadUrlsResponse,
+  GenerateMealBatchUploadUrlsInput,
+  GetMealBatchesFilter,
+  GetMealBatchesResponse,
+  GetMealBatchResponse,
+  MealBatch,
+  MealBatchFileType,
+  MealBatchUploadUrl,
+  UpdateMealBatchStatusMutationInput,
+  UpdateMealBatchStatusOptions,
+  UpdateMealBatchStatusResponse
+} from "@/types/api/mealBatch";
+import type { GraphQLResponse } from "@/types/graphql";
 import AuthService from "./authService";
+export { COMMON_MEAL_BATCH_FILE_TYPES } from "@/types/api/mealBatch";
+export type { MealBatchFileType, MealBatchUploadUrl } from "@/types/api/mealBatch";
 
-export const COMMON_MEAL_BATCH_FILE_TYPES = ["jpg", "png", "mp4"] as const;
-export type MealBatchFileType = (typeof COMMON_MEAL_BATCH_FILE_TYPES)[number];
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-type GenerateMealBatchMediaUploadUrlsInputInternal = {
-  campaignPhaseId: string;
-  fileCount: number;
-  fileTypes: MealBatchFileType[];
-};
+/**
+ * Extract error message from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }> | undefined): string | null {
+  if (!errors || errors.length === 0) return null;
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
 
-type MealBatchUploadUrl = {
-  uploadUrl: string;
-  fileKey: string;
-  cdnUrl: string;
-  expiresAt: string;
-  fileType: string;
-};
+/**
+ * Generic GraphQL request handler for MealBatchService
+ * Includes authentication token in requests
+ */
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+  overrideUrl?: string
+): Promise<GraphQLResponse<T>> {
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
 
-type GenerateMealBatchMediaUploadUrlsPayloadInternal = {
-  generateMealBatchMediaUploadUrls: {
-    success: boolean;
-    uploadUrls: MealBatchUploadUrl[];
-  };
-};
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot connect to server: ${message}`);
+  }
 
-type CreateMealBatchServiceInput = {
-  campaignPhaseId: string;
-  foodName: string;
-  quantity: number;
-  ingredientIds: string[];
-  files: {
-    uri: string;   // local uri từ image picker
-    type: string;  // mime type, vd: "image/jpeg" | "video/mp4"
-    name: string;  // file name
-  }[];
-};
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
 
-type CreateMealBatchMutationInput = {
-  campaignPhaseId: string;
-  foodName: string;
-  quantity: number;
-  mediaFileKeys: string[];
-  ingredientIds: string[];
-};
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
 
-type CreateMealBatchPayload = {
-  createMealBatch: MealBatch;
-};
+  return json as GraphQLResponse<T>;
+}
 
-type GetMealBatchesFilter = {
-  campaignId?: string | null;
-  status?: string | null;
-};
-
-type GetMealBatchesPayload = {
-  getMealBatches: MealBatch[];
-};
-
-type UpdateMealBatchStatusInputInternal = {
-  status: MealBatchStatus;
-};
-
-type UpdateMealBatchStatusPayload = {
-  updateMealBatchStatus: MealBatch;
-};
+// =============================================================================
+// MEAL BATCH SERVICE
+// =============================================================================
 
 const MealBatchService = {
+  /**
+   * Generate signed upload URLs for meal batch media files
+   */
   async generateMealBatchUploadUrls(
-    input: GenerateMealBatchMediaUploadUrlsInputInternal,
+    input: GenerateMealBatchUploadUrlsInput,
     overrideUrl?: string
   ): Promise<MealBatchUploadUrl[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
+    const response = await graphqlRequest<GenerateMealBatchMediaUploadUrlsResponse>(
+      GENERATE_MEAL_BATCH_MEDIA_UPLOAD_URLS,
+      { input },
+      overrideUrl
+    );
 
-    const variables = {
-      input: {
-        campaignPhaseId: input.campaignPhaseId,
-        fileCount: input.fileCount,
-        fileTypes: input.fileTypes,
-      },
-    };
-
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GENERATE_MEAL_BATCH_MEDIA_UPLOAD_URLS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GenerateMealBatchMediaUploadUrlsPayloadInternal | undefined =
-      json.data;
-    if (!payload || !payload.generateMealBatchMediaUploadUrls) {
+    const payload = response.data?.generateMealBatchMediaUploadUrls;
+    if (!payload) {
       throw new Error("Empty generateMealBatchMediaUploadUrls response");
     }
-    if (!payload.generateMealBatchMediaUploadUrls.success) {
+
+    if (!payload.success) {
       throw new Error("Failed to generate meal batch upload URLs");
     }
 
-    return payload.generateMealBatchMediaUploadUrls.uploadUrls;
+    return payload.uploadUrls;
   },
 
+  /**
+   * Upload files to presigned S3 URLs
+   */
   async uploadFilesToPresignedUrls(
     files: CreateMealBatchServiceInput["files"],
     uploadUrls: MealBatchUploadUrl[]
@@ -171,34 +155,39 @@ const MealBatchService = {
     return mediaFileKeys;
   },
 
+  /**
+   * Create a meal batch with media upload
+   * 1. Generate upload URLs
+   * 2. Upload files
+   * 3. Create meal batch with file keys
+   */
   async createMealBatchWithMedia(
     params: CreateMealBatchServiceInput,
     overrideUrl?: string
   ): Promise<MealBatch> {
-    // 1. generate upload urls
+    // 1. Generate upload URLs
+    const fileTypes: MealBatchFileType[] = params.files.map((f) => {
+      if (f.type?.includes("mp4")) return "mp4";
+      if (f.type?.includes("png")) return "png";
+      return "jpg";
+    });
+
     const uploadUrls = await this.generateMealBatchUploadUrls(
       {
         campaignPhaseId: params.campaignPhaseId,
         fileCount: params.files.length,
-        fileTypes: params.files.map((f) =>
-          f.type?.includes("mp4")
-            ? ("mp4" as MealBatchFileType)
-            : ("jpg" as MealBatchFileType)
-        ),
+        fileTypes,
       },
       overrideUrl
     );
 
-    // 2. upload files
+    // 2. Upload files
     const mediaFileKeys = await this.uploadFilesToPresignedUrls(
       params.files,
       uploadUrls
     );
 
-    // 3. call CreateMealBatch
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
+    // 3. Create meal batch
     const input: CreateMealBatchMutationInput = {
       campaignPhaseId: params.campaignPhaseId,
       foodName: params.foodName,
@@ -207,210 +196,112 @@ const MealBatchService = {
       ingredientIds: params.ingredientIds,
     };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: CREATE_MEAL_BATCH,
-          variables: { input },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<CreateMealBatchResponse>(
+      CREATE_MEAL_BATCH,
+      { input },
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: CreateMealBatchPayload | undefined = json.data;
-    if (!payload || !payload.createMealBatch) {
+    const payload = response.data?.createMealBatch;
+    if (!payload) {
       throw new Error("Empty createMealBatch response");
     }
 
-    return payload.createMealBatch;
+    return payload;
   },
 
   /**
-   * Lấy chi tiết 1 meal batch theo id.
+   * Get a single meal batch by ID
    */
   async getMealBatchById(id: string, overrideUrl?: string): Promise<MealBatch> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { id };
+    const response = await graphqlRequest<GetMealBatchResponse>(
+      GET_MEAL_BATCH,
+      { id },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_MEAL_BATCH,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetMealBatchResponse | undefined = json.data;
-    if (!payload || !payload.getMealBatch) {
+    const payload = response.data?.getMealBatch;
+    if (!payload) {
       throw new Error("Empty or invalid getMealBatch response");
     }
 
-    return payload.getMealBatch;
+    return payload;
   },
 
   /**
-   * Lấy danh sách meal batches theo campaignId, status = null (không filter status).
-   * filter gửi lên:
-   * {
-   *   campaignId: campaignId,
-   *   status: null
-   * }
+   * Get meal batches by campaign ID (no status filter)
    */
   async getMealBatchesByCampaign(
     campaignId: string,
     overrideUrl?: string
   ): Promise<MealBatch[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
     const filter: GetMealBatchesFilter = {
       campaignId,
       status: null,
     };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_MEAL_BATCHES,
-          variables: { filter },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<GetMealBatchesResponse>(
+      GET_MEAL_BATCHES,
+      { filter },
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetMealBatchesPayload | undefined = json.data;
-    if (!payload || !Array.isArray(payload.getMealBatches)) {
+    const payload = response.data?.getMealBatches;
+    if (!Array.isArray(payload)) {
       throw new Error("Empty or invalid getMealBatches response");
     }
 
-    return payload.getMealBatches;
+    return payload;
   },
 
   /**
-   * Update trạng thái của một meal batch.
-   * Mặc định cập nhật sang READY, có thể override status nếu cần.
+   * Update meal batch status (defaults to READY)
    */
   async updateMealBatchStatusToReady(
     id: string,
-    options?: {
-      overrideStatus?: MealBatchStatus; // optional nếu sau này muốn dùng COOKING / PENDING
-    },
+    options?: UpdateMealBatchStatusOptions,
     overrideUrl?: string
   ): Promise<MealBatch> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
-    const input: UpdateMealBatchStatusInputInternal = {
+    const input: UpdateMealBatchStatusMutationInput = {
       status: options?.overrideStatus ?? "READY",
     };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: UPDATE_MEAL_BATCH_STATUS,
-          variables: { id, input },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<UpdateMealBatchStatusResponse>(
+      UPDATE_MEAL_BATCH_STATUS,
+      { id, input },
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: UpdateMealBatchStatusPayload | undefined = json.data;
-    if (!payload || !payload.updateMealBatchStatus) {
+    const payload = response.data?.updateMealBatchStatus;
+    if (!payload) {
       throw new Error("Empty or invalid updateMealBatchStatus response");
     }
 
-    return payload.updateMealBatchStatus;
+    return payload;
   },
 };
 

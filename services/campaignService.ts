@@ -9,10 +9,16 @@ import type {
   CampaignItem,
   ListCampaignsResponse,
   ListCampaignsVars,
+  SearchCampaignInput,
 } from "../types/api/campaign";
+import type { GraphQLResponse } from "../types/graphql";
 import AuthService from "./authService";
 
-const DEFAULT_VARS: ListCampaignsVars = {
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const DEFAULT_LIST_VARS: ListCampaignsVars = {
   filter: {
     status: ["ACTIVE"],
     creatorId: null,
@@ -24,200 +30,181 @@ const DEFAULT_VARS: ListCampaignsVars = {
   offset: 0,
 };
 
-type GetCampaignDonationStatementPayload = {
-  getCampaignDonationStatement: CampaignDonationStatement;
-};
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Extract error messages from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }>): string {
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Generic GraphQL request handler with authentication
+ */
+async function graphqlRequest<T>(options: {
+  query: string;
+  variables?: Record<string, any>;
+  overrideUrl?: string;
+}): Promise<GraphQLResponse<T>> {
+  const { query, variables, overrideUrl } = options;
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: any) {
+    throw new Error(`Cannot connect to server: ${err?.message || err}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  if (json.errors?.length) {
+    throw new Error(extractErrorMessage(json.errors));
+  }
+
+  return json;
+}
+
+/**
+ * Merge list vars with defaults, preserving filter object
+ */
+function mergeListVars(vars?: Partial<ListCampaignsVars>): ListCampaignsVars {
+  return {
+    ...DEFAULT_LIST_VARS,
+    ...(vars || {}),
+    filter: {
+      ...(DEFAULT_LIST_VARS.filter as any),
+      ...(vars?.filter as any),
+    },
+  };
+}
+
+// ============================================================================
+// CAMPAIGN SERVICE
+// ============================================================================
 
 export const CampaignService = {
+  /**
+   * List campaigns with optional filters
+   */
   async listCampaigns(
     vars?: Partial<ListCampaignsVars>,
     overrideUrl?: string
   ): Promise<CampaignItem[]> {
-    const variables: ListCampaignsVars = {
-      ...DEFAULT_VARS,
-      ...(vars || {}),
-      // merge filter object specially so defaults are preserved
-      filter: { ...(DEFAULT_VARS.filter as any), ...(vars?.filter as any) },
-    };
+    const variables = mergeListVars(vars);
 
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
+    const response = await graphqlRequest<ListCampaignsResponse>({
+      query: LIST_CAMPAIGNS_QUERY,
+      variables,
+      overrideUrl,
+    });
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: LIST_CAMPAIGNS_QUERY,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
-    }
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: ListCampaignsResponse | undefined = json.data;
-    if (!payload || !Array.isArray(payload.campaigns)) {
+    const campaigns = response.data?.campaigns;
+    if (!Array.isArray(campaigns)) {
       throw new Error("Empty or invalid campaigns response");
     }
 
-    return payload.campaigns;
+    return campaigns;
   },
 
   /**
-   * Fetch a single campaign by id.
-   * Returns CampaignDetail or throws on error.
+   * Get a single campaign by ID
    */
-  async getCampaign(id: string, overrideUrl?: string): Promise<CampaignDetail> {
-    if (!id) throw new Error("campaign id is required");
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_CAMPAIGN_QUERY,
-          variables: { id },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+  async getCampaign(
+    id: string,
+    overrideUrl?: string
+  ): Promise<CampaignDetail> {
+    if (!id) {
+      throw new Error("Campaign id is required");
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
+    const response = await graphqlRequest<{ campaign: CampaignDetail }>({
+      query: GET_CAMPAIGN_QUERY,
+      variables: { id },
+      overrideUrl,
+    });
+
+    const campaign = response.data?.campaign;
+    if (!campaign) {
+      throw new Error("Campaign not found");
     }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const campaign: CampaignDetail | undefined = json.data?.campaign;
-    if (!campaign) throw new Error("Campaign not found");
 
     return campaign;
   },
 
+  /**
+   * Search campaigns with advanced filters
+   */
   async searchCampaigns(
-    input: any, // input.creatorId should now be cognito_id
+    input: SearchCampaignInput,
     overrideUrl?: string
   ): Promise<CampaignItem[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: SEARCH_CAMPAIGNS_QUERY,
-          variables: { input },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
-    }
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-    const payload = json.data?.searchCampaigns;
-    if (!payload || !Array.isArray(payload.items)) {
+    const response = await graphqlRequest<{
+      searchCampaigns: { items: CampaignItem[] };
+    }>({
+      query: SEARCH_CAMPAIGNS_QUERY,
+      variables: { input },
+      overrideUrl,
+    });
+
+    const items = response.data?.searchCampaigns?.items;
+    if (!Array.isArray(items)) {
       throw new Error("Empty or invalid searchCampaigns response");
     }
-    return payload.items;
+
+    return items;
   },
 
+  /**
+   * Get donation statement for a campaign
+   */
   async getCampaignDonationStatement(
     campaignId: string,
     overrideUrl?: string
   ): Promise<CampaignDonationStatement> {
-    if (!campaignId) throw new Error("campaignId is required");
-
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_CAMPAIGN_DONATION_STATEMENT,
-          variables: { campaignId },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    if (!campaignId) {
+      throw new Error("Campaign id is required");
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
+    const response = await graphqlRequest<{
+      getCampaignDonationStatement: CampaignDonationStatement;
+    }>({
+      query: GET_CAMPAIGN_DONATION_STATEMENT,
+      variables: { campaignId },
+      overrideUrl,
+    });
 
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetCampaignDonationStatementPayload | undefined = json.data;
-    if (!payload || !payload.getCampaignDonationStatement) {
+    const statement = response.data?.getCampaignDonationStatement;
+    if (!statement) {
       throw new Error("Empty or invalid getCampaignDonationStatement response");
     }
 
-    return payload.getCampaignDonationStatement;
+    return statement;
   },
 };
 

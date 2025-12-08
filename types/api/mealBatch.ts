@@ -71,7 +71,7 @@ export interface GenerateMealBatchMediaUploadUrlsPayload {
   uploadUrls: GenerateMealBatchMediaUploadUrlItem[];
 }
 
-export interface CreateMealBatchPayload extends MealBatch {}
+export interface CreateMealBatchPayload extends MealBatch { }
 
 export interface UpdateMealBatchStatusPayload {
   id: string;
@@ -84,4 +84,85 @@ export interface UpdateMealBatchStatusPayload {
 
 export interface GetMealBatchResponse {
   getMealBatch: MealBatch;
+}
+
+// File type constants
+export const COMMON_MEAL_BATCH_FILE_TYPES = ["jpg", "png", "mp4"] as const;
+export type MealBatchFileType = (typeof COMMON_MEAL_BATCH_FILE_TYPES)[number];
+
+// Upload URL types
+export interface MealBatchUploadUrl {
+  uploadUrl: string;
+  fileKey: string;
+  cdnUrl: string;
+  expiresAt: string;
+  fileType: string;
+}
+
+// Input for generating upload URLs
+export interface GenerateMealBatchUploadUrlsInput {
+  campaignPhaseId: string;
+  fileCount: number;
+  fileTypes: MealBatchFileType[];
+}
+
+// File input for createMealBatchWithMedia
+export interface MealBatchFileInput {
+  uri: string;   // local uri from image picker
+  type: string;  // mime type, e.g. "image/jpeg" | "video/mp4"
+  name: string;  // file name
+}
+
+// Input for createMealBatchWithMedia service method
+export interface CreateMealBatchServiceInput {
+  campaignPhaseId: string;
+  foodName: string;
+  quantity: number;
+  ingredientIds: string[];
+  files: MealBatchFileInput[];
+}
+
+// Input for createMealBatch mutation
+export interface CreateMealBatchMutationInput {
+  campaignPhaseId: string;
+  foodName: string;
+  quantity: number;
+  mediaFileKeys: string[];
+  ingredientIds: string[];
+}
+
+// Filter for getMealBatches query
+export interface GetMealBatchesFilter {
+  campaignId?: string | null;
+  status?: string | null;
+}
+
+// Options for updateMealBatchStatus
+export interface UpdateMealBatchStatusOptions {
+  overrideStatus?: MealBatchStatus;
+}
+
+// GraphQL response wrapper types
+export interface GenerateMealBatchMediaUploadUrlsResponse {
+  generateMealBatchMediaUploadUrls: {
+    success: boolean;
+    uploadUrls: MealBatchUploadUrl[];
+  };
+}
+
+export interface CreateMealBatchResponse {
+  createMealBatch: MealBatch;
+}
+
+export interface GetMealBatchesResponse {
+  getMealBatches: MealBatch[];
+}
+
+export interface UpdateMealBatchStatusResponse {
+  updateMealBatchStatus: MealBatch;
+}
+
+// Internal input type for update mutation
+export interface UpdateMealBatchStatusMutationInput {
+  status: MealBatchStatus;
 }

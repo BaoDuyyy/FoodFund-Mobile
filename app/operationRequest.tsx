@@ -1,4 +1,5 @@
 import Loading from "@/components/Loading";
+import { BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -13,9 +14,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PRIMARY = "#ad4e28";
-const BG = "#f5f7fb";
-
 type Phase = {
   id: string;
   phaseName: string;
@@ -26,7 +24,6 @@ type Phase = {
 const EXPENSE_TYPES = ["COOKING", "DELIVERY"] as const;
 type ExpenseType = (typeof EXPENSE_TYPES)[number];
 
-/** Helpers VND */
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 const formatVnd = (value: string | number | null | undefined) => {
@@ -90,6 +87,14 @@ export default function OperationRequestPage() {
       setTotalCost(String(currentBudget));
     }
   }, [currentBudget, totalCost]);
+
+  useEffect(() => {
+    if (currentBudget > 0) {
+      setTotalCost(String(currentBudget));
+    } else {
+      setTotalCost("");
+    }
+  }, [expenseType, selectedPhaseId]);
 
   const handleSubmit = async () => {
     if (!selectedPhase) {

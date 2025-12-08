@@ -1,3 +1,4 @@
+import { BG_WARM as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import DeliveryService from "@/services/deliveryService";
 import type { DeliveryTask } from "@/types/api/delivery";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,12 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PRIMARY = "#ad4e28";
-const BG = "#f8f6f4";
-const TEXT = "#111827";
-const MUTED = "#6b7280";
-const BORDER = "#e5e7eb";
 
 // map status -> Vietnamese
 const DELIVERY_STATUS_LABELS: Record<string, string> = {

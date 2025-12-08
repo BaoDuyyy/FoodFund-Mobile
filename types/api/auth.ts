@@ -35,3 +35,11 @@ export type SignUpPayload = {
   message?: string | null;
   userSub?: string | null;
 };
+
+// User info stored locally (from SecureStore)
+export type UserInfo = {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  role: string | null;
+};

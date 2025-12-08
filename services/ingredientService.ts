@@ -1,148 +1,159 @@
-import { getGraphqlUrl } from '@/config/api';
-import { CREATE_INGREDIENT_REQUEST_MUTATION } from '@/graphql/mutation/createIngredientRequest';
-import { GET_INGREDIENT_REQUESTS } from '@/graphql/query/getIngredientRequests';
-import { GET_MY_INGREDIENT_REQUESTS_QUERY } from '@/graphql/query/getMyIngredientRequests';
+import { getGraphqlUrl } from "@/config/api";
+import { CREATE_INGREDIENT_REQUEST_MUTATION } from "@/graphql/mutation/createIngredientRequest";
+import { GET_INGREDIENT_REQUESTS } from "@/graphql/query/getIngredientRequests";
+import { GET_MY_INGREDIENT_REQUESTS_QUERY } from "@/graphql/query/getMyIngredientRequests";
 import type {
   CreateIngredientRequestInput,
   CreateIngredientRequestPayload,
+  CreateIngredientRequestResponse,
+  GetIngredientRequestsResponse,
+  GetIngredientRequestsVars,
+  GetMyIngredientRequestsOptions,
+  GetMyIngredientRequestsResponse,
   MyIngredientRequest,
-} from '@/types/api/ingredientRequest';
+} from "@/types/api/ingredientRequest";
+import type { GraphQLResponse } from "@/types/graphql";
 import AuthService from "./authService";
 
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Extract error message from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }> | undefined): string | null {
+  if (!errors || errors.length === 0) return null;
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Generic GraphQL request handler for IngredientService
+ * Includes authentication token in requests
+ */
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+  overrideUrl?: string
+): Promise<GraphQLResponse<T>> {
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot connect to server: ${message}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  return json as GraphQLResponse<T>;
+}
+
+// =============================================================================
+// INGREDIENT SERVICE
+// =============================================================================
+
 export const IngredientService = {
+  /**
+   * Create a new ingredient request for a campaign phase
+   */
   async createIngredientRequest(
     input: CreateIngredientRequestInput,
     overrideUrl?: string
   ): Promise<CreateIngredientRequestPayload> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();   // 👈 Lấy access token
+    const response = await graphqlRequest<CreateIngredientRequestResponse>(
+      CREATE_INGREDIENT_REQUEST_MUTATION,
+      { input },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}), // 👈 Gửi kèm
-        },
-        body: JSON.stringify({
-          query: CREATE_INGREDIENT_REQUEST_MUTATION,
-          variables: { input },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Network error ${res.status}: ${text}`);
+    const payload = response.data?.createIngredientRequest;
+    if (!payload) {
+      throw new Error("Empty createIngredientRequest response");
     }
 
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error('Invalid JSON from server');
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join('; ');
-      throw new Error(errMsg);
-    }
-
-    const payload: CreateIngredientRequestPayload | undefined =
-      json.data?.createIngredientRequest;
-    if (!payload) throw new Error('Empty createIngredientRequest response');
     return payload;
   },
 
-
+  /**
+   * Get ingredient requests for the current user with pagination
+   */
   async getMyIngredientRequests(
-    { limit = 10, offset = 0 } = {}
+    options: GetMyIngredientRequestsOptions = {}
   ): Promise<MyIngredientRequest[]> {
-    const url = getGraphqlUrl();
-    const token = await AuthService.getAccessToken();
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_MY_INGREDIENT_REQUESTS_QUERY,
-          variables: { limit, offset },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const { limit = 10, offset = 0 } = options;
+
+    const response = await graphqlRequest<GetMyIngredientRequestsResponse>(
+      GET_MY_INGREDIENT_REQUESTS_QUERY,
+      { limit, offset }
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error('Invalid JSON from server');
-    if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join('; ');
-      throw new Error(errMsg);
-    }
-    const payload = json.data?.getMyIngredientRequests;
+
+    const payload = response.data?.getMyIngredientRequests;
     if (!Array.isArray(payload)) {
-      throw new Error('Empty or invalid getMyIngredientRequests response');
+      throw new Error("Empty or invalid getMyIngredientRequests response");
     }
-    return payload as MyIngredientRequest[];
+
+    return payload;
   },
 
+  /**
+   * Get all ingredient requests with filtering and pagination (admin/overview)
+   */
   async getIngredientRequests(
-    params: {
-      filter?: {
-        campaignPhaseId?: string;
-        status?: string;
-        sortBy?: string;
-      };
-      limit?: number;
-      offset?: number;
-    } = {}
-  ): Promise<any[]> {
-    const url = getGraphqlUrl();
-    const token = await AuthService.getAccessToken();
+    params: GetIngredientRequestsVars = {}
+  ): Promise<MyIngredientRequest[]> {
     const variables = {
       filter: params.filter || {},
       limit: params.limit ?? 10,
       offset: params.offset ?? 0,
     };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_INGREDIENT_REQUESTS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<GetIngredientRequestsResponse>(
+      GET_INGREDIENT_REQUESTS,
+      variables
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error('Invalid JSON from server');
-    if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join('; ');
-      throw new Error(errMsg);
-    }
-    const payload = json.data?.getIngredientRequests;
+
+    const payload = response.data?.getIngredientRequests;
     if (!Array.isArray(payload)) {
-      throw new Error('Empty or invalid getIngredientRequests response');
+      throw new Error("Empty or invalid getIngredientRequests response");
     }
+
     return payload;
   },
 };

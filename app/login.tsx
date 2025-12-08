@@ -1,5 +1,6 @@
 import Loading from '@/components/Loading';
 import { GOOGLE_CLIENT_ID } from '@/config/google';
+import { BG_AUTH as BG, PRIMARY } from '@/constants/colors';
 import AuthService from '@/services/authService';
 import { AntDesign } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
@@ -18,9 +19,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const PRIMARY = '#ad4e28';
-const BG = '#fbefe6';
 
 function isNetworkError(err: any) {
   const msg = String(err?.message || '');
@@ -110,7 +108,7 @@ export default function LoginScreen() {
         responseType: AuthSession.ResponseType.IdToken, // 'id_token'
         scopes: ['openid', 'profile', 'email'],
         extraParams: { nonce: 'randomnonce' },
-        usePKCE: false, 
+        usePKCE: false,
       };
 
       const authRequest = new AuthSession.AuthRequest(config);

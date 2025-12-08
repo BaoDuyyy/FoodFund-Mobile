@@ -4,109 +4,128 @@ import { UPDATE_MY_PROFILE } from "../graphql/mutation/updateMyProfile";
 import { GET_MY_PROFILE_QUERY } from "../graphql/query/getMyProfile";
 import type {
   GenerateAvatarUploadUrlInput,
+  GenerateAvatarUploadUrlPayload,
   GenerateAvatarUploadUrlResult,
   GetMyProfileResponse,
   UpdateMyProfileInput,
-  UpdateMyProfileResult
+  UpdateMyProfilePayload,
+  UpdateMyProfileResult,
+  UserProfile,
 } from "../types/api/user";
+import type { GraphQLResponse } from "../types/graphql";
 import AuthService from "./authService";
 
-// helper payload types for GraphQL responses
-type GenerateAvatarUploadUrlPayload = {
-  generateAvatarUploadUrl: GenerateAvatarUploadUrlResult;
-};
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-type UpdateMyProfilePayload = {
-  updateMyProfile: UpdateMyProfileResult;
-};
+/**
+ * Extract error message from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }> | undefined): string | null {
+  if (!errors || errors.length === 0) return null;
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Generic GraphQL request handler for UserService
+ * Includes authentication token in requests
+ */
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+  overrideUrl?: string
+): Promise<GraphQLResponse<T>> {
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot connect to server: ${message}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  return json as GraphQLResponse<T>;
+}
+
+// =============================================================================
+// USER SERVICE
+// =============================================================================
 
 export const UserService = {
-  async getMyProfile(overrideUrl?: string) {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ query: GET_MY_PROFILE_QUERY }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+  /**
+   * Get the current user's profile
+   */
+  async getMyProfile(overrideUrl?: string): Promise<UserProfile> {
+    const response = await graphqlRequest<GetMyProfileResponse>(
+      GET_MY_PROFILE_QUERY,
+      {},
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetMyProfileResponse | undefined = json.data;
-    if (!payload || !payload.getMyProfile?.userProfile) {
+    const payload = response.data?.getMyProfile?.userProfile;
+    if (!payload) {
       throw new Error("Empty or invalid profile response");
     }
 
-    return payload.getMyProfile.userProfile;
+    return payload;
   },
 
+  /**
+   * Generate a presigned URL for avatar upload
+   */
   async generateAvatarUploadUrl(
     input: GenerateAvatarUploadUrlInput,
     overrideUrl?: string
   ): Promise<GenerateAvatarUploadUrlResult> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { input };
+    const response = await graphqlRequest<GenerateAvatarUploadUrlPayload>(
+      GENERATE_AVATAR_UPLOAD_URL,
+      { input },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GENERATE_AVATAR_UPLOAD_URL,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GenerateAvatarUploadUrlPayload | undefined = json.data;
-    if (!payload || !payload.generateAvatarUploadUrl) {
+    const payload = response.data?.generateAvatarUploadUrl;
+    if (!payload) {
       throw new Error("Empty generateAvatarUploadUrl response");
     }
 
-    return payload.generateAvatarUploadUrl;
+    return payload;
   },
 
-  // Helper: upload avatar file to presigned URL with public-read ACL
+  /**
+   * Upload avatar file to presigned S3 URL with public-read ACL
+   */
   async uploadAvatarToSignedUrl(
     uploadUrl: string,
     file: Blob | ArrayBuffer,
@@ -127,51 +146,31 @@ export const UserService = {
     }
   },
 
+  /**
+   * Update the current user's profile
+   */
   async updateMyProfile(
     input: UpdateMyProfileInput,
     overrideUrl?: string
   ): Promise<UpdateMyProfileResult> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { input };
+    const response = await graphqlRequest<UpdateMyProfilePayload>(
+      UPDATE_MY_PROFILE,
+      { input },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: UPDATE_MY_PROFILE,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: UpdateMyProfilePayload | undefined = json.data;
-    if (!payload || !payload.updateMyProfile) {
+    const payload = response.data?.updateMyProfile;
+    if (!payload) {
       throw new Error("Empty updateMyProfile response");
     }
 
-    return payload.updateMyProfile;
+    return payload;
   },
 };
 

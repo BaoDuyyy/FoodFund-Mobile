@@ -3,76 +3,91 @@ import { CREATE_EXPENSE_PROOF } from "@/graphql/mutation/createExpenseProof";
 import { GENERATE_EXPENSE_PROOF_UPLOAD_URLS } from "@/graphql/mutation/generateExpenseProofUploadUrls";
 import { GET_EXPENSE_PROOFS } from "@/graphql/query/getExpenseProofs";
 import { GET_MY_EXPENSE_PROOFS } from "@/graphql/query/getMyExpenseProofs";
+import type {
+  CreateExpenseProofInput,
+  CreateExpenseProofPayload,
+  ExpenseProof,
+  ExpenseProofFileType,
+  ExpenseProofUploadUrl,
+  GenerateExpenseProofUploadUrlsInput,
+  GenerateExpenseProofUploadUrlsPayload,
+  GetExpenseProofsPayload,
+  GetExpenseProofsVars,
+  GetMyExpenseProofsPayload,
+} from "@/types/api/expenseProof";
+import type { GraphQLResponse } from "@/types/graphql";
 import AuthService from "./authService";
+export { COMMON_EXPENSE_FILE_TYPES } from "@/types/api/expenseProof";
+export type { ExpenseProof, ExpenseProofFileType, ExpenseProofUploadUrl } from "@/types/api/expenseProof";
 
-// Các fileType phổ biến
-export const COMMON_EXPENSE_FILE_TYPES = ["jpg", "png", "mp4"] as const;
-export type ExpenseProofFileType = (typeof COMMON_EXPENSE_FILE_TYPES)[number];
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-type GenerateExpenseProofUploadUrlsInput = {
+/**
+ * Extract error message from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }> | undefined): string | null {
+  if (!errors || errors.length === 0) return null;
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Generic GraphQL request handler for ExpenseProofService
+ * Includes authentication token in requests
+ */
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+  overrideUrl?: string
+): Promise<GraphQLResponse<T>> {
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot connect to server: ${message}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  return json as GraphQLResponse<T>;
+}
+
+// =============================================================================
+// EXPENSE PROOF SERVICE
+// =============================================================================
+
+// Input type using the file type union for better type safety
+type GenerateUploadUrlsInput = {
   requestId: string;
   fileCount: number;
   fileTypes: ExpenseProofFileType[];
 };
 
-export type ExpenseProofUploadUrl = {
-  uploadUrl: string;
-  fileKey: string;
-  cdnUrl: string;
-  expiresAt: string;
-  fileType: string;
-};
-
-type GenerateExpenseProofUploadUrlsPayload = {
-  generateExpenseProofUploadUrls: {
-    success: boolean;
-    uploadUrls: ExpenseProofUploadUrl[];
-    instructions?: string | null;
-  };
-};
-
-// Shape đúng với mutation createExpenseProof / query getMyExpenseProofs
-export type ExpenseProof = {
-  id: string;
-  requestId: string;
-  media?: string[] | null;
-  amount: string;
-  status: string;
-  adminNote?: string | null;
-  created_at: string;
-  updated_at?: string;
-};
-
-type CreateExpenseProofInput = {
-  requestId: string;
-  mediaFileKeys: string[];
-  amount: string;
-};
-
-type CreateExpenseProofPayload = {
-  createExpenseProof: ExpenseProof;
-};
-
-type GetMyExpenseProofsPayload = {
-  getMyExpenseProofs: ExpenseProof[];
-};
-
-type GetExpenseProofsPayload = {
-  getExpenseProofs: ExpenseProof[];
-};
-
-type GetExpenseProofsVars = {
-  filter?: any; // ExpenseProofFilterInput – có thể tạo type riêng sau
-  limit?: number;
-  offset?: number;
-};
-
 const ExpenseProofService = {
   /**
-   * Helper: upload 1 file to a presigned S3 URL,
-   * always set x-amz-acl: public-read.
+   * Upload a file to a signed S3 URL
    */
-  async uploadFileToSignedUrl(uploadUrl: string, file: Blob | ArrayBuffer) {
+  async uploadFileToSignedUrl(uploadUrl: string, file: Blob | ArrayBuffer): Promise<void> {
     const res = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
@@ -89,103 +104,63 @@ const ExpenseProofService = {
   },
 
   /**
-   * Step 1: Lấy danh sách signed upload URLs cho chứng từ chi tiêu.
+   * Step 1: Generate signed upload URLs for expense proof files
    */
   async generateExpenseProofUploadUrls(
-    input: GenerateExpenseProofUploadUrlsInput,
+    input: GenerateUploadUrlsInput,
     overrideUrl?: string
   ): Promise<ExpenseProofUploadUrl[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { input };
+    // Convert to the GraphQL input type
+    const graphqlInput: GenerateExpenseProofUploadUrlsInput = {
+      requestId: input.requestId,
+      fileCount: input.fileCount,
+      fileTypes: input.fileTypes,
+    };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GENERATE_EXPENSE_PROOF_UPLOAD_URLS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<GenerateExpenseProofUploadUrlsPayload>(
+      GENERATE_EXPENSE_PROOF_UPLOAD_URLS,
+      { input: graphqlInput },
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GenerateExpenseProofUploadUrlsPayload | undefined = json.data;
-    if (!payload || !payload.generateExpenseProofUploadUrls) {
+    const payload = response.data?.generateExpenseProofUploadUrls;
+    if (!payload) {
       throw new Error("Empty or invalid generateExpenseProofUploadUrls response");
     }
-    if (!payload.generateExpenseProofUploadUrls.success) {
+
+    if (!payload.success) {
       throw new Error("Failed to generate expense proof upload URLs");
     }
 
-    return payload.generateExpenseProofUploadUrls.uploadUrls;
+    return payload.uploadUrls;
   },
 
   /**
-   * Step 2: Tạo expense proof sau khi upload file xong.
+   * Step 2: Create expense proof after uploading files
    */
   async createExpenseProof(
     input: CreateExpenseProofInput,
     overrideUrl?: string
   ): Promise<ExpenseProof> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { input };
+    const response = await graphqlRequest<CreateExpenseProofPayload>(
+      CREATE_EXPENSE_PROOF,
+      { input },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: CREATE_EXPENSE_PROOF,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const expenseProof: ExpenseProof | undefined = json.data?.createExpenseProof;
+    const expenseProof = response.data?.createExpenseProof;
     if (!expenseProof) {
       throw new Error("Empty or invalid createExpenseProof response");
     }
@@ -194,106 +169,57 @@ const ExpenseProofService = {
   },
 
   /**
-   * Lấy danh sách expense proofs của current user,
-   * có thể filter theo requestId (optional).
+   * Get expense proofs for the current user, optionally filtered by requestId
    */
   async getMyExpenseProofs(
     requestId?: string,
     overrideUrl?: string
   ): Promise<ExpenseProof[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { requestId };
+    const response = await graphqlRequest<GetMyExpenseProofsPayload>(
+      GET_MY_EXPENSE_PROOFS,
+      { requestId },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_MY_EXPENSE_PROOFS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetMyExpenseProofsPayload | undefined = json.data;
-    if (!payload || !Array.isArray(payload.getMyExpenseProofs)) {
+    const payload = response.data?.getMyExpenseProofs;
+    if (!Array.isArray(payload)) {
       throw new Error("Empty or invalid getMyExpenseProofs response");
     }
 
-    return payload.getMyExpenseProofs;
+    return payload;
   },
 
   /**
-   * Admin / tổng quan: lấy danh sách tất cả expense proofs với filter + paging.
+   * Admin: Get all expense proofs with filtering and pagination
    */
   async getExpenseProofs(
     vars: GetExpenseProofsVars = {},
     overrideUrl?: string
   ): Promise<ExpenseProof[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = vars;
+    const response = await graphqlRequest<GetExpenseProofsPayload>(
+      GET_EXPENSE_PROOFS,
+      vars,
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_EXPENSE_PROOFS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetExpenseProofsPayload | undefined = json.data;
-    if (!payload || !Array.isArray(payload.getExpenseProofs)) {
+    const payload = response.data?.getExpenseProofs;
+    if (!Array.isArray(payload)) {
       throw new Error("Empty or invalid getExpenseProofs response");
     }
 
-    return payload.getExpenseProofs;
+    return payload;
   },
 };
 

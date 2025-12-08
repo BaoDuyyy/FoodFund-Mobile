@@ -1,7 +1,11 @@
+import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
+import CampaignService from "@/services/campaignService";
 import IngredientService from "@/services/ingredientService";
+import type { Phase, PlannedIngredient } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -12,12 +16,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PRIMARY = "#ad4e28";
-const BG = "#f8f6f4";
-
-type Phase = {
+type PhaseOption = {
   id: string;
   phaseName: string;
+  ingredientFundsAmount?: number | string | null;
+  plannedIngredients?: PlannedIngredient[] | null;
 };
 
 type IngredientItemField =
@@ -28,6 +31,18 @@ type IngredientItemField =
   | "estimatedUnitPrice"
   | "estimatedTotalPrice"
   | "supplier";
+
+type IngredientItem = {
+  ingredientName: string;
+  quantity: string;
+  quantityValue: string;
+  quantityUnit: string;
+  estimatedUnitPrice: string;
+  estimatedTotalPrice: string;
+  supplier: string;
+  plannedIngredientId: string | null; // null nếu là item mới thêm
+  isFromPlan: boolean; // để đánh dấu item từ plan hay mới thêm
+};
 
 // helpers VND
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -42,59 +57,166 @@ const formatVnd = (value: string | number | null | undefined) => {
   return n.toLocaleString("vi-VN");
 };
 
+// Tạo item trống
+const createEmptyItem = (): IngredientItem => ({
+  ingredientName: "",
+  quantity: "",
+  quantityValue: "",
+  quantityUnit: "kg",
+  estimatedUnitPrice: "",
+  estimatedTotalPrice: "",
+  supplier: "",
+  plannedIngredientId: null,
+  isFromPlan: false,
+});
+
+// Tạo item từ plannedIngredient
+const createItemFromPlan = (plan: PlannedIngredient): IngredientItem => ({
+  ingredientName: plan.name || "",
+  quantity: `${plan.quantity || ""}${plan.unit || ""}`,
+  quantityValue: String(plan.quantity || ""),
+  quantityUnit: plan.unit || "kg",
+  estimatedUnitPrice: "",
+  estimatedTotalPrice: "",
+  supplier: "",
+  plannedIngredientId: plan.id,
+  isFromPlan: true,
+});
+
 export default function IngredientRequestFormPage() {
   const router = useRouter();
-  const { phases, ingredientFundsAmount } = useLocalSearchParams();
+  const { campaignId, campaignPhaseId, phases, ingredientFundsAmount } =
+    useLocalSearchParams<{
+      campaignId?: string;
+      campaignPhaseId?: string;
+      phases?: string;
+      ingredientFundsAmount?: string;
+    }>();
 
-  // Parse phases from params (JSON string)
-  let phaseList: Phase[] = [];
-  try {
-    if (phases) {
-      phaseList = JSON.parse(
-        Array.isArray(phases) ? phases[0] : (phases as string)
+  // States
+  const [loading, setLoading] = useState(false);
+  const [phaseList, setPhaseList] = useState<PhaseOption[]>([]);
+  const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0);
+  const [totalCost, setTotalCost] = useState("");
+  const [items, setItems] = useState<IngredientItem[]>([createEmptyItem()]);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Load campaign và plannedIngredients
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      // Nếu có phases từ params (legacy)
+      if (phases) {
+        try {
+          const parsed = JSON.parse(
+            Array.isArray(phases) ? phases[0] : phases
+          ) as PhaseOption[];
+          if (mounted) {
+            setPhaseList(parsed);
+            // Tìm index của phase đã chọn
+            if (campaignPhaseId) {
+              const idx = parsed.findIndex((p) => p.id === campaignPhaseId);
+              if (idx >= 0) setSelectedPhaseIdx(idx);
+            }
+          }
+        } catch { }
+        return;
+      }
+
+      // Nếu có campaignId, load từ API
+      if (!campaignId) return;
+
+      setLoading(true);
+      try {
+        const campaign = await CampaignService.getCampaign(campaignId);
+        if (!mounted) return;
+
+        // Map phases với plannedIngredients
+        const mappedPhases: PhaseOption[] = (campaign.phases || []).map(
+          (p: Phase) => ({
+            id: p.id,
+            phaseName: p.phaseName || "Giai đoạn",
+            ingredientFundsAmount: p.ingredientFundsAmount,
+            plannedIngredients: p.plannedIngredients,
+          })
+        );
+
+        setPhaseList(mappedPhases);
+
+        // Tìm phase được chọn
+        let selectedIdx = 0;
+        if (campaignPhaseId) {
+          const idx = mappedPhases.findIndex((p) => p.id === campaignPhaseId);
+          if (idx >= 0) selectedIdx = idx;
+        }
+        setSelectedPhaseIdx(selectedIdx);
+
+        // Pre-fill items từ plannedIngredients của phase đã chọn
+        const selectedPhase = mappedPhases[selectedIdx];
+        if (
+          selectedPhase?.plannedIngredients &&
+          selectedPhase.plannedIngredients.length > 0
+        ) {
+          const prefilledItems = selectedPhase.plannedIngredients.map(
+            createItemFromPlan
+          );
+          setItems(prefilledItems);
+        }
+      } catch (err: any) {
+        console.error("Error loading campaign:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [campaignId, campaignPhaseId, phases]);
+
+  // Khi chọn phase khác, update lại items từ plannedIngredients
+  const handleSelectPhase = (idx: number) => {
+    setSelectedPhaseIdx(idx);
+    const selectedPhase = phaseList[idx];
+
+    if (
+      selectedPhase?.plannedIngredients &&
+      selectedPhase.plannedIngredients.length > 0
+    ) {
+      const prefilledItems = selectedPhase.plannedIngredients.map(
+        createItemFromPlan
       );
+      setItems(prefilledItems);
+      recalcTotalCost(prefilledItems);
+    } else {
+      setItems([createEmptyItem()]);
+      setTotalCost("");
     }
-  } catch {}
-  const hasPhases = phaseList.length > 0;
+  };
 
-  // Parse ingredientFundsAmount from params
+  const hasPhases = phaseList.length > 0;
+  const currentPhase = phaseList[selectedPhaseIdx];
+  const currentCampaignPhaseId = currentPhase?.id || campaignPhaseId || "";
+
+  // Parse ingredientFundsAmount
   const ingredientFundsAmountNumber = (() => {
+    // Ưu tiên từ phase hiện tại
+    if (currentPhase?.ingredientFundsAmount) {
+      const n = Number(
+        digitsOnly(String(currentPhase.ingredientFundsAmount))
+      );
+      return isNaN(n) ? 0 : n;
+    }
+    // Fallback từ params
     const raw = Array.isArray(ingredientFundsAmount)
       ? ingredientFundsAmount[0]
-      : (ingredientFundsAmount as string | undefined);
+      : ingredientFundsAmount;
     if (!raw) return 0;
     const n = Number(digitsOnly(raw));
     return isNaN(n) ? 0 : n;
   })();
-
-  const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0);
-  const [totalCost, setTotalCost] = useState(""); // lưu dạng "80000"
-  const [items, setItems] = useState<
-    Array<{
-      ingredientName: string;
-      quantity: string;
-      quantityValue: string;
-      quantityUnit: string;
-      estimatedUnitPrice: string; // "25000"
-      estimatedTotalPrice: string; // "75000"
-      supplier: string;
-    }>
-  >([
-    {
-      ingredientName: "",
-      quantity: "",
-      quantityValue: "",
-      quantityUnit: "kg",
-      estimatedUnitPrice: "",
-      estimatedTotalPrice: "",
-      supplier: "",
-    },
-  ]);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Always get campaignPhaseId from selected phase
-  const campaignPhaseId = phaseList[selectedPhaseIdx]?.id || "";
-  console.log("[ingredientRequestForm] campaignPhaseId =", campaignPhaseId);
 
   const recalcTotalCost = (list: typeof items) => {
     const sum = list.reduce((acc, i) => {
@@ -105,35 +227,13 @@ export default function IngredientRequestFormPage() {
   };
 
   const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        ingredientName: "",
-        quantity: "",
-        quantityValue: "",
-        quantityUnit: "kg",
-        estimatedUnitPrice: "",
-        estimatedTotalPrice: "",
-        supplier: "",
-      },
-    ]);
+    setItems((prev) => [...prev, createEmptyItem()]);
   };
 
   const handleRemoveItem = (idx: number) => {
     setItems((prev) => {
       if (prev.length === 1) {
-        // luôn giữ lại ít nhất 1 dòng
-        const reset = [
-          {
-            ingredientName: "",
-            quantity: "",
-            quantityValue: "",
-            quantityUnit: "kg",
-            estimatedUnitPrice: "",
-            estimatedTotalPrice: "",
-            supplier: "",
-          },
-        ];
+        const reset = [createEmptyItem()];
         recalcTotalCost(reset);
         return reset;
       }
@@ -150,7 +250,7 @@ export default function IngredientRequestFormPage() {
     value: string
   ) => {
     const newItems = items.slice();
-    newItems[idx][field] = value;
+    (newItems[idx] as any)[field] = value;
 
     // Khi đổi quantityValue hoặc quantityUnit => cập nhật quantity ghép string
     if (field === "quantityValue" || field === "quantityUnit") {
@@ -182,18 +282,18 @@ export default function IngredientRequestFormPage() {
   const handleSubmit = async () => {
     console.log(
       "[ingredientRequestForm] submit campaignPhaseId =",
-      campaignPhaseId
+      currentCampaignPhaseId
     );
     const totalCostNumber = totalCost ? parseInt(totalCost, 10) : 0;
 
     const isInvalidBase =
-      !campaignPhaseId ||
+      !currentCampaignPhaseId ||
       !totalCostNumber ||
       items.some(
         (i) =>
           !i.ingredientName ||
-          !i.quantityValue || // số lượng số bắt buộc
-          !i.quantityUnit || // đơn vị bắt buộc
+          !i.quantityValue ||
+          !i.quantityUnit ||
           !i.estimatedUnitPrice ||
           !i.estimatedTotalPrice ||
           !i.supplier
@@ -223,25 +323,26 @@ export default function IngredientRequestFormPage() {
     setSubmitting(true);
     try {
       const input = {
-        campaignPhaseId,
+        campaignPhaseId: currentCampaignPhaseId,
         totalCost: String(totalCostNumber),
         items: items.map((i) => ({
           ingredientName: i.ingredientName,
-          // quantity string như backend mong muốn, ví dụ: "3kg"
-          quantity:
-            i.quantityValue && i.quantityUnit
-              ? `${i.quantityValue}${i.quantityUnit}`
-              : i.quantity,
+          quantity: i.quantityValue, // Chỉ gửi số, không ghép unit
+          unit: i.quantityUnit,
           estimatedUnitPrice: Number(digitsOnly(i.estimatedUnitPrice)),
           estimatedTotalPrice: Number(digitsOnly(i.estimatedTotalPrice)),
           supplier: i.supplier,
+          plannedIngredientId: i.plannedIngredientId, // null nếu item mới
         })),
       };
+
+      console.log("[ingredientRequestForm] input =", JSON.stringify(input, null, 2));
+
       await IngredientService.createIngredientRequest(input);
       Alert.alert("Thành công", "Gửi yêu cầu nguyên liệu thành công.");
       router.push({
         pathname: "/ingredientRequest",
-        params: { campaignPhaseId }, // always use selected phase id
+        params: { campaignPhaseId: currentCampaignPhaseId },
       });
     } catch (err: any) {
       Alert.alert(
@@ -257,6 +358,17 @@ export default function IngredientRequestFormPage() {
   const isTotalMatchBudget =
     ingredientFundsAmountNumber > 0 &&
     totalCostNumber === ingredientFundsAmountNumber;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -295,7 +407,7 @@ export default function IngredientRequestFormPage() {
                     styles.chip,
                     selectedPhaseIdx === idx && styles.chipActive,
                   ]}
-                  onPress={() => setSelectedPhaseIdx(idx)}
+                  onPress={() => handleSelectPhase(idx)}
                 >
                   <Text
                     style={[
@@ -316,7 +428,7 @@ export default function IngredientRequestFormPage() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Tổng chi phí dự kiến</Text>
           <Text style={styles.cardSubtitle}>
-            Hệ thống tự cộng từ các dòng “Thành tiền” (có thể sửa lại nếu cần).
+            Hệ thống tự cộng từ các dòng "Thành tiền" (có thể sửa lại nếu cần).
           </Text>
 
           {ingredientFundsAmountNumber > 0 && (
@@ -348,7 +460,8 @@ export default function IngredientRequestFormPage() {
             <View>
               <Text style={styles.cardTitle}>Danh sách nguyên liệu</Text>
               <Text style={styles.cardSubtitle}>
-                Thêm chi tiết từng loại nguyên liệu, số lượng và nhà cung cấp.
+                Các nguyên liệu đã lên kế hoạch được điền sẵn. Bạn chỉ cần bổ
+                sung đơn giá và nhà cung cấp.
               </Text>
             </View>
             <View style={styles.badgeCount}>
@@ -357,9 +470,22 @@ export default function IngredientRequestFormPage() {
           </View>
 
           {items.map((item, idx) => (
-            <View key={idx} style={styles.itemBox}>
+            <View
+              key={idx}
+              style={[
+                styles.itemBox,
+                item.isFromPlan && styles.itemBoxFromPlan,
+              ]}
+            >
               <View style={styles.itemHeaderRow}>
-                <Text style={styles.itemTitle}>Nguyên liệu #{idx + 1}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={styles.itemTitle}>Nguyên liệu #{idx + 1}</Text>
+                  {item.isFromPlan && (
+                    <View style={styles.planBadge}>
+                      <Text style={styles.planBadgeText}>Từ kế hoạch</Text>
+                    </View>
+                  )}
+                </View>
                 <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
                   <Text style={styles.removeText}>
                     {items.length === 1 ? "Xóa nội dung" : "Xóa"}
@@ -455,7 +581,7 @@ export default function IngredientRequestFormPage() {
           ))}
 
           <TouchableOpacity style={styles.addBtn} onPress={handleAddItem}>
-            <Text style={styles.addBtnText}>+ Thêm nguyên liệu</Text>
+            <Text style={styles.addBtnText}>+ Thêm nguyên liệu mới</Text>
           </TouchableOpacity>
         </View>
 
@@ -479,8 +605,8 @@ export default function IngredientRequestFormPage() {
               style={[
                 styles.summaryValue,
                 ingredientFundsAmountNumber > 0 &&
-                  totalCostNumber > 0 &&
-                  !isTotalMatchBudget && { color: "#b91c1c" },
+                totalCostNumber > 0 &&
+                !isTotalMatchBudget && { color: "#b91c1c" },
               ]}
             >
               {totalCostNumber ? `${formatVnd(totalCost)} VND` : "0 VND"}
@@ -501,8 +627,8 @@ export default function IngredientRequestFormPage() {
             {submitting
               ? "Đang gửi..."
               : hasPhases
-              ? "Gửi yêu cầu nguyên liệu"
-              : "Không có giai đoạn để gửi"}
+                ? "Gửi yêu cầu nguyên liệu"
+                : "Không có giai đoạn để gửi"}
           </Text>
         </TouchableOpacity>
 
@@ -511,7 +637,7 @@ export default function IngredientRequestFormPage() {
           onPress={() =>
             router.push({
               pathname: "/ingredientRequest",
-              params: { campaignPhaseId },
+              params: { campaignPhaseId: currentCampaignPhaseId },
             })
           }
         >
@@ -524,6 +650,17 @@ export default function IngredientRequestFormPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#8a7b6e",
+  },
 
   header: {
     paddingHorizontal: 16,
@@ -664,6 +801,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
+  itemBoxFromPlan: {
+    borderColor: "#a7d9c7",
+    backgroundColor: "#f0fdf4",
+  },
   itemHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -674,6 +815,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     color: PRIMARY,
+  },
+  planBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: "#dcfce7",
+  },
+  planBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#16a34a",
   },
   removeText: {
     color: "#d64545",

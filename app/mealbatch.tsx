@@ -1,12 +1,20 @@
-import IngredientService from "@/services/ingredientService";
+import {
+    ACCENT_BLUE,
+    ACCENT_GREEN,
+    BG,
+    BORDER,
+    DANGER,
+    MUTED_TEXT,
+    PRIMARY,
+    PRIMARY_DARK,
+    STRONG_TEXT
+} from "@/constants/colors";
+import CampaignService from "@/services/campaignService";
 import MealBatchService from "@/services/mealBatchService";
-import type {
-    MyIngredientRequest,
-    MyIngredientRequestItem,
-} from "@/types/api/ingredientRequest";
+import type { PlannedIngredient } from "@/types/api/campaign";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -19,18 +27,6 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Palette tươi sáng, phù hợp app thiện nguyện
-const PRIMARY = "#ad4e28";       // Cam ấm cho CTA
-const PRIMARY_DARK = "#ad4e28";
-const BG = "#f5f7fb";            // Nền chung rất nhẹ
-const CARD_BG = "#ffffff";       // Nền thẻ
-const ACCENT_GREEN = "#45b69c";  // Xanh lá dịu
-const ACCENT_BLUE = "#4f8cff";   // Xanh dương info
-const MUTED_TEXT = "#6b7280";    // Xám chữ phụ
-const STRONG_TEXT = "#111827";   // Xám đậm
-const BORDER = "#e5e7eb";
-const DANGER = "#ef4444";
 
 type CampaignPhase = {
     id: string;
@@ -55,7 +51,7 @@ export default function MealBatchPage() {
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [loadingCreate, setLoadingCreate] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [requests, setRequests] = useState<MyIngredientRequest[]>([]);
+    const [plannedIngredients, setPlannedIngredients] = useState<PlannedIngredient[]>([]);
     const [phases, setPhases] = useState<CampaignPhase[]>([]);
     const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
 
@@ -66,51 +62,46 @@ export default function MealBatchPage() {
     >(new Set());
     const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
 
-    // Lấy ingredient requests
+    // Lấy plannedIngredients từ campaign
     useEffect(() => {
+        if (!campaignId || !campaignPhaseId) return;
         let mounted = true;
-        const fetchReqs = async () => {
+        const fetchCampaign = async () => {
             setLoadingRequests(true);
             setError(null);
             try {
-                const data = await IngredientService.getMyIngredientRequests();
-                if (mounted) setRequests(data);
+                const campaign = await CampaignService.getCampaign(campaignId);
+                if (!mounted) return;
+
+                // Tìm phase theo campaignPhaseId
+                const phase = campaign.phases?.find(p => p.id === campaignPhaseId);
+                if (phase) {
+                    setPhases([{
+                        id: phase.id,
+                        name: phase.phaseName || campaignPhaseName || "Giai đoạn chiến dịch",
+                    }]);
+                    setSelectedPhaseId(phase.id);
+                    setPlannedIngredients(phase.plannedIngredients || []);
+                } else {
+                    // Fallback nếu không tìm thấy phase
+                    setPhases([{
+                        id: campaignPhaseId,
+                        name: campaignPhaseName || "Giai đoạn chiến dịch",
+                    }]);
+                    setSelectedPhaseId(campaignPhaseId);
+                    setPlannedIngredients([]);
+                }
             } catch (e: any) {
                 if (mounted) setError(e?.message || "Có lỗi xảy ra");
             } finally {
                 if (mounted) setLoadingRequests(false);
             }
         };
-        fetchReqs();
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
-    // Lấy phase từ params: chỉ hiển thị phaseName, dùng id khi gửi query
-    useEffect(() => {
-        if (!campaignId || !campaignPhaseId) return;
-        let mounted = true;
-        const initPhases = () => {
-            const phase: CampaignPhase = {
-                id: campaignPhaseId,
-                name: campaignPhaseName || "Giai đoạn chiến dịch",
-            };
-            if (mounted) {
-                setPhases([phase]);
-                setSelectedPhaseId(phase.id);
-            }
-        };
-        initPhases();
+        fetchCampaign();
         return () => {
             mounted = false;
         };
     }, [campaignId, campaignPhaseId, campaignPhaseName]);
-
-    const currentItems: MyIngredientRequestItem[] = useMemo(
-        () => requests[0]?.items || [],
-        [requests]
-    );
 
     const toggleIngredient = (id: string) => {
         setSelectedIngredientIds((prev) => {
@@ -264,7 +255,13 @@ export default function MealBatchPage() {
                 {
                     text: "OK",
                     onPress: () => {
-                        router.back();
+                        router.push({
+                            pathname: "/mealbatchList",
+                            params: {
+                                campaignId: campaignId || "",
+                                campaignPhaseId: campaignPhaseId || "",
+                            },
+                        });
                     },
                 },
             ]);
@@ -278,7 +275,7 @@ export default function MealBatchPage() {
         }
     };
 
-    const renderIngredientItem = ({ item }: { item: MyIngredientRequestItem }) => {
+    const renderIngredientItem = ({ item }: { item: PlannedIngredient }) => {
         const selected = selectedIngredientIds.has(item.id);
         return (
             <TouchableOpacity
@@ -289,13 +286,12 @@ export default function MealBatchPage() {
                 ]}
             >
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{item.ingredientName}</Text>
-                    <Text style={styles.itemQuantity}>{item.quantity}</Text>
+                    <Text style={styles.itemName}>{item.name || "Nguyên liệu"}</Text>
+                    <Text style={styles.itemQuantity}>
+                        {item.quantity} {item.unit || ""}
+                    </Text>
                 </View>
                 <View style={styles.itemRight}>
-                    <Text style={styles.itemPrice}>
-                        {item.estimatedTotalPrice.toLocaleString("vi-VN")} đ
-                    </Text>
                     {selected && (
                         <View style={styles.selectedBadge}>
                             <Text style={styles.selectedBadgeText}>Đã chọn</Text>
@@ -499,14 +495,14 @@ export default function MealBatchPage() {
 
                         {!loadingRequests && !error && (
                             <>
-                                {currentItems.length === 0 ? (
+                                {plannedIngredients.length === 0 ? (
                                     <Text style={styles.emptyText}>
-                                        Chưa có yêu cầu nguyên liệu nào.
+                                        Chưa có nguyên liệu nào được lên kế hoạch.
                                     </Text>
                                 ) : (
                                     <FlatList
                                         scrollEnabled={false}
-                                        data={currentItems}
+                                        data={plannedIngredients}
                                         keyExtractor={(item) => item.id}
                                         renderItem={renderIngredientItem}
                                         contentContainerStyle={{ paddingTop: 8 }}

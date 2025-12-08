@@ -75,3 +75,12 @@ export type UpdateMyProfileResult = {
   updated_at: string;
   user_name: string;
 };
+
+// GraphQL response wrapper types
+export type GenerateAvatarUploadUrlPayload = {
+  generateAvatarUploadUrl: GenerateAvatarUploadUrlResult;
+};
+
+export type UpdateMyProfilePayload = {
+  updateMyProfile: UpdateMyProfileResult;
+};

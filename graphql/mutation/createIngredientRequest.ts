@@ -11,9 +11,11 @@ export const CREATE_INGREDIENT_REQUEST_MUTATION = /* GraphQL */ `
         id
         ingredientName
         quantity
+        unit
         estimatedUnitPrice
         estimatedTotalPrice
         supplier
+        plannedIngredientId
       }
     }
   }

@@ -4,19 +4,44 @@ import { GOOGLE_AUTHENTICATION_MUTATION } from "../graphql/mutation/googleAuthen
 import { LOGIN_MUTATION } from "../graphql/mutation/login";
 import { SIGN_OUT_MUTATION } from "../graphql/mutation/signOut";
 import { SIGNUP_MUTATION } from "../graphql/mutation/signup";
-import {
+import type {
   SignInInput,
   SignInPayload,
+  SignInUser,
   SignUpInput,
   SignUpPayload,
+  UserInfo,
 } from "../types/api/auth";
+import type { GraphQLResponse } from "../types/graphql";
 
-// Replace Buffer decoding with a compatible base64 decoder for React Native/Expo
-function parseJwt(token: string): any {
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+// SecureStore keys - centralized for maintainability
+const STORE_KEYS = {
+  ACCESS_TOKEN: "accessToken",
+  REFRESH_TOKEN: "refreshToken",
+  USER_ID: "userId",
+  USER_EMAIL: "userEmail",
+  USER_NAME: "userName",
+  USER_ROLE: "userRole",
+} as const;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Parse JWT token payload (base64 decode)
+ */
+function parseJwt(token: string): Record<string, any> {
   try {
     const base64 = token.split(".")[1];
-    // Add padding if needed
-    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "="
+    );
     const decoded = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
     return JSON.parse(decoded);
   } catch {
@@ -24,215 +49,333 @@ function parseJwt(token: string): any {
   }
 }
 
+/**
+ * Extract error messages from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }>): string {
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Convert null/undefined to empty string for SecureStore
+ */
+function toStoreValue(value: string | null | undefined): string {
+  return value ?? "";
+}
+
+/**
+ * Generic GraphQL request handler
+ */
+async function graphqlRequest<T>(options: {
+  query: string;
+  variables?: Record<string, any>;
+  overrideUrl?: string;
+  token?: string | null;
+}): Promise<GraphQLResponse<T>> {
+  const { query, variables, overrideUrl, token } = options;
+  const url = getGraphqlUrl(overrideUrl);
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: any) {
+    throw new Error(`Cannot connect to server: ${err?.message || err}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  if (json.errors?.length) {
+    throw new Error(extractErrorMessage(json.errors));
+  }
+
+  return json;
+}
+
+// ============================================================================
+// SECURE STORE HELPERS
+// ============================================================================
+
+const SecureStoreHelper = {
+  /**
+   * Save access token and optionally refresh token
+   */
+  async saveTokens(
+    accessToken: string | null | undefined,
+    refreshToken?: string | null
+  ): Promise<void> {
+    if (accessToken) {
+      await SecureStore.setItemAsync(STORE_KEYS.ACCESS_TOKEN, accessToken);
+    }
+    if (refreshToken) {
+      await SecureStore.setItemAsync(STORE_KEYS.REFRESH_TOKEN, refreshToken);
+    }
+  },
+
+  /**
+   * Extract and save user info from JWT token
+   */
+  async saveUserFromJwt(token: string): Promise<void> {
+    const decoded = parseJwt(token);
+
+    await Promise.all([
+      SecureStore.setItemAsync(STORE_KEYS.USER_ID, toStoreValue(decoded.sub)),
+      SecureStore.setItemAsync(STORE_KEYS.USER_EMAIL, toStoreValue(decoded.email)),
+      SecureStore.setItemAsync(STORE_KEYS.USER_NAME, toStoreValue(decoded.username)),
+      SecureStore.setItemAsync(
+        STORE_KEYS.USER_ROLE,
+        toStoreValue(decoded["custom:role"])
+      ),
+    ]);
+  },
+
+  /**
+   * Save user info from SignInUser payload
+   */
+  async saveUserFromPayload(user: SignInUser | null | undefined): Promise<void> {
+    if (!user) return;
+
+    const operations: Promise<void>[] = [];
+
+    if (user.id) {
+      operations.push(
+        SecureStore.setItemAsync(STORE_KEYS.USER_ID, user.id)
+      );
+    }
+    if (user.email) {
+      operations.push(
+        SecureStore.setItemAsync(STORE_KEYS.USER_EMAIL, user.email)
+      );
+    }
+    if (user.name) {
+      operations.push(
+        SecureStore.setItemAsync(STORE_KEYS.USER_NAME, user.name)
+      );
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
+    }
+  },
+
+  /**
+   * Clear all auth-related data from SecureStore
+   */
+  async clearAll(): Promise<void> {
+    await Promise.all([
+      SecureStore.deleteItemAsync(STORE_KEYS.ACCESS_TOKEN),
+      SecureStore.deleteItemAsync(STORE_KEYS.REFRESH_TOKEN),
+      SecureStore.deleteItemAsync(STORE_KEYS.USER_ID),
+      SecureStore.deleteItemAsync(STORE_KEYS.USER_EMAIL),
+      SecureStore.deleteItemAsync(STORE_KEYS.USER_NAME),
+      SecureStore.deleteItemAsync(STORE_KEYS.USER_ROLE),
+    ]);
+  },
+
+  async getAccessToken(): Promise<string | null> {
+    return SecureStore.getItemAsync(STORE_KEYS.ACCESS_TOKEN);
+  },
+
+  async getRefreshToken(): Promise<string | null> {
+    return SecureStore.getItemAsync(STORE_KEYS.REFRESH_TOKEN);
+  },
+
+  async getUserInfo(): Promise<UserInfo> {
+    const [id, email, name, role] = await Promise.all([
+      SecureStore.getItemAsync(STORE_KEYS.USER_ID),
+      SecureStore.getItemAsync(STORE_KEYS.USER_EMAIL),
+      SecureStore.getItemAsync(STORE_KEYS.USER_NAME),
+      SecureStore.getItemAsync(STORE_KEYS.USER_ROLE),
+    ]);
+
+    return { id, email, name, role };
+  },
+
+  /**
+   * Log current SecureStore state (for debugging)
+   */
+  async logCurrentState(): Promise<void> {
+    const [accessToken, refreshToken, userInfo] = await Promise.all([
+      SecureStoreHelper.getAccessToken(),
+      SecureStoreHelper.getRefreshToken(),
+      SecureStoreHelper.getUserInfo(),
+    ]);
+
+    console.log("SecureStore state:", {
+      accessToken: accessToken ? "[SET]" : null,
+      refreshToken: refreshToken ? "[SET]" : null,
+      ...userInfo,
+    });
+  },
+};
+
+// ============================================================================
+// AUTH SERVICE
+// ============================================================================
+
 export const AuthService = {
+  /**
+   * Login with email and password
+   */
   async login(
     email: string,
     password: string,
     overrideUrl?: string
   ): Promise<SignInPayload> {
-    const url = getGraphqlUrl(overrideUrl);
-
-    let res: Response;
-
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: LOGIN_MUTATION,
-          variables: { input: { email, password } as SignInInput },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err.message}`);
-    }
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) {
-      throw new Error("Invalid JSON from server");
-    }
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: SignInPayload | undefined = json.data?.signIn;
-    if (!payload) throw new Error("Empty signIn response");
-
-    // Save tokens if received
-    if (payload?.accessToken) {
-      await SecureStore.setItemAsync("accessToken", payload.accessToken);
-
-      // Parse JWT to get user info
-      const decoded = parseJwt(payload.accessToken);
-      // Always set userRole from decoded["custom:role"] if present
-      await SecureStore.setItemAsync("userId", decoded.sub || "");
-      await SecureStore.setItemAsync("userEmail", decoded.email || "");
-      await SecureStore.setItemAsync("userName", decoded.username || "");
-      await SecureStore.setItemAsync("userRole", decoded["custom:role"] || "");
-    }
-    if (payload?.refreshToken) {
-      await SecureStore.setItemAsync("refreshToken", payload.refreshToken);
-    }
-    // Also save user info from payload.user if available
-    if (payload?.user) {
-      if (payload.user.id) await SecureStore.setItemAsync("userId", payload.user.id);
-      if (payload.user.email) await SecureStore.setItemAsync("userEmail", payload.user.email);
-      if (payload.user.name) await SecureStore.setItemAsync("userName", payload.user.name);
-    }
-
-    // Log các biến trong store sau khi đăng nhập
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
-    const userId = await SecureStore.getItemAsync("userId");
-    const userEmail = await SecureStore.getItemAsync("userEmail");
-    const userName = await SecureStore.getItemAsync("userName");
-    const userRole = await SecureStore.getItemAsync("userRole");
-    console.log("SecureStore after login:", {
-      accessToken,
-      refreshToken,
-      userId,
-      userEmail,
-      userName,
-      userRole,
+    const response = await graphqlRequest<{ signIn: SignInPayload }>({
+      query: LOGIN_MUTATION,
+      variables: { input: { email, password } as SignInInput },
+      overrideUrl,
     });
+
+    const payload = response.data?.signIn;
+    if (!payload) {
+      throw new Error("Empty signIn response");
+    }
+
+    // Save auth data
+    await this.saveAuthData(payload);
+
+    // Log state in development
+    if (__DEV__) {
+      await SecureStoreHelper.logCurrentState();
+    }
 
     return payload;
   },
 
+  /**
+   * Sign up new user
+   */
   async signup(
     input: SignUpInput,
     overrideUrl?: string
   ): Promise<SignUpPayload> {
-    const url = getGraphqlUrl(overrideUrl);
+    const response = await graphqlRequest<{ signUp: SignUpPayload }>({
+      query: SIGNUP_MUTATION,
+      variables: { signUpInput2: input },
+      overrideUrl,
+    });
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: SIGNUP_MUTATION,
-          variables: { signUpInput2: input },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err.message}`);
+    const payload = response.data?.signUp;
+    if (!payload) {
+      throw new Error("Empty signUp response");
     }
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: SignUpPayload | undefined = json.data?.signUp;
-    if (!payload) throw new Error("Empty signUp response");
 
     return payload;
   },
 
-  async loginWithGoogle(idToken: string, overrideUrl?: string): Promise<SignInPayload> {
-    const url = getGraphqlUrl(overrideUrl);
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: GOOGLE_AUTHENTICATION_MUTATION,
-          variables: { input: { idToken } },
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+  /**
+   * Login with Google ID token
+   */
+  async loginWithGoogle(
+    idToken: string,
+    overrideUrl?: string
+  ): Promise<SignInPayload> {
+    const response = await graphqlRequest<{
+      googleAuthentication: SignInPayload;
+    }>({
+      query: GOOGLE_AUTHENTICATION_MUTATION,
+      variables: { input: { idToken } },
+      overrideUrl,
+    });
+
+    const payload = response.data?.googleAuthentication;
+    if (!payload) {
+      throw new Error("Google authentication failed");
     }
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-    if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join("; ");
-      throw new Error(errMsg);
-    }
-    const payload: SignInPayload | undefined = json.data?.googleAuthentication;
-    if (!payload) throw new Error("Google authentication failed");
+
+    // Save auth data
+    await this.saveAuthData(payload);
+
     return payload;
   },
 
-  async signOut(overrideUrl?: string) {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: SIGN_OUT_MUTATION,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
-    }
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-    if (json.errors?.length) {
-      const errMsg = json.errors.map((e: any) => e.message || JSON.stringify(e)).join("; ");
-      throw new Error(errMsg);
-    }
-    return json.data?.signOut;
+  /**
+   * Sign out current user
+   */
+  async signOut(overrideUrl?: string): Promise<boolean> {
+    const token = await SecureStoreHelper.getAccessToken();
+
+    const response = await graphqlRequest<{ signOut: boolean }>({
+      query: SIGN_OUT_MUTATION,
+      overrideUrl,
+      token,
+    });
+
+    // Clear local storage regardless of server response
+    await SecureStoreHelper.clearAll();
+
+    return response.data?.signOut ?? true;
   },
 
-  // Token helpers
-  async getAccessToken() {
-    return await SecureStore.getItemAsync("accessToken");
-  },
-  async getRefreshToken() {
-    return await SecureStore.getItemAsync("refreshToken");
-  },
-  async removeTokens() {
-    await SecureStore.deleteItemAsync("accessToken");
-    await SecureStore.deleteItemAsync("refreshToken");
-    await SecureStore.deleteItemAsync("userId");
-    await SecureStore.deleteItemAsync("userEmail");
-    await SecureStore.deleteItemAsync("userName");
-    await SecureStore.deleteItemAsync("userRole");
+  // -------------------------------------------------------------------------
+  // Token Helpers
+  // -------------------------------------------------------------------------
+
+  async getAccessToken(): Promise<string | null> {
+    return SecureStoreHelper.getAccessToken();
   },
 
-  // User info helpers
-  async getUserInfo() {
-    const id = await SecureStore.getItemAsync("userId");
-    const email = await SecureStore.getItemAsync("userEmail");
-    const name = await SecureStore.getItemAsync("userName");
-    const role = await SecureStore.getItemAsync("userRole");
-    return { id, email, name, role };
+  async getRefreshToken(): Promise<string | null> {
+    return SecureStoreHelper.getRefreshToken();
+  },
+
+  async removeTokens(): Promise<void> {
+    await SecureStoreHelper.clearAll();
+  },
+
+  // -------------------------------------------------------------------------
+  // User Info Helpers
+  // -------------------------------------------------------------------------
+
+  async getUserInfo(): Promise<UserInfo> {
+    return SecureStoreHelper.getUserInfo();
+  },
+
+  // -------------------------------------------------------------------------
+  // Private Helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Save authentication data to SecureStore
+   */
+  async saveAuthData(payload: SignInPayload): Promise<void> {
+    // Save tokens (accessToken and refreshToken)
+    await SecureStoreHelper.saveTokens(
+      payload.accessToken,
+      payload.refreshToken
+    );
+
+    // Save user info from JWT if access token exists
+    if (payload.accessToken) {
+      await SecureStoreHelper.saveUserFromJwt(payload.accessToken);
+    }
+
+    // Override with user payload if available (more accurate)
+    if (payload.user) {
+      await SecureStoreHelper.saveUserFromPayload(payload.user);
+    }
   },
 };
 

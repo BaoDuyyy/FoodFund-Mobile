@@ -267,14 +267,14 @@ export default function CampaignDetailPage() {
                     <Text style={styles.smallMetaValue}>
                       {campaign.fundraisingStartDate
                         ? new Date(
-                            campaign.fundraisingStartDate
-                          ).toLocaleDateString("vi-VN")
+                          campaign.fundraisingStartDate
+                        ).toLocaleDateString("vi-VN")
                         : "—"}{" "}
                       -{" "}
                       {campaign.fundraisingEndDate
                         ? new Date(
-                            campaign.fundraisingEndDate
-                          ).toLocaleDateString("vi-VN")
+                          campaign.fundraisingEndDate
+                        ).toLocaleDateString("vi-VN")
                         : "—"}
                     </Text>
                   </View>
@@ -373,8 +373,8 @@ export default function CampaignDetailPage() {
                           <Text style={styles.phaseDateValue}>
                             {phase.ingredientPurchaseDate
                               ? new Date(
-                                  phase.ingredientPurchaseDate
-                                ).toLocaleString("vi-VN")
+                                phase.ingredientPurchaseDate
+                              ).toLocaleString("vi-VN")
                               : "—"}
                           </Text>
                         </View>
@@ -391,8 +391,8 @@ export default function CampaignDetailPage() {
                           <Text style={styles.phaseDateValue}>
                             {phase.deliveryDate
                               ? new Date(phase.deliveryDate).toLocaleString(
-                                  "vi-VN"
-                                )
+                                "vi-VN"
+                              )
                               : "—"}
                           </Text>
                         </View>
@@ -490,6 +490,54 @@ export default function CampaignDetailPage() {
       {userRole === "KITCHEN_STAFF" ? (
         <View style={styles.bottomBar}>
           <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => {
+              const phases = Array.isArray(campaign.phases)
+                ? campaign.phases
+                : [];
+              let selectedPhaseId = "";
+              let selectedPhaseName = "";
+              let ingredientFundsAmount: number | string | null = null;
+
+              if (phases.length > 0) {
+                const now = new Date();
+                const parseDate = (val: any) => {
+                  if (!val) return null;
+                  const d = new Date(val);
+                  return isNaN(d.getTime()) ? null : d;
+                };
+
+                const futureOrToday = phases
+                  .map((p) => ({
+                    phase: p,
+                    date: parseDate(p.ingredientPurchaseDate),
+                  }))
+                  .filter((x) => x.date && x.date >= now)
+                  .sort((a, b) => a.date!.getTime() - b.date!.getTime());
+
+                const chosen = futureOrToday[0]?.phase ?? phases[0];
+                selectedPhaseId = chosen.id;
+                selectedPhaseName = chosen.phaseName ?? "";
+                ingredientFundsAmount = chosen.ingredientFundsAmount ?? null;
+              }
+
+              router.push({
+                pathname: "/ingredientRequestForm",
+                params: {
+                  phases: JSON.stringify(campaign.phases || []),
+                  ingredientFundsAmount:
+                    ingredientFundsAmount != null
+                      ? String(ingredientFundsAmount)
+                      : "",
+                  campaignPhaseId: selectedPhaseId, // <--- add this param
+                },
+              });
+            }}
+          >
+            <Text style={styles.primaryText}>Yêu cầu nguyên liệu</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.secondaryBtn}
             onPress={() =>
               router.push({
@@ -498,11 +546,11 @@ export default function CampaignDetailPage() {
                   phases: JSON.stringify(
                     Array.isArray(campaign.phases)
                       ? campaign.phases.map((p) => ({
-                          id: p.id,
-                          phaseName: p.phaseName,
-                          cookingFundsAmount: p.cookingFundsAmount,
-                          deliveryFundsAmount: p.deliveryFundsAmount,
-                        }))
+                        id: p.id,
+                        phaseName: p.phaseName,
+                        cookingFundsAmount: p.cookingFundsAmount,
+                        deliveryFundsAmount: p.deliveryFundsAmount,
+                      }))
                       : []
                   ),
                 },
@@ -553,53 +601,6 @@ export default function CampaignDetailPage() {
           >
             <Text style={styles.secondaryText}>Cập nhật suất ăn</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => {
-              const phases = Array.isArray(campaign.phases)
-                ? campaign.phases
-                : [];
-              let selectedPhaseId = "";
-              let selectedPhaseName = "";
-              let ingredientFundsAmount: number | string | null = null;
-
-              if (phases.length > 0) {
-                const now = new Date();
-                const parseDate = (val: any) => {
-                  if (!val) return null;
-                  const d = new Date(val);
-                  return isNaN(d.getTime()) ? null : d;
-                };
-
-                const futureOrToday = phases
-                  .map((p) => ({
-                    phase: p,
-                    date: parseDate(p.ingredientPurchaseDate),
-                  }))
-                  .filter((x) => x.date && x.date >= now)
-                  .sort((a, b) => a.date!.getTime() - b.date!.getTime());
-
-                const chosen = futureOrToday[0]?.phase ?? phases[0];
-                selectedPhaseId = chosen.id;
-                selectedPhaseName = chosen.phaseName ?? "";
-                ingredientFundsAmount = chosen.ingredientFundsAmount ?? null;
-              }
-
-              router.push({
-                pathname: "/ingredientRequestForm",
-                params: {
-                  phases: JSON.stringify(campaign.phases || []),
-                  ingredientFundsAmount:
-                    ingredientFundsAmount != null
-                      ? String(ingredientFundsAmount)
-                      : "",
-                  campaignPhaseId: selectedPhaseId, // <--- add this param
-                },
-              });
-            }}
-          >
-            <Text style={styles.primaryText}>Yêu cầu nguyên liệu</Text>
-          </TouchableOpacity>
         </View>
       ) : userRole === "DELIVERY_STAFF" ? (
         <View style={styles.bottomBar}>
@@ -612,11 +613,11 @@ export default function CampaignDetailPage() {
                   phases: JSON.stringify(
                     Array.isArray(campaign.phases)
                       ? campaign.phases.map((p) => ({
-                          id: p.id,
-                          phaseName: p.phaseName,
-                          cookingFundsAmount: p.cookingFundsAmount,
-                          deliveryFundsAmount: p.deliveryFundsAmount,
-                        }))
+                        id: p.id,
+                        phaseName: p.phaseName,
+                        cookingFundsAmount: p.cookingFundsAmount,
+                        deliveryFundsAmount: p.deliveryFundsAmount,
+                      }))
                       : []
                   ),
                 },

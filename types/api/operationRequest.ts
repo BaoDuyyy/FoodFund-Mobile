@@ -30,3 +30,18 @@ export type CreateOperationRequestInput = {
 
 // Kết quả của mutation CreateOperationRequest
 export type CreateOperationRequestResponse = OperationRequest;
+
+// Pagination options for listMyOperationRequests
+export type ListOperationRequestsOptions = {
+  limit?: number;
+  offset?: number;
+};
+
+// GraphQL response wrapper types
+export type CreateOperationRequestPayload = {
+  createOperationRequest: OperationRequest;
+};
+
+export type MyOperationRequestsPayload = {
+  myOperationRequests: OperationRequest[];
+};

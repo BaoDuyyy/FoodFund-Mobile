@@ -1,4 +1,5 @@
 import Loading from '@/components/Loading';
+import { BG_CREAM as BG, PRIMARY } from '@/constants/colors';
 import UserService from '@/services/userService';
 import type { UserProfile } from '@/types/api/user';
 import { Feather } from '@expo/vector-icons';
@@ -6,19 +7,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const PRIMARY = '#ad4e28';
-const BG = '#fff7f2';
 
 export default function EditProfilePage() {
   const router = useRouter();

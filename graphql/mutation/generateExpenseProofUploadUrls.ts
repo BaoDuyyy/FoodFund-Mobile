@@ -9,7 +9,6 @@ mutation GenerateExpenseProofUploadUrls($input: GenerateExpenseProofUploadUrlsIn
             expiresAt 
             fileType 
         } 
-        instructions 
     } 
 }
 `;

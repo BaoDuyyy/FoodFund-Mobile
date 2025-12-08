@@ -42,3 +42,18 @@ export type DeliveryTaskDetail = {
 export type GetDeliveryTaskResponse = {
   deliveryTask: DeliveryTaskDetail;
 };
+
+// Input types for mutations
+export type UpdateDeliveryTaskStatusInput = {
+  taskId: string;
+  status: string;
+};
+
+// Response types for mutations
+export type UpdateDeliveryTaskStatusPayload = {
+  updateDeliveryTaskStatus: {
+    id: string;
+    status: string;
+    updated_at: string;
+  };
+};

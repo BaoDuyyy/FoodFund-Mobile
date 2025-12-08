@@ -1,9 +1,11 @@
 export interface IngredientRequestItemInput {
   ingredientName: string;
   quantity: string;
+  unit: string;
   estimatedUnitPrice: number;
   estimatedTotalPrice: number;
   supplier: string;
+  plannedIngredientId: string | null;
 }
 
 export interface CreateIngredientRequestInput {
@@ -16,9 +18,11 @@ export interface IngredientRequestItem {
   id: string;
   ingredientName: string;
   quantity: string;
+  unit: string;
   estimatedUnitPrice: number;
   estimatedTotalPrice: number;
   supplier: string;
+  plannedIngredientId: string | null;
 }
 
 export interface CreateIngredientRequestPayload {
@@ -31,12 +35,14 @@ export interface CreateIngredientRequestPayload {
   items: IngredientRequestItem[];
 }
 
-// ❯❯ loại “simple types” cho getMyIngredientRequests ra đây thay vì để trong service
+// ❯❯ loại "simple types" cho getMyIngredientRequests ra đây thay vì để trong service
 export interface MyIngredientRequestItem {
   id: string;
   ingredientName: string;
   quantity: string;
+  unit?: string;
   estimatedTotalPrice: number;
+  plannedIngredientId?: string | null;
 }
 
 export interface MyIngredientRequest {
@@ -46,4 +52,37 @@ export interface MyIngredientRequest {
   status: string;
   created_at: string;
   items: MyIngredientRequestItem[];
+}
+
+// Pagination options for getMyIngredientRequests
+export interface GetMyIngredientRequestsOptions {
+  limit?: number;
+  offset?: number;
+}
+
+// Filter input for getIngredientRequests
+export interface IngredientRequestFilterInput {
+  campaignPhaseId?: string;
+  status?: string;
+  sortBy?: string;
+}
+
+// Variables for getIngredientRequests query
+export interface GetIngredientRequestsVars {
+  filter?: IngredientRequestFilterInput;
+  limit?: number;
+  offset?: number;
+}
+
+// GraphQL response wrapper types
+export interface CreateIngredientRequestResponse {
+  createIngredientRequest: CreateIngredientRequestPayload;
+}
+
+export interface GetMyIngredientRequestsResponse {
+  getMyIngredientRequests: MyIngredientRequest[];
+}
+
+export interface GetIngredientRequestsResponse {
+  getIngredientRequests: MyIngredientRequest[];
 }

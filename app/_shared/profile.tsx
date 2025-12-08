@@ -1,5 +1,6 @@
 import Loading from '@/components/Loading';
 import LoginRequire from '@/components/LoginRequire';
+import { ACCENT, BG_CREAM as BG, PRIMARY } from '@/constants/colors';
 import AuthService from '@/services/authService';
 import DonationService from '@/services/donationService';
 import UserService from '@/services/userService';
@@ -16,10 +17,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const PRIMARY = '#ad4e28';
-const ACCENT = '#f97316';
-const BG = '#fff7f2';
 
 export default function ProfilePage() {
   const router = useRouter();

@@ -1,3 +1,4 @@
+import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import AuthService from "@/services/authService";
 import CampaignService from "@/services/campaignService";
 import OrganizationService from "@/services/organizationService";
@@ -16,9 +17,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PRIMARY = "#ad4e28";
-const BG = "#f8f6f4";
 
 export type KOrganizationPageProps = {
   initialOrgId?: string | null;

@@ -1,3 +1,4 @@
+import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import IngredientService from "@/services/ingredientService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -12,18 +13,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PRIMARY = "#ad4e28";
-const BG = "#f8f6f4";
-
 type StatusFilter = "ALL" | "PENDING" | "ACCEPTED" | "REJECTED" | "DISBURSED";
 type SortOrder = "OLDEST_FIRST" | "NEWEST_FIRST";
 
 const STATUS_FILTER_OPTIONS: { key: StatusFilter; label: string }[] = [
-  { key: "ALL",        label: "Tất cả" },
-  { key: "PENDING",    label: "Chờ duyệt" },
-  { key: "ACCEPTED",   label: "Đã duyệt" },
-  { key: "REJECTED",   label: "Từ chối" },
-  { key: "DISBURSED",  label: "Đã giải ngân" },
+  { key: "ALL", label: "Tất cả" },
+  { key: "PENDING", label: "Chờ duyệt" },
+  { key: "ACCEPTED", label: "Đã duyệt" },
+  { key: "REJECTED", label: "Từ chối" },
+  { key: "DISBURSED", label: "Đã giải ngân" },
 ];
 
 const SORT_OPTIONS: { key: SortOrder; label: string }[] = [
@@ -44,8 +42,8 @@ export default function IngredientRequestPage() {
     typeof params.campaignPhaseId === "string"
       ? params.campaignPhaseId
       : Array.isArray(params.campaignPhaseId)
-      ? params.campaignPhaseId[0]
-      : "";
+        ? params.campaignPhaseId[0]
+        : "";
 
   console.log("[ingredientRequest] campaignPhaseId =", campaignPhaseId);
 

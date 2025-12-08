@@ -1,3 +1,14 @@
+import {
+  BG,
+  BORDER,
+  CARD_BG,
+  MUTED_TEXT,
+  PRIMARY,
+  INFO as STATUS_DELIVERED,
+  ACCENT as STATUS_PREPARING,
+  SUCCESS as STATUS_READY,
+  STRONG_TEXT,
+} from "@/constants/colors";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,17 +24,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-
-const PRIMARY = "#ad4e28";
-const BG = "#f5f7fb";
-const CARD_BG = "#ffffff";
-const BORDER = "#e5e7eb";
-const MUTED_TEXT = "#6b7280";
-const STRONG_TEXT = "#111827";
-const STATUS_READY = "#16a34a";
-const STATUS_PREPARING = "#f97316";
-const STATUS_DELIVERED = "#0ea5e9";
 
 export default function MealBatchListPage() {
   const router = useRouter();
@@ -87,11 +87,11 @@ export default function MealBatchListPage() {
                 prev.map((b) =>
                   b.id === updated.id
                     ? ({
-                        ...b,
-                        status: updated.status,
-                        cookedDate: updated.cookedDate,
-                        media: updated.media,
-                      } as MealBatch)
+                      ...b,
+                      status: updated.status,
+                      cookedDate: updated.cookedDate,
+                      media: updated.media,
+                    } as MealBatch)
                     : b
                 )
               );
@@ -198,7 +198,7 @@ export default function MealBatchListPage() {
   );
 
   return (
-    <SafeAreaView style={styles.container}edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* header với background cong nhẹ giống các màn khác */}
       <View style={styles.headerBg} />
       <View style={styles.headerRow}>

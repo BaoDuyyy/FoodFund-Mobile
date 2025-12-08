@@ -24,6 +24,10 @@ query GetCampaign($id: String!) {
       id
       full_name
     }
+    organization {
+      id
+      name
+    }
     phases {
       id
       phaseName
@@ -38,6 +42,17 @@ query GetCampaign($id: String!) {
       cookingFundsAmount
       deliveryFundsAmount
       status
+      plannedIngredients {
+        id
+        name
+        quantity
+        unit
+      }
+      plannedMeals {
+        id
+        name
+        quantity
+      }
     }
   }
 }

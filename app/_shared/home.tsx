@@ -1,4 +1,5 @@
 import Loading from "@/components/Loading";
+import { PRIMARY } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
 import OrganizationService from "@/services/organizationService";
 import type { CampaignItem } from "@/types/api/campaign";
@@ -143,7 +144,6 @@ function formatCurrency(v?: string | number | null) {
   return n.toLocaleString("vi-VN") + " đ";
 }
 
-const PRIMARY = "#ad4e28";
 const ORANGE_GRADIENT = ["#d16b2b", "#ad4e28"];
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },

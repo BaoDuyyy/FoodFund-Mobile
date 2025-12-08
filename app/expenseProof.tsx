@@ -1,3 +1,4 @@
+import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import ExpenseProofService, {
   ExpenseProofFileType,
   ExpenseProofUploadUrl,
@@ -16,9 +17,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PRIMARY = "#ad4e28";
-const BG = "#f8f6f4";
 
 /** Helpers cho tiền VND */
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -168,6 +166,7 @@ export default function ExpenseProofPage() {
       method: "PUT",
       headers: {
         "Content-Type": contentTypeMap[type] || "application/octet-stream",
+        "x-amz-acl": "public-read",
       },
       body: blob,
     });
@@ -180,61 +179,61 @@ export default function ExpenseProofPage() {
 
   // Flow đầy đủ: generate URL -> upload file -> createExpenseProof
   const handleUploadAndCreate = async () => {
-  if (!requestId) {
-    Alert.alert("Lỗi", "Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
-    return;
-  }
-
-  const amountNumber = amount ? Number(digitsOnly(amount)) : 0;
-  if (!amountNumber) {
-    Alert.alert("Lỗi", "Vui lòng nhập số tiền chi tiêu.");
-    return;
-  }
-  if (selectedFiles.length === 0) {
-    Alert.alert("Lỗi", "Vui lòng chọn ít nhất 1 file cần upload.");
-    return;
-  }
-
-  const n = selectedFiles.length;
-  const types = selectedFiles.map((f) => f.type);
-
-  setSubmitting(true);
-  try {
-    const urls = await ExpenseProofService.generateExpenseProofUploadUrls({
-      requestId,
-      fileCount: n,
-      fileTypes: types,
-    });
-    setUploadUrls(urls);
-
-    if (urls.length !== n) {
-      throw new Error("Số lượng uploadUrls trả về không khớp với số file đã chọn.");
+    if (!requestId) {
+      Alert.alert("Lỗi", "Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
+      return;
     }
 
-    for (let i = 0; i < n; i++) {
-      const u = urls[i];
-      const f = selectedFiles[i];
-      await uploadSingleFile(u.uploadUrl, f.uri, types[i]);
+    const amountNumber = amount ? Number(digitsOnly(amount)) : 0;
+    if (!amountNumber) {
+      Alert.alert("Lỗi", "Vui lòng nhập số tiền chi tiêu.");
+      return;
+    }
+    if (selectedFiles.length === 0) {
+      Alert.alert("Lỗi", "Vui lòng chọn ít nhất 1 file cần upload.");
+      return;
     }
 
-    const fileKeys = urls.map((u) => u.fileKey);
-    await ExpenseProofService.createExpenseProof({
-      requestId,
-      mediaFileKeys: fileKeys,
-      amount: amount,              // ✅ dùng string "80000"
-      // hoặc amount: digitsOnly(amount) nếu muốn chắc chắn
-    });
+    const n = selectedFiles.length;
+    const types = selectedFiles.map((f) => f.type);
 
-    Alert.alert("Thành công", "Đã tạo chứng từ chi tiêu.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
-  } catch (err: any) {
-    console.error("handleUploadAndCreate error:", err);
-    Alert.alert("Lỗi", err?.message || "Không upload được file / tạo chứng từ.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+    setSubmitting(true);
+    try {
+      const urls = await ExpenseProofService.generateExpenseProofUploadUrls({
+        requestId,
+        fileCount: n,
+        fileTypes: types,
+      });
+      setUploadUrls(urls);
+
+      if (urls.length !== n) {
+        throw new Error("Số lượng uploadUrls trả về không khớp với số file đã chọn.");
+      }
+
+      for (let i = 0; i < n; i++) {
+        const u = urls[i];
+        const f = selectedFiles[i];
+        await uploadSingleFile(u.uploadUrl, f.uri, types[i]);
+      }
+
+      const fileKeys = urls.map((u) => u.fileKey);
+      await ExpenseProofService.createExpenseProof({
+        requestId,
+        mediaFileKeys: fileKeys,
+        amount: amount,              // ✅ dùng string "80000"
+        // hoặc amount: digitsOnly(amount) nếu muốn chắc chắn
+      });
+
+      Alert.alert("Thành công", "Đã tạo chứng từ chi tiêu.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (err: any) {
+      console.error("handleUploadAndCreate error:", err);
+      Alert.alert("Lỗi", err?.message || "Không upload được file / tạo chứng từ.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
 
   return (
@@ -332,34 +331,6 @@ export default function ExpenseProofPage() {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Kết quả uploadUrls (debug / tham khảo) */}
-        {uploadUrls.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Kết quả upload URLs</Text>
-            <Text style={styles.noteText}>
-              Hệ thống đã tạo {uploadUrls.length} URL và dùng chúng để upload
-              file. Trường <Text style={{ fontWeight: "700" }}>fileKey</Text> đã
-              được gửi vào{" "}
-              <Text style={{ fontWeight: "700" }}>mediaFileKeys</Text> khi gọi{" "}
-              <Text style={{ fontWeight: "700" }}>createExpenseProof</Text>.
-            </Text>
-
-            {uploadUrls.map((u, idx) => (
-              <View key={u.fileKey || idx} style={styles.urlItem}>
-                <Text style={styles.urlIndex}>File #{idx + 1}</Text>
-                <Text style={styles.urlMeta}>
-                  Loại: {u.fileType} • Hết hạn:{" "}
-                  {u.expiresAt
-                    ? new Date(u.expiresAt).toLocaleString("vi-VN")
-                    : "—"}
-                </Text>
-                <Text style={styles.urlLabel}>fileKey:</Text>
-                <Text style={styles.urlValue}>{u.fileKey}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

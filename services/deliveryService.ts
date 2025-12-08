@@ -7,169 +7,153 @@ import type {
   DeliveryTaskDetail,
   GetDeliveryTaskResponse,
   MyDeliveryTasksResponse,
+  UpdateDeliveryTaskStatusInput,
+  UpdateDeliveryTaskStatusPayload,
 } from "@/types/api/delivery";
+import type { GraphQLResponse } from "@/types/graphql";
 import AuthService from "./authService";
 
-type UpdateDeliveryTaskStatusInput = {
-  taskId: string;
-  status: string;
-};
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
 
-type UpdateDeliveryTaskStatusPayload = {
-  updateDeliveryTaskStatus: {
-    id: string;
-    status: string;
-    updated_at: string;
-  };
-};
+/**
+ * Extract error message from GraphQL errors array
+ */
+function extractErrorMessage(errors: Array<{ message?: string }> | undefined): string | null {
+  if (!errors || errors.length === 0) return null;
+  return errors.map((e) => e.message || JSON.stringify(e)).join("; ");
+}
+
+/**
+ * Generic GraphQL request handler for DeliveryService
+ * Includes authentication token in requests
+ */
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+  overrideUrl?: string
+): Promise<GraphQLResponse<T>> {
+  const url = getGraphqlUrl(overrideUrl);
+  const token = await AuthService.getAccessToken();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot connect to server: ${message}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Network error ${res.status}: ${text}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!json) {
+    throw new Error("Invalid JSON from server");
+  }
+
+  return json as GraphQLResponse<T>;
+}
+
+// =============================================================================
+// DELIVERY SERVICE
+// =============================================================================
 
 const DeliveryService = {
+  /**
+   * Fetch the current user's delivery tasks with pagination
+   */
   async listMyDeliveryTasks(
     params: { limit?: number; offset?: number } = {},
     overrideUrl?: string
   ): Promise<DeliveryTask[]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-
     const variables = {
       limit: params.limit ?? 10,
       offset: params.offset ?? 0,
     };
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: MY_DELIVERY_TASKS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    const response = await graphqlRequest<MyDeliveryTasksResponse>(
+      MY_DELIVERY_TASKS,
+      variables,
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: MyDeliveryTasksResponse | undefined = json.data;
-    if (!payload || !Array.isArray(payload.myDeliveryTasks)) {
+    const payload = response.data?.myDeliveryTasks;
+    if (!Array.isArray(payload)) {
       throw new Error("Empty or invalid myDeliveryTasks response");
     }
 
-    return payload.myDeliveryTasks;
+    return payload;
   },
 
+  /**
+   * Update the status of a delivery task
+   */
   async updateDeliveryTaskStatus(
     input: UpdateDeliveryTaskStatusInput,
     overrideUrl?: string
   ): Promise<UpdateDeliveryTaskStatusPayload["updateDeliveryTaskStatus"]> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { input };
+    const response = await graphqlRequest<UpdateDeliveryTaskStatusPayload>(
+      UPDATE_DELIVERY_TASK_STATUS,
+      { input },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: UPDATE_DELIVERY_TASK_STATUS,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: UpdateDeliveryTaskStatusPayload | undefined = json.data;
-    if (!payload || !payload.updateDeliveryTaskStatus) {
+    const payload = response.data?.updateDeliveryTaskStatus;
+    if (!payload) {
       throw new Error("Empty or invalid updateDeliveryTaskStatus response");
     }
 
-    return payload.updateDeliveryTaskStatus;
+    return payload;
   },
 
+  /**
+   * Fetch a single delivery task by ID with full details
+   */
   async getDeliveryTaskById(
     id: string,
     overrideUrl?: string
   ): Promise<DeliveryTaskDetail> {
-    const url = getGraphqlUrl(overrideUrl);
-    const token = await AuthService.getAccessToken();
-    const variables = { id };
+    const response = await graphqlRequest<GetDeliveryTaskResponse>(
+      GET_DELIVERY_TASK,
+      { id },
+      overrideUrl
+    );
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          query: GET_DELIVERY_TASK,
-          variables,
-        }),
-      });
-    } catch (err: any) {
-      throw new Error(`Cannot connect to server: ${err?.message || err}`);
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Network error ${res.status}: ${text}`);
-    }
-
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error("Invalid JSON from server");
-
-    if (json.errors?.length) {
-      const errMsg = json.errors
-        .map((e: any) => e.message || JSON.stringify(e))
-        .join("; ");
-      throw new Error(errMsg);
-    }
-
-    const payload: GetDeliveryTaskResponse | undefined = json.data;
-    if (!payload || !payload.deliveryTask) {
+    const payload = response.data?.deliveryTask;
+    if (!payload) {
       throw new Error("Empty or invalid deliveryTask response");
     }
 
-    return payload.deliveryTask;
+    return payload;
   },
 };
 

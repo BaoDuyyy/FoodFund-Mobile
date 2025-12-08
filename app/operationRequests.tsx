@@ -1,20 +1,18 @@
 import Loading from "@/components/Loading";
+import { BG_CREAM as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
 import type { OperationRequest } from "@/types/api/operationRequest";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PRIMARY = "#ad4e28";
-const BG = "#fff7f2";
 
 export default function OperationRequestsPage() {
   const router = useRouter();
@@ -74,8 +72,8 @@ export default function OperationRequestsPage() {
               {item.expenseType === "COOKING"
                 ? "Nấu ăn"
                 : item.expenseType === "DELIVERY"
-                ? "Vận chuyển"
-                : item.expenseType}
+                  ? "Vận chuyển"
+                  : item.expenseType}
             </Text>
           </View>
           <View style={styles.metaChip}>
