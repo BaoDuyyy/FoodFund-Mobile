@@ -1,3 +1,12 @@
+import {
+  CampaignCoverCard,
+  DeliveryBottomBar,
+  ExpenseProofCard,
+  FundingProgressCard,
+  ImageZoomOverlay,
+  KitchenWorkflowCard,
+} from "@/components/k-campaign";
+import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
 import ExpenseProofService from "@/services/expenseProofService";
@@ -8,9 +17,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,15 +27,13 @@ import {
 import RenderHtml from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PRIMARY = "#ad4e28";     // màu brand của bạn
+const PRIMARY = "#ad4e28";
 const BG = "#f3f4f8";
-
 const TEXT = "#111827";
 const MUTED = "#6b7280";
 const BORDER = "#e5e7eb";
 const ACCENT_GREEN = "#16a34a";
 const ACCENT_BLUE = "#2563eb";
-const ACCENT_PURPLE = "#7c3aed";
 
 type UserRole = "KITCHEN_STAFF" | "DELIVERY_STAFF" | string;
 
@@ -133,8 +138,7 @@ export default function CampaignDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator color={PRIMARY} size="large" style={{ marginTop: 40 }} />
-        <Text style={styles.loadingText}>Đang tải chiến dịch...</Text>
+        <Loading visible={loading} message="Đang tải chiến dịch..." />
       </SafeAreaView>
     );
   }
@@ -147,18 +151,7 @@ export default function CampaignDetailPage() {
     );
   }
 
-  const progress = Math.max(
-    0,
-    Math.min(100, Number(campaign.fundingProgress || 0))
-  );
-
-  const getStatusColor = () => {
-    const s = (campaign.status || "").toLowerCase();
-    if (s.includes("đang") || s.includes("active")) return ACCENT_BLUE;
-    if (s.includes("hoàn") || s.includes("done")) return ACCENT_GREEN;
-    if (s.includes("hủy") || s.includes("cancel")) return "#f97316";
-    return PRIMARY;
-  };
+  const phases = Array.isArray(campaign.phases) ? campaign.phases : [];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -185,111 +178,45 @@ export default function CampaignDetailPage() {
         ListHeaderComponent={
           <View>
             {/* COVER */}
-            <View style={styles.coverCard}>
-              {campaign.coverImage ? (
-                <Image
-                  source={{ uri: campaign.coverImage }}
-                  style={styles.coverImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={[styles.coverImage, { backgroundColor: "#e5e7eb" }]} />
-              )}
-
-              <View style={styles.coverOverlay}>
-                <Text style={styles.campaignTitle}>{campaign.title}</Text>
-                <View
-                  style={[
-                    styles.statusPill,
-                    { backgroundColor: "#fff" },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statusDot,
-                      { backgroundColor: getStatusColor() },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.statusPillText,
-                      { color: getStatusColor() },
-                    ]}
-                  >
-                    {campaign.status}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <CampaignCoverCard
+              coverImage={campaign.coverImage}
+              title={campaign.title}
+              status={campaign.status}
+            />
 
             {/* META CHIPS */}
-            <View style={styles.metaChipsRow}>
-              {campaign.category?.title && (
+            {campaign.category?.title && (
+              <View style={styles.metaChipsRow}>
                 <View style={[styles.metaChip, { backgroundColor: "#ecfdf3" }]}>
                   <View
-                    style={[
-                      styles.metaChipDot,
-                      { backgroundColor: ACCENT_GREEN },
-                    ]}
+                    style={[styles.metaChipDot, { backgroundColor: ACCENT_GREEN }]}
                   />
-                  <Text style={styles.metaChipText}>
-                    {campaign.category.title}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* PROGRESS CARD */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Tiến độ gây quỹ</Text>
-
-              <View style={styles.progressRow}>
-                <View style={styles.progressNumbers}>
-                  <Text style={styles.amountText}>
-                    {campaign.receivedAmount} / {campaign.targetAmount} VND
-                  </Text>
-                  <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
-                </View>
-
-                <View style={styles.progressBarBg}>
-                  <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-                </View>
-
-                <View style={styles.progressMetaRow}>
-                  <View style={styles.progressMetaItem}>
-                    <Text style={styles.smallMetaLabel}>Lượt quyên góp</Text>
-                    <Text style={styles.smallMetaValue}>
-                      {campaign.donationCount || 0}
-                    </Text>
-                  </View>
-                  <View style={styles.progressMetaItem}>
-                    <Text style={styles.smallMetaLabel}>Thời gian gây quỹ</Text>
-                    <Text style={styles.smallMetaValue}>
-                      {campaign.fundraisingStartDate
-                        ? new Date(
-                          campaign.fundraisingStartDate
-                        ).toLocaleDateString("vi-VN")
-                        : "—"}{" "}
-                      -{" "}
-                      {campaign.fundraisingEndDate
-                        ? new Date(
-                          campaign.fundraisingEndDate
-                        ).toLocaleDateString("vi-VN")
-                        : "—"}
-                    </Text>
-                  </View>
+                  <Text style={styles.metaChipText}>{campaign.category.title}</Text>
                 </View>
               </View>
-            </View>
+            )}
+
+            {/* WORKFLOW CARD FOR KITCHEN STAFF */}
+            {userRole === "KITCHEN_STAFF" && (
+              <KitchenWorkflowCard campaignId={campaign.id} phases={phases} />
+            )}
+
+            {/* PROGRESS CARD */}
+            <FundingProgressCard
+              receivedAmount={campaign.receivedAmount}
+              targetAmount={campaign.targetAmount}
+              fundingProgress={campaign.fundingProgress}
+              donationCount={campaign.donationCount}
+              fundraisingStartDate={campaign.fundraisingStartDate}
+              fundraisingEndDate={campaign.fundraisingEndDate}
+            />
 
             {/* CATEGORY & CREATOR */}
             <View style={styles.horizontalCards}>
               {campaign.category && (
                 <View style={[styles.card, styles.halfCard]}>
                   <Text style={styles.cardSubTitle}>Danh mục</Text>
-                  <Text style={styles.highlightValue}>
-                    {campaign.category.title}
-                  </Text>
+                  <Text style={styles.highlightValue}>{campaign.category.title}</Text>
                   {!!campaign.category.description && (
                     <Text style={styles.cardDesc} numberOfLines={2}>
                       {campaign.category.description}
@@ -329,12 +256,12 @@ export default function CampaignDetailPage() {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Kế hoạch thực hiện</Text>
               <Text style={styles.cardDesc}>
-                Theo dõi các mốc mua nguyên liệu, nấu ăn và trao gửi để nhà tài
-                trợ luôn được cập nhật.
+                Theo dõi các mốc mua nguyên liệu, nấu ăn và trao gửi để nhà tài trợ
+                luôn được cập nhật.
               </Text>
               <TimelineTabs campaign={campaign}>
-                {Array.isArray(campaign.phases) && campaign.phases.length > 0 ? (
-                  campaign.phases.map((phase, idx) => (
+                {phases.length > 0 ? (
+                  phases.map((phase, idx) => (
                     <View key={phase.id || idx} style={styles.phaseBox}>
                       <View style={styles.phaseHeaderRow}>
                         <View style={styles.phaseIndexCircle}>
@@ -372,9 +299,9 @@ export default function CampaignDetailPage() {
                           <Text style={styles.phaseDateLabel}>Mua nguyên liệu</Text>
                           <Text style={styles.phaseDateValue}>
                             {phase.ingredientPurchaseDate
-                              ? new Date(
-                                phase.ingredientPurchaseDate
-                              ).toLocaleString("vi-VN")
+                              ? new Date(phase.ingredientPurchaseDate).toLocaleString(
+                                "vi-VN"
+                              )
                               : "—"}
                           </Text>
                         </View>
@@ -390,9 +317,7 @@ export default function CampaignDetailPage() {
                           <Text style={styles.phaseDateLabel}>Vận chuyển</Text>
                           <Text style={styles.phaseDateValue}>
                             {phase.deliveryDate
-                              ? new Date(phase.deliveryDate).toLocaleString(
-                                "vi-VN"
-                              )
+                              ? new Date(phase.deliveryDate).toLocaleString("vi-VN")
                               : "—"}
                           </Text>
                         </View>
@@ -406,263 +331,25 @@ export default function CampaignDetailPage() {
             </View>
 
             {/* EXPENSE PROOFS */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Chứng từ chi tiêu</Text>
-
-              {loadingExpenseProofs ? (
-                <ActivityIndicator
-                  color={PRIMARY}
-                  size="small"
-                  style={{ marginTop: 8 }}
-                />
-              ) : expenseProofs.length === 0 ? (
-                <Text style={styles.desc}>
-                  Chưa có chứng từ chi tiêu nào cho chiến dịch này.
-                </Text>
-              ) : (
-                expenseProofs.map((proof, idx) => (
-                  <View
-                    key={proof.id || `${proof.requestId}-${idx}`}
-                    style={styles.expenseProofBlock}
-                  >
-                    <View style={styles.expenseHeaderRow}>
-                      <Text style={styles.expenseProofTitle}>
-                        Chứng từ #{idx + 1}
-                      </Text>
-                      <Text style={styles.expenseStatus}>
-                        {proof.status}
-                      </Text>
-                    </View>
-                    <Text style={styles.expenseProofAmount}>
-                      Số tiền:{" "}
-                      {Number(proof.amount || 0).toLocaleString("vi-VN")} đ
-                    </Text>
-                    <Text style={styles.expenseProofMeta}>
-                      Ngày tạo:{" "}
-                      {proof.created_at
-                        ? new Date(proof.created_at).toLocaleString("vi-VN")
-                        : "—"}
-                    </Text>
-
-                    {Array.isArray(proof.media) && proof.media.length > 0 && (
-                      <View style={styles.expenseProofImagesRow}>
-                        {proof.media.map((url, i) => {
-                          if (typeof url !== "string") return null;
-                          const lower = url.toLowerCase();
-                          const isImage =
-                            lower.endsWith(".jpg") ||
-                            lower.endsWith(".jpeg") ||
-                            lower.endsWith(".png") ||
-                            lower.includes("image");
-                          if (!isImage) return null;
-
-                          return (
-                            <TouchableOpacity
-                              key={`${proof.id}-img-${i}`}
-                              activeOpacity={0.9}
-                              onPress={() => setZoomImageUrl(url)}
-                            >
-                              <Image
-                                source={{ uri: url }}
-                                style={styles.expenseProofImage}
-                                resizeMode="cover"
-                              />
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    )}
-
-                    {proof.adminNote ? (
-                      <Text style={styles.expenseProofNote}>
-                        Ghi chú: {proof.adminNote}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))
-              )}
-            </View>
+            <ExpenseProofCard
+              expenseProofs={expenseProofs}
+              loading={loadingExpenseProofs}
+              onImagePress={setZoomImageUrl}
+            />
           </View>
         }
       />
 
-      {/* BOTTOM ACTION BAR */}
-      {userRole === "KITCHEN_STAFF" ? (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => {
-              const phases = Array.isArray(campaign.phases)
-                ? campaign.phases
-                : [];
-              let selectedPhaseId = "";
-              let selectedPhaseName = "";
-              let ingredientFundsAmount: number | string | null = null;
-
-              if (phases.length > 0) {
-                const now = new Date();
-                const parseDate = (val: any) => {
-                  if (!val) return null;
-                  const d = new Date(val);
-                  return isNaN(d.getTime()) ? null : d;
-                };
-
-                const futureOrToday = phases
-                  .map((p) => ({
-                    phase: p,
-                    date: parseDate(p.ingredientPurchaseDate),
-                  }))
-                  .filter((x) => x.date && x.date >= now)
-                  .sort((a, b) => a.date!.getTime() - b.date!.getTime());
-
-                const chosen = futureOrToday[0]?.phase ?? phases[0];
-                selectedPhaseId = chosen.id;
-                selectedPhaseName = chosen.phaseName ?? "";
-                ingredientFundsAmount = chosen.ingredientFundsAmount ?? null;
-              }
-
-              router.push({
-                pathname: "/ingredientRequestForm",
-                params: {
-                  phases: JSON.stringify(campaign.phases || []),
-                  ingredientFundsAmount:
-                    ingredientFundsAmount != null
-                      ? String(ingredientFundsAmount)
-                      : "",
-                  campaignPhaseId: selectedPhaseId, // <--- add this param
-                },
-              });
-            }}
-          >
-            <Text style={styles.primaryText}>Yêu cầu nguyên liệu</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/operationRequest",
-                params: {
-                  phases: JSON.stringify(
-                    Array.isArray(campaign.phases)
-                      ? campaign.phases.map((p) => ({
-                        id: p.id,
-                        phaseName: p.phaseName,
-                        cookingFundsAmount: p.cookingFundsAmount,
-                        deliveryFundsAmount: p.deliveryFundsAmount,
-                      }))
-                      : []
-                  ),
-                },
-              })
-            }
-          >
-            <Text style={styles.secondaryText}>Giải ngân</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => {
-              const phases = Array.isArray(campaign.phases)
-                ? campaign.phases
-                : [];
-              let selectedPhaseId = "";
-              let selectedPhaseName = "";
-
-              if (phases.length > 0) {
-                const now = new Date();
-                const parseDate = (val: any) => {
-                  if (!val) return null;
-                  const d = new Date(val);
-                  return isNaN(d.getTime()) ? null : d;
-                };
-
-                const futureOrToday = phases
-                  .map((p) => ({
-                    phase: p,
-                    date: parseDate(p.ingredientPurchaseDate),
-                  }))
-                  .filter((x) => x.date && x.date >= now)
-                  .sort((a, b) => a.date!.getTime() - b.date!.getTime());
-
-                const chosen = futureOrToday[0]?.phase ?? phases[0];
-                selectedPhaseId = chosen.id;
-                selectedPhaseName = chosen.phaseName ?? "";
-              }
-
-              router.push({
-                pathname: "/mealbatch",
-                params: {
-                  campaignId: campaign.id,
-                  campaignPhaseId: selectedPhaseId,
-                  campaignPhaseName: selectedPhaseName,
-                },
-              });
-            }}
-          >
-            <Text style={styles.secondaryText}>Cập nhật suất ăn</Text>
-          </TouchableOpacity>
-        </View>
-      ) : userRole === "DELIVERY_STAFF" ? (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/operationRequest",
-                params: {
-                  phases: JSON.stringify(
-                    Array.isArray(campaign.phases)
-                      ? campaign.phases.map((p) => ({
-                        id: p.id,
-                        phaseName: p.phaseName,
-                        cookingFundsAmount: p.cookingFundsAmount,
-                        deliveryFundsAmount: p.deliveryFundsAmount,
-                      }))
-                      : []
-                  ),
-                },
-              })
-            }
-          >
-            <Text style={styles.secondaryText}>Giải ngân</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.primaryBtn, { flex: 1.2 }]}
-            onPress={() =>
-              router.push({
-                pathname: "/deliveryOrders",
-                params: { campaignId: campaign.id },
-              })
-            }
-          >
-            <Text style={styles.primaryText}>Xem đơn giao hàng</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+      {/* BOTTOM ACTION BAR - Only for Delivery Staff */}
+      {userRole === "DELIVERY_STAFF" && (
+        <DeliveryBottomBar campaignId={campaign.id} phases={phases} />
+      )}
 
       {/* IMAGE ZOOM OVERLAY FOR EXPENSE PROOFS */}
-      {zoomImageUrl && (
-        <View style={styles.zoomOverlay}>
-          <TouchableOpacity
-            style={styles.zoomBackdrop}
-            activeOpacity={1}
-            onPress={() => setZoomImageUrl(null)}
-          />
-          <View style={styles.zoomContent}>
-            <Image
-              source={{ uri: zoomImageUrl }}
-              style={styles.zoomImage}
-              resizeMode="contain"
-            />
-            <TouchableOpacity
-              style={styles.zoomCloseBtn}
-              onPress={() => setZoomImageUrl(null)}
-            >
-              <Text style={styles.zoomCloseText}>Đóng</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      <ImageZoomOverlay
+        imageUrl={zoomImageUrl}
+        onClose={() => setZoomImageUrl(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -721,57 +408,6 @@ const styles = StyleSheet.create({
     paddingBottom: 150,
   },
 
-  // Cover
-  coverCard: {
-    marginTop: 4,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  coverImage: {
-    width: "100%",
-    height: 200,
-  },
-  coverOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  campaignTitle: {
-    flex: 1,
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 4,
-  },
-  statusPillText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
   metaChipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -792,7 +428,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   metaChipText: {
-    fontSize: 11,
+    fontSize: 13,
     color: MUTED,
   },
 
@@ -811,21 +447,21 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   cardSubTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "600",
     color: MUTED,
     marginBottom: 2,
   },
   cardDesc: {
-    fontSize: 12,
+    fontSize: 14,
     color: MUTED,
-    marginTop: 2,
+    marginTop: 4,
   },
 
   horizontalCards: {
@@ -842,60 +478,10 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
 
-  // Progress
-  progressRow: {
-    marginTop: 4,
-  },
-  progressNumbers: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 6,
-  },
-  amountText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: PRIMARY,
-  },
-  progressPercent: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: TEXT,
-  },
-  progressBarBg: {
-    height: 9,
-    borderRadius: 999,
-    backgroundColor: "#e5e7eb",
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: PRIMARY,
-  },
-  progressMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  progressMetaItem: {
-    flex: 1,
-  },
-  smallMetaLabel: {
-    fontSize: 11,
-    color: MUTED,
-  },
-  smallMetaValue: {
-    fontSize: 12,
-    color: TEXT,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-
   desc: {
-    fontSize: 14,
+    fontSize: 15,
     color: TEXT,
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   // Phases
@@ -965,168 +551,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Bottom bar
-  bottomBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,          // ↓ bớt padding để không đụng mép/home indicator
-    backgroundColor: "#ffffff",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 6,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-
-  primaryBtn: {
-    flex: 1.4,
-    backgroundColor: PRIMARY,
-    borderRadius: 24,           // bớt “tròn như viên thuốc”
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,        // thấp hơn một chút
-  },
-  primaryText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  secondaryBtn: {
-    flex: 1,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  secondaryText: {
-    color: PRIMARY,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  loadingText: {
-    textAlign: "center",
-    marginTop: 16,
-    color: MUTED,
-  },
   errorText: {
     textAlign: "center",
     marginTop: 40,
     color: "#dc2626",
     fontWeight: "600",
-  },
-
-  // Expense proofs
-  expenseProofBlock: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#ffe7d6",
-  },
-  expenseHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  expenseProofTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: PRIMARY,
-  },
-  expenseStatus: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: ACCENT_BLUE,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: "#dbeafe",
-  },
-  expenseProofAmount: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: TEXT,
-    marginTop: 2,
-  },
-  expenseProofMeta: {
-    fontSize: 12,
-    color: MUTED,
-    marginTop: 1,
-  },
-  expenseProofNote: {
-    fontSize: 12,
-    color: "#b45309",
-    marginTop: 4,
-  },
-  expenseProofImagesRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 6,
-    gap: 6,
-  },
-  expenseProofImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 10,
-    backgroundColor: "#e5e7eb",
-  },
-
-  // zoom overlay reused for chứng từ chi tiêu
-  zoomOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 30,
-  },
-  zoomBackdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.75)",
-  },
-  zoomContent: {
-    width: "90%",
-    height: "70%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  zoomImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 12,
-    backgroundColor: "#000",
-  },
-  zoomCloseBtn: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#ffffff",
-  },
-  zoomCloseText: {
-    color: PRIMARY,
-    fontWeight: "700",
   },
 });

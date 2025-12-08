@@ -1,3 +1,4 @@
+import Loading from "@/components/Loading";
 import { BG_WARM as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import DeliveryService from "@/services/deliveryService";
 import type { DeliveryTask } from "@/types/api/delivery";
@@ -5,7 +6,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -223,6 +223,8 @@ export default function DeliveryOrdersPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Loading visible={loading} message="Đang tải đơn giao hàng..." />
+
       {/* HEADER */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -232,12 +234,7 @@ export default function DeliveryOrdersPage() {
         <View style={{ width: 32 }} />
       </View>
 
-      {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Đang tải đơn giao hàng...</Text>
-        </View>
-      ) : tasks.length === 0 ? (
+      {!loading && tasks.length === 0 ? (
         <View style={styles.emptyBox}>
           <Ionicons
             name="cube-outline"
@@ -250,14 +247,14 @@ export default function DeliveryOrdersPage() {
             Đơn giao hàng sẽ xuất hiện tại đây khi được tạo.
           </Text>
         </View>
-      ) : (
+      ) : !loading ? (
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
         />
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }

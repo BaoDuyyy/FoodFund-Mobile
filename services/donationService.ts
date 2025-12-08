@@ -7,8 +7,10 @@ import type {
   CreateDonationResult,
   GetMyDonationsOptions,
   GetMyDonationsResponse,
+  GetMyDonationsResult,
   SearchDonationStatementsInput,
   SearchDonationStatementsResponse,
+  SearchDonationStatementsResult,
 } from "../types/api/donation";
 import type { GraphQLResponse } from "../types/graphql";
 import AuthService from "./authService";
@@ -107,7 +109,7 @@ export const DonationService = {
   async listDonationStatements(
     input: SearchDonationStatementsInput,
     overrideUrl?: string
-  ) {
+  ): Promise<SearchDonationStatementsResult> {
     const response = await graphqlRequest<SearchDonationStatementsResponse>(
       SEARCH_DONATION_STATEMENTS_QUERY,
       { searchDonationStatementsInput2: input },
@@ -134,7 +136,7 @@ export const DonationService = {
   async getMyDonations(
     overrideUrl?: string,
     options: GetMyDonationsOptions = {}
-  ) {
+  ): Promise<GetMyDonationsResult> {
     const skip = options.skip ?? 0;
     const take = options.take ?? 10;
 

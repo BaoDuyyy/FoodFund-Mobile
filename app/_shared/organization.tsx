@@ -1,3 +1,4 @@
+import Loading from "@/components/Loading";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import AuthService from "@/services/authService";
 import CampaignService from "@/services/campaignService";
@@ -8,7 +9,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -134,10 +134,7 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Đang tải tổ chức...</Text>
-        </View>
+        <Loading visible={loading} message="Đang tải tổ chức..." />
       </SafeAreaView>
     );
   }

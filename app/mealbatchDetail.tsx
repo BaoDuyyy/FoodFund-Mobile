@@ -1,10 +1,10 @@
+import Loading from "@/components/Loading";
 import { BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -64,8 +64,7 @@ export default function MealBatchDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator color={PRIMARY} style={{ marginTop: 32 }} />
-        <Text style={styles.helperText}>Đang tải chi tiết suất ăn...</Text>
+        <Loading visible={loading} message="Đang tải chi tiết suất ăn..." />
       </SafeAreaView>
     );
   }

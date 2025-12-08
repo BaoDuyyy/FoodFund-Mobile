@@ -5,7 +5,6 @@ import type { OperationRequest } from "@/types/api/operationRequest";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -94,7 +93,7 @@ export default function OperationRequestsPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Loading visible={false} message="" />
+      <Loading visible={loading} message="Đang tải danh sách..." />
 
       {/* HEADER có nền cong giống các màn khác */}
       <View style={styles.headerBg} />
@@ -111,12 +110,7 @@ export default function OperationRequestsPage() {
         <View style={{ width: 32 }} />
       </View>
 
-      {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Đang tải danh sách...</Text>
-        </View>
-      ) : items.length === 0 ? (
+      {!loading && items.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>Chưa có yêu cầu giải ngân nào</Text>
           <Text style={styles.emptyDesc}>
@@ -124,7 +118,7 @@ export default function OperationRequestsPage() {
             thể xử lý.
           </Text>
         </View>
-      ) : (
+      ) : !loading ? (
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
@@ -132,7 +126,7 @@ export default function OperationRequestsPage() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }

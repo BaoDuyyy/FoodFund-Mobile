@@ -1,10 +1,10 @@
+import Loading from "@/components/Loading";
 import { BG_WARM as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import DeliveryService from "@/services/deliveryService";
 import type { DeliveryTaskDetail } from "@/types/api/delivery";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -51,8 +51,7 @@ export default function DeliveryTaskDetailPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator color={PRIMARY} style={{ marginTop: 32 }} />
-        <Text style={styles.helperText}>Đang tải chi tiết đơn giao...</Text>
+        <Loading visible={loading} message="Đang tải chi tiết đơn giao..." />
       </SafeAreaView>
     );
   }

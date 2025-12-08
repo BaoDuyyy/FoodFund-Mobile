@@ -1,8 +1,9 @@
+import Loading from "@/components/Loading";
 import DonationService from "@/services/donationService";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 const PRIMARY = "#ad4e28";
 
 export default function DonorListPage() {
@@ -70,9 +71,8 @@ export default function DonorListPage() {
       </View>
 
       {/* List */}
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 24 }} color={PRIMARY} />
-      ) : (
+      <Loading visible={loading} message="Đang tải danh sách..." />
+      {!loading && (
         <FlatList
           data={donors}
           keyExtractor={item => String(item.no)}

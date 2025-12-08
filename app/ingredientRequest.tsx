@@ -1,9 +1,9 @@
+import Loading from "@/components/Loading";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import IngredientService from "@/services/ingredientService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -189,10 +189,7 @@ export default function IngredientRequestPage() {
       </View>
 
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Đang tải danh sách yêu cầu...</Text>
-        </View>
+        <Loading visible={loading} message="Đang tải danh sách yêu cầu..." />
       ) : (
         <FlatList
           data={requests}

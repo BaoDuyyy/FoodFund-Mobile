@@ -1,3 +1,4 @@
+import Loading from "@/components/Loading";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
 import IngredientService from "@/services/ingredientService";
@@ -5,7 +6,6 @@ import type { Phase, PlannedIngredient } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -362,10 +362,7 @@ export default function IngredientRequestFormPage() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={PRIMARY} />
-          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
-        </View>
+        <Loading visible={loading} message="Đang tải dữ liệu..." />
       </SafeAreaView>
     );
   }

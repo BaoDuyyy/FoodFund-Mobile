@@ -31,19 +31,22 @@ export type SearchDonationStatementsInput = {
 
 // Response type for searching donation statements
 export type DonationStatement = {
-  id: string;
-  amount: number;
-  createdAt: string;
-  donorName?: string;
-  isAnonymous: boolean;
+  no: number;
+  donorName: string;
+  receivedAmount: string;
+  transactionDateTime: string;
+  isAnonymous?: boolean;
   description?: string;
 };
 
+export type SearchDonationStatementsResult = {
+  transactions: DonationStatement[];
+  totalDonations: number;
+  totalReceived: string;
+};
+
 export type SearchDonationStatementsResponse = {
-  searchDonationStatements: {
-    items: DonationStatement[];
-    total: number;
-  };
+  searchDonationStatements: SearchDonationStatementsResult;
 };
 
 // Options for getMyDonations
@@ -54,17 +57,24 @@ export type GetMyDonationsOptions = {
 
 // Response type for getMyDonations
 export type MyDonation = {
-  id: string;
-  amount: number;
-  createdAt: string;
-  campaign?: {
-    id: string;
-    title: string;
+  orderCode?: string;
+  amount?: number;
+  receivedAmount?: number;
+  transactionStatus?: string;
+  paymentAmountStatus?: string;
+  donation?: {
+    campaignId?: string;
+    isAnonymous?: boolean;
+    donorName?: string;
+    transactionDatetime?: string;
   };
-  isAnonymous: boolean;
-  description?: string;
+};
+
+export type GetMyDonationsResult = {
+  totalAmount: number;
+  donations: MyDonation[];
 };
 
 export type GetMyDonationsResponse = {
-  getMyDonations: MyDonation[];
+  getMyDonations: GetMyDonationsResult;
 };

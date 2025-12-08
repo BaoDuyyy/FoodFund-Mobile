@@ -69,9 +69,10 @@ export type GetExpenseProofsPayload = {
 
 // Filter input for getExpenseProofs query
 export type ExpenseProofFilterInput = {
-  requestId?: string;
-  status?: string;
-  // Add more filter fields as needed
+  campaignId?: string | null;
+  campaignPhaseId?: string | null;
+  requestId?: string | null;
+  status?: string | null;
 };
 
 export type GetExpenseProofsVars = {
