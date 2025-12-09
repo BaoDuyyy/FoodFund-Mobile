@@ -7,10 +7,9 @@ type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
 export default function TabsLayout() {
 	const ICONS: Record<string, MaterialIconName> = {
-		index: 'home',
-		donation: 'favorite',
+		home: 'home',
+		campaign: 'favorite',
 		news: 'article',
-		discover: 'explore',
 		profile: 'person',
 	};
 
@@ -26,11 +25,9 @@ export default function TabsLayout() {
 				tabBarInactiveTintColor: '#8e8e93',
 			})}
 		>
-			{/* Home is index so it shows first */}
-			<Tabs.Screen name="index" options={{ title: 'Home' }} />
-			<Tabs.Screen name="donation" options={{ title: 'Donation' }} />
+			<Tabs.Screen name="home" options={{ title: 'Home' }} />
+			<Tabs.Screen name="campaign" options={{ title: 'Campaign' }} />
 			<Tabs.Screen name="news" options={{ title: 'News' }} />
-			<Tabs.Screen name="discover" options={{ title: 'Discover' }} />
 			<Tabs.Screen name="profile" options={{ title: 'Profile' }} />
 		</Tabs>
 	);
