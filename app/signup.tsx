@@ -1,6 +1,7 @@
 import Loading from '@/components/Loading';
 import { GOOGLE_CLIENT_ID } from '@/config/google';
 import { BG_AUTH as BG, PRIMARY } from '@/constants/colors';
+import { useAuth } from '@/hooks';
 import AuthService from '@/services/authService';
 import { AntDesign } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
@@ -34,6 +35,7 @@ function isNetworkError(err: any) {
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { signup: authSignup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,13 +103,10 @@ export default function SignupScreen() {
 
       setIsLoading(true);
 
-      const res = await AuthService.signup({ email, name, password });
-      const message =
-        res?.message ||
-        (res?.emailSent
-          ? 'Vui lòng kiểm tra email để xác minh tài khoản'
-          : 'Đăng ký thành công');
+      // Use signup from useAuth hook
+      await authSignup({ email, name, password });
 
+      const message = 'Vui lòng kiểm tra email để xác minh tài khoản';
       setModalMessage(message);
       setModalVisible(true);
     } catch (err: any) {

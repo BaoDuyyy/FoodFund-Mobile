@@ -1,7 +1,20 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useEffect } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+interface DonateModalProps {
+  visible: boolean;
+  onClose: () => void;
+  amount: number;
+  setAmount: (v: number) => void;
+  isAnonymous: boolean;
+  setIsAnonymous: (v: boolean) => void;
+  handleDonateSubmit: () => void;
+  donating?: boolean;
+  /** If true, user is guest - force anonymous and disable toggle */
+  isGuest?: boolean;
+}
 
 export default function DonateModal({
   visible,
@@ -12,7 +25,21 @@ export default function DonateModal({
   setIsAnonymous,
   handleDonateSubmit,
   donating,
-}: any) {
+  isGuest = false,
+}: DonateModalProps) {
+  // Force anonymous when guest
+  useEffect(() => {
+    if (isGuest && !isAnonymous) {
+      setIsAnonymous(true);
+    }
+  }, [isGuest, isAnonymous, setIsAnonymous]);
+
+  const handleToggleAnonymous = () => {
+    // Don't allow toggle if guest
+    if (isGuest) return;
+    setIsAnonymous(!isAnonymous);
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
@@ -21,14 +48,14 @@ export default function DonateModal({
             <MaterialIcons name="close" size={28} color="#ad4e28" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Ủng hộ chiến dịch</Text>
-          <Text style={styles.modalDesc}>
-            <View style={styles.loginNoteBox}>
-              <Text style={styles.loginNoteText}>
-                Nếu bạn muốn lưu họ tên chuyển khoản của mình, vui lòng <Text style={styles.loginNoteBold}>đăng nhập</Text> hoặc <Text style={styles.loginNoteBold}>đăng ký tài khoản</Text>.
-                Nếu không đăng nhập, mọi thông tin ủng hộ của bạn sẽ bị <Text style={styles.loginNoteBold}>ẩn danh</Text>.
-              </Text>
-            </View>
-          </Text>
+
+          {/* Login note box */}
+          <View style={styles.loginNoteBox}>
+            <Text style={styles.loginNoteText}>
+              Nếu bạn muốn lưu họ tên chuyển khoản của mình, vui lòng <Text style={styles.loginNoteBold}>đăng nhập</Text> hoặc <Text style={styles.loginNoteBold}>đăng ký tài khoản</Text>. Nếu không đăng nhập, mọi thông tin ủng hộ của bạn sẽ bị <Text style={styles.loginNoteBold}>ẩn danh</Text>.
+            </Text>
+          </View>
+
           <Text style={styles.modalLabel}>Nhập số tiền ủng hộ *</Text>
           <View style={styles.amountRow}>
             <TextInput
@@ -61,13 +88,16 @@ export default function DonateModal({
             ))}
           </View>
           <TouchableOpacity
-            style={styles.checkRow}
-            onPress={() => setIsAnonymous(!isAnonymous)}
+            style={[styles.checkRow, isGuest && styles.checkRowDisabled]}
+            onPress={handleToggleAnonymous}
+            disabled={isGuest}
           >
             <View style={[styles.checkbox, isAnonymous && styles.checkboxChecked]}>
-              {isAnonymous && <View style={styles.checkboxDot} />}
+              {isAnonymous && <Ionicons name="checkmark" size={18} color="#fff" />}
             </View>
-            <Text style={styles.checkLabel}>Ủng hộ ẩn danh</Text>
+            <Text style={[styles.checkLabel, isGuest && styles.checkLabelDisabled]}>
+              Ủng hộ ẩn danh
+            </Text>
           </TouchableOpacity>
           <LinearGradient
             colors={['#ffb86c', '#ad4e28']}
@@ -260,6 +290,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  checkRowDisabled: {
+    opacity: 0.7,
+  },
+  checkLabelDisabled: {
+    color: "#888",
   },
   modalDonateBtn: {
     borderRadius: 12,

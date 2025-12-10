@@ -1,3 +1,4 @@
+import GuestMode from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,9 +11,19 @@ const LOGO = require('../assets/images/logo.png');
 export default function WelcomeScreen() {
   const router = useRouter();
 
+  const handleSkip = async () => {
+    await GuestMode.setGuestMode(true);
+    router.replace('/home');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground source={BG} style={styles.background} resizeMode="cover">
+        {/* Skip button top right */}
+        <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
+          <Text style={styles.skipText}>Bỏ qua &gt;</Text>
+        </TouchableOpacity>
+
         {/* logo moved to top middle */}
         <View style={styles.topLogo}>
           <Image source={LOGO} style={styles.logo} />
@@ -45,6 +56,23 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   background: { flex: 1, width: '100%', height: '100%' },
+
+  // Skip button
+  skipBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+  },
+  skipText: {
+    color: '#ad4e28',
+    fontWeight: '700',
+    fontSize: 15,
+  },
 
   // top-centered logo (absolute)
   topLogo: {
@@ -99,3 +127,4 @@ const styles = StyleSheet.create({
     bottom: 0,  // touch bottom edge of screen
   },
 });
+

@@ -5,7 +5,7 @@ import 'react-native-reanimated';
 
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  initialRouteName: 'welcome',
 };
 
 export default function RootLayout() {
@@ -14,6 +14,8 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       {/* hide native headers for all stack screens here so page-level headerShown isn't ignored */}
       <Stack screenOptions={{ headerShown: false }}>
+        {/* welcome screen first */}
+        <Stack.Screen name="welcome" />
         {/* entry screens */}
         <Stack.Screen name="login" />
         {/* groups */}
@@ -24,3 +26,4 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+

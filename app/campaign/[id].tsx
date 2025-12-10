@@ -2,6 +2,7 @@ import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
 import DonationService from "@/services/donationService";
+import GuestMode from "@/services/guestMode";
 import OrganizationService from "@/services/organizationService"; // 👈 NEW
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -59,11 +60,16 @@ export default function CampaignDetailPage() {
   // 👇 đại diện tổ chức (id cần truyền sang /statement)
   const [representativeId, setRepresentativeId] = useState<string | null>(null);
 
-  const isLoggedIn = true; // TODO: thay bằng logic thực tế
+  // Guest mode state
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem("agreedRefundPolicy").then((val) => {
       setAgreedRefundPolicy(val === "true");
+    });
+    // Check guest mode
+    GuestMode.isGuest().then((guest) => {
+      setIsGuest(guest);
     });
   }, []);
 
@@ -170,7 +176,7 @@ export default function CampaignDetailPage() {
   }
 
   const handleDonatePress = async () => {
-    if (isLoggedIn && !agreedRefundPolicy) {
+    if (!isGuest && !agreedRefundPolicy) {
       setShowRefundPolicy(true);
     } else {
       setDonateModal(true);
@@ -381,6 +387,7 @@ export default function CampaignDetailPage() {
         setIsAnonymous={setIsAnonymous}
         handleDonateSubmit={handleDonateSubmit}
         donating={donating}
+        isGuest={isGuest}
       />
       <RefundPolicyPopup
         visible={showRefundPolicy}

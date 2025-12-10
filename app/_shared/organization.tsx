@@ -1,6 +1,6 @@
 import Loading from "@/components/Loading";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
-import AuthService from "@/services/authService";
+import { useAuth } from "@/hooks";
 import CampaignService from "@/services/campaignService";
 import OrganizationService from "@/services/organizationService";
 import type { CampaignItem } from "@/types/api/campaign";
@@ -39,6 +39,7 @@ function getMemberRoleLabel(role?: string | null) {
 
 export default function KOrganizationPage({ initialOrgId }: KOrganizationPageProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +55,14 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
         let orgId: string | null = initialOrgId || null;
 
         if (!orgId) {
-          // Lấy user info để lấy email
-          const userInfo = await AuthService.getUserInfo();
-          const myEmail = userInfo?.email;
+          // Wait for user to be loaded
+          if (!user?.email) {
+            // User not loaded yet, skip this run
+            if (mounted) setLoading(false);
+            return;
+          }
+
+          const myEmail = user.email;
 
           // Lấy organization mà user hiện tại là thành viên (để lấy orgId)
           const organizations = await OrganizationService.listActiveOrganizations();
@@ -74,7 +80,12 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
           }
         }
 
-        if (!orgId) throw new Error("No organization found for current user");
+        if (!orgId) {
+          // No organization found - just stop loading, don't throw error
+          console.warn("No organization found for current user");
+          if (mounted) setLoading(false);
+          return;
+        }
 
         // Lấy chi tiết organization
         const orgDetail = await OrganizationService.getOrganizationById(orgId);
@@ -111,7 +122,7 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
     return () => {
       mounted = false;
     };
-  }, [initialOrgId]);
+  }, [initialOrgId, user]);
 
   // Filter campaigns by search text
   const visibleCampaigns = campaigns.filter((c) => {

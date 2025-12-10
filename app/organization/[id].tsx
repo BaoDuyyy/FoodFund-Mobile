@@ -1,9 +1,11 @@
+import CampaignService from "@/services/campaignService";
 import OrganizationService from "@/services/organizationService";
+import type { CampaignItem } from "@/types/api/campaign";
 import type { Organization } from "@/types/api/organization";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PRIMARY = "#ad4e28";
@@ -14,6 +16,7 @@ export default function OrganizationDetailPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [activeTab, setActiveTab] = useState<"campaigns" | "info" | "members">("campaigns");
   const [org, setOrg] = useState<Organization | null>(null);
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -22,6 +25,16 @@ export default function OrganizationDetailPage() {
       try {
         const data = await OrganizationService.getOrganizationById(id);
         if (mounted) setOrg(data);
+
+        // Fetch campaigns using representative's cognito_id
+        const cognitoId = data?.representative?.cognito_id;
+        if (cognitoId) {
+          const campaignList = await CampaignService.searchCampaigns({
+            creatorId: cognitoId,
+            limit: 100,
+          });
+          if (mounted) setCampaigns(campaignList);
+        }
       } catch (err) {
         // handle error if needed
       }
@@ -99,7 +112,7 @@ export default function OrganizationDetailPage() {
               color={activeTab === "campaigns" ? "#fff" : "#666"}
             />
             <Text style={[styles.tabText, activeTab === "campaigns" && styles.tabTextActive]}>
-              Chiến dịch (0)
+              Chiến dịch ({campaigns.length})
             </Text>
           </TouchableOpacity>
 
@@ -136,11 +149,51 @@ export default function OrganizationDetailPage() {
       {/* NỘI DUNG TAB */}
       <View style={styles.tabContent}>
         {activeTab === "campaigns" && (
-          <View style={styles.emptyBox}>
-            <Ionicons name="grid" size={40} color="#d7bfae" style={{ marginBottom: 8 }} />
-            <Text style={styles.emptyTitle}>Chưa có chiến dịch nào</Text>
-            <Text style={styles.emptyDesc}>Tổ chức này chưa tạo chiến dịch nào.</Text>
-          </View>
+          campaigns.length > 0 ? (
+            <FlatList
+              data={campaigns}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.campaignCard}
+                  onPress={() => router.push(`/campaign/${item.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <Image
+                    source={{ uri: item.coverImage || undefined }}
+                    style={styles.campaignImage}
+                  />
+                  <View style={styles.campaignInfo}>
+                    <Text style={styles.campaignTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.campaignAmount}>
+                      {formatCurrency(item.receivedAmount)} / {formatCurrency(item.targetAmount)}
+                    </Text>
+                    <View style={styles.campaignProgressBg}>
+                      <View
+                        style={[
+                          styles.campaignProgressFill,
+                          { width: `${Math.min(item.fundingProgress || 0, 100)}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.campaignMeta}>
+                      {item.donationCount ?? 0} lượt ủng hộ • Còn {item.daysRemaining ?? 0} ngày
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          ) : (
+            <View style={styles.emptyBox}>
+              <Ionicons name="grid" size={40} color="#d7bfae" style={{ marginBottom: 8 }} />
+              <Text style={styles.emptyTitle}>Chưa có chiến dịch nào</Text>
+              <Text style={styles.emptyDesc}>Tổ chức này chưa tạo chiến dịch nào.</Text>
+            </View>
+          )
         )}
 
         {activeTab === "info" && (
@@ -224,6 +277,11 @@ export default function OrganizationDetailPage() {
       </View>
     </SafeAreaView>
   );
+}
+
+function formatCurrency(v?: string | number | null) {
+  const n = Number(v || 0);
+  return n.toLocaleString("vi-VN") + " đ";
 }
 
 const styles = StyleSheet.create({
@@ -393,6 +451,58 @@ const styles = StyleSheet.create({
     color: "#888",
     fontSize: 13,
     textAlign: "center",
+  },
+
+  // Campaign card
+  campaignCard: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  campaignImage: {
+    width: 100,
+    height: 100,
+    backgroundColor: "#eee",
+  },
+  campaignInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "center",
+  },
+  campaignTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: 4,
+  },
+  campaignAmount: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: PRIMARY,
+    marginBottom: 6,
+  },
+  campaignProgressBg: {
+    height: 6,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+  campaignProgressFill: {
+    height: "100%",
+    backgroundColor: PRIMARY,
+    borderRadius: 3,
+  },
+  campaignMeta: {
+    fontSize: 11,
+    color: "#888",
   },
 
   // Info tab

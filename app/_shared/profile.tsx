@@ -1,25 +1,31 @@
 import Loading from '@/components/Loading';
 import LoginRequire from '@/components/LoginRequire';
 import { ACCENT, BG_CREAM as BG, PRIMARY } from '@/constants/colors';
-import AuthService from '@/services/authService';
+import { useAuth, useNotificationPolling } from '@/hooks';
 import DonationService from '@/services/donationService';
+import GuestMode from '@/services/guestMode';
 import UserService from '@/services/userService';
 import type { UserProfile } from '@/types/api/user';
-import { Feather, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { logout } = useAuth();
+  const { unreadCount } = useNotificationPolling();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [loginRequire, setLoginRequire] = useState(false);
@@ -31,11 +37,72 @@ export default function ProfilePage() {
     donations: [],
   });
 
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterFromDate, setFilterFromDate] = useState<Date | null>(null);
+  const [filterToDate, setFilterToDate] = useState<Date | null>(null);
+  const [filterMinAmount, setFilterMinAmount] = useState('');
+  const [filterMaxAmount, setFilterMaxAmount] = useState('');
+
+  // Date picker states
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  // Filtered donations
+  const filteredDonations = useMemo(() => {
+    let result = donationSummary.donations;
+
+    // Date filter
+    if (filterFromDate) {
+      result = result.filter((item: any) => {
+        const d = item.donation?.transactionDatetime;
+        if (!d) return false;
+        const itemDate = new Date(d);
+        return itemDate >= filterFromDate;
+      });
+    }
+    if (filterToDate) {
+      const toDateEnd = new Date(filterToDate);
+      toDateEnd.setHours(23, 59, 59, 999);
+      result = result.filter((item: any) => {
+        const d = item.donation?.transactionDatetime;
+        if (!d) return false;
+        const itemDate = new Date(d);
+        return itemDate <= toDateEnd;
+      });
+    }
+
+    // Amount filter
+    const minAmt = filterMinAmount ? Number(filterMinAmount.replace(/\D/g, '')) : 0;
+    const maxAmt = filterMaxAmount ? Number(filterMaxAmount.replace(/\D/g, '')) : Infinity;
+    if (minAmt > 0 || maxAmt < Infinity) {
+      result = result.filter((item: any) => {
+        const amt = Number(item.amount || item.receivedAmount || 0);
+        return amt >= minAmt && amt <= maxAmt;
+      });
+    }
+
+    return result;
+  }, [donationSummary.donations, filterFromDate, filterToDate, filterMinAmount, filterMaxAmount]);
+
   useEffect(() => {
     let mounted = true;
     async function load() {
       setLoading(true);
       try {
+        // Check if user is in guest mode
+        const isGuest = await GuestMode.isGuest();
+        if (isGuest) {
+          if (mounted) setLoginRequire(true);
+          if (mounted) setLoading(false);
+          return;
+        }
+
         const data = await UserService.getMyProfile();
         if (mounted) setProfile(data);
 
@@ -90,6 +157,20 @@ export default function ProfilePage() {
           style={styles.coverImg}
         />
         <View style={styles.coverOverlay} />
+        {/* Notification Bell */}
+        <TouchableOpacity
+          style={styles.notificationBtn}
+          onPress={() => router.push('/notifications' as any)}
+        >
+          <Ionicons name="notifications-outline" size={22} color="#fff" />
+          {unreadCount > 0 && (
+            <View style={styles.notiBadge}>
+              <Text style={styles.notiBadgeText}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <View style={styles.avatarWrap}>
           <View style={styles.avatarCircle}>
             <Image
@@ -162,27 +243,17 @@ export default function ProfilePage() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() => {
-                // TODO: share profile link
+              style={styles.logoutBtn}
+              onPress={async () => {
+                await logout();
+                setProfile(null);
+                setLoginRequire(true);
+                router.replace('/login');
               }}
             >
-              <Feather name="share-2" size={18} color={PRIMARY} />
+              <Feather name="log-out" size={18} color="#dc2626" />
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={async () => {
-              await AuthService.signOut();
-              await AuthService.removeTokens();
-              setProfile(null);
-              setLoginRequire(true);
-              router.replace('/login');
-            }}
-          >
-            <Text style={styles.logoutBtnText}>Đăng xuất</Text>
-          </TouchableOpacity>
         </View>
 
         {/* TỔNG QUAN ỦNG HỘ */}
@@ -198,31 +269,130 @@ export default function ProfilePage() {
           </View>
         </View>
 
-        {/* LỊCH SỬ ỦNG HỘ */}
+        {/* LỊCH SỦ ỦNG HỘ */}
         <View style={styles.historyCard}>
-          <Text style={styles.historyTitle}>Lịch sử ủng hộ</Text>
-          <Text style={styles.historySubtitle}>
-            Danh sách các lần ủng hộ của bạn
-          </Text>
+          <View style={styles.historyHeader}>
+            <View>
+              <Text style={styles.historyTitle}>Lịch sử ủng hộ</Text>
+              <Text style={styles.historySubtitle}>
+                Danh sách các lần ủng hộ của bạn
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.filterToggleBtn, showFilters && styles.filterToggleBtnActive]}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Ionicons name="filter" size={16} color={showFilters ? '#fff' : PRIMARY} />
+              <Text style={[styles.filterToggleText, showFilters && styles.filterToggleTextActive]}>Lọc</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <View style={styles.filterPanel}>
+              <Text style={styles.filterLabel}>Theo ngày</Text>
+              <View style={styles.filterRow}>
+                <TouchableOpacity
+                  style={styles.filterDateBtn}
+                  onPress={() => setShowFromPicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+                  <Text style={filterFromDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                    {filterFromDate ? formatDate(filterFromDate) : 'Từ ngày'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.filterDash}>—</Text>
+                <TouchableOpacity
+                  style={styles.filterDateBtn}
+                  onPress={() => setShowToPicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+                  <Text style={filterToDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                    {filterToDate ? formatDate(filterToDate) : 'Đến ngày'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Date Pickers */}
+              {showFromPicker && (
+                <DateTimePicker
+                  value={filterFromDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    setShowFromPicker(Platform.OS === 'ios');
+                    if (date) setFilterFromDate(date);
+                  }}
+                />
+              )}
+              {showToPicker && (
+                <DateTimePicker
+                  value={filterToDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    setShowToPicker(Platform.OS === 'ios');
+                    if (date) setFilterToDate(date);
+                  }}
+                />
+              )}
+
+              <Text style={styles.filterLabel}>Theo số tiền (đ)</Text>
+              <View style={styles.filterRow}>
+                <TextInput
+                  style={styles.filterInput}
+                  placeholder="Từ"
+                  placeholderTextColor="#999"
+                  value={filterMinAmount}
+                  onChangeText={setFilterMinAmount}
+                  keyboardType="numeric"
+                />
+                <Text style={styles.filterDash}>—</Text>
+                <TextInput
+                  style={styles.filterInput}
+                  placeholder="Đến"
+                  placeholderTextColor="#999"
+                  value={filterMaxAmount}
+                  onChangeText={setFilterMaxAmount}
+                  keyboardType="numeric"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.filterClearBtn}
+                onPress={() => {
+                  setFilterFromDate(null);
+                  setFilterToDate(null);
+                  setFilterMinAmount('');
+                  setFilterMaxAmount('');
+                }}
+              >
+                <Text style={styles.filterClearText}>Xóa bộ lọc</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.historyDivider} />
 
-          {donationSummary.donations.length === 0 ? (
+          {filteredDonations.length === 0 ? (
             <View style={styles.historyEmpty}>
               <FontAwesome name="heart-o" size={40} color="#d1d5db" />
               <Text style={styles.historyEmptyText}>
-                Bạn chưa có lượt ủng hộ nào
+                {donationSummary.donations.length === 0
+                  ? 'Bạn chưa có lượt ủng hộ nào'
+                  : 'Không có kết quả phù hợp với bộ lọc'}
               </Text>
-              <TouchableOpacity
-                style={styles.exploreBtn}
-                onPress={() => router.push('/campaign' as any)}
-              >
-                <Text style={styles.exploreBtnText}>Khám phá chiến dịch</Text>
-              </TouchableOpacity>
+              {donationSummary.donations.length === 0 && (
+                <TouchableOpacity
+                  style={styles.exploreBtn}
+                  onPress={() => router.push('/campaign' as any)}
+                >
+                  <Text style={styles.exploreBtnText}>Khám phá chiến dịch</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View>
-              {donationSummary.donations.map((item: any, idx: number) => {
+              {filteredDonations.map((item: any, idx: number) => {
                 const d = item.donation;
                 const amountNum = Number(
                   item.amount || item.receivedAmount || 0
@@ -249,10 +419,6 @@ export default function ProfilePage() {
                       )}
                       <Text style={styles.historyItemMeta}>
                         Người ủng hộ: {donorName}
-                      </Text>
-                      <Text style={styles.historyItemMeta}>
-                        Trạng thái: {item.transactionStatus} /{' '}
-                        {item.paymentAmountStatus}
                       </Text>
                       <Text style={styles.historyItemMeta}>
                         Thời gian:{' '}
@@ -424,19 +590,13 @@ const styles = StyleSheet.create({
     borderColor: '#ffe1cc',
   },
   logoutBtn: {
-    marginTop: 16,
-    alignSelf: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#ffe1cc',
-    paddingHorizontal: 32,
+    marginLeft: 10,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-  },
-  logoutBtnText: {
-    color: PRIMARY,
-    fontWeight: '700',
-    fontSize: 14,
+    borderRadius: 999,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
 
   summaryCard: {
@@ -493,6 +653,104 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     marginTop: 2,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  filterToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    gap: 4,
+  },
+  filterToggleBtnActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+  filterToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: PRIMARY,
+  },
+  filterToggleTextActive: {
+    color: '#fff',
+  },
+  filterPanel: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#fefce8',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fef08a',
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#854d0e',
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    color: '#111',
+  },
+  filterDash: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  filterClearBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  filterClearText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  filterDateBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 6,
+  },
+  filterDateText: {
+    fontSize: 14,
+    color: '#111',
+  },
+  filterDatePlaceholder: {
+    fontSize: 14,
+    color: '#999',
   },
   historyDivider: {
     height: 1,
@@ -551,5 +809,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#111827',
+  },
+
+  // Notification bell styles
+  notificationBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  notiBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#dc2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  notiBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

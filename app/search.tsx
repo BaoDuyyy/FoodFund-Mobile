@@ -1,9 +1,12 @@
 import CampaignService from '@/services/campaignService';
 import OrganizationService from '@/services/organizationService';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const PRIMARY = '#ad4e28';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -23,8 +26,8 @@ export default function SearchPage() {
           if (mounted) {
             const filtered = query
               ? data.filter((c: any) =>
-                  (c.title || '').toLowerCase().includes(query.toLowerCase())
-                )
+                (c.title || '').toLowerCase().includes(query.toLowerCase())
+              )
               : data;
             setCampaigns(filtered);
           }
@@ -33,8 +36,8 @@ export default function SearchPage() {
           if (mounted) {
             const filtered = query
               ? data.filter((o: any) =>
-                  (o.name || '').toLowerCase().includes(query.toLowerCase())
-                )
+                (o.name || '').toLowerCase().includes(query.toLowerCase())
+              )
               : data;
             setOrganizations(filtered);
           }
@@ -52,43 +55,58 @@ export default function SearchPage() {
   }, [activeTab, query]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.topBack} onPress={() => router.back()}>
-        <Text style={styles.topBackText}>{'‹'} Back</Text>
-      </TouchableOpacity>
-
-      <View style={styles.inner}>
-        <Text style={styles.heading}>Tìm kiếm</Text>
-
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Nhập từ khóa tìm kiếm"
-          value={query}
-          onChangeText={setQuery}
-          placeholderTextColor="#999"
-        />
-
-        {/* tabs ngay dưới search */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'campaigns' && styles.tabActive]}
-            onPress={() => setActiveTab('campaigns')}
-          >
-            <Text style={[styles.tabText, activeTab === 'campaigns' && styles.tabTextActive]}>Chiến dịch</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'organizations' && styles.tabActive]}
-            onPress={() => setActiveTab('organizations')}
-          >
-            <Text style={[styles.tabText, activeTab === 'organizations' && styles.tabTextActive]}>Tổ chức</Text>
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Header with search */}
+      <View style={styles.header}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color="#999" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm chiến dịch, tổ chức..."
+            value={query}
+            onChangeText={setQuery}
+            placeholderTextColor="#999"
+            autoFocus
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
+        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+          <Ionicons name="close" size={22} color={PRIMARY} />
+        </TouchableOpacity>
+      </View>
 
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'campaigns' && styles.tabActive]}
+          onPress={() => setActiveTab('campaigns')}
+        >
+          <Text style={[styles.tabText, activeTab === 'campaigns' && styles.tabTextActive]}>
+            Chiến dịch
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'organizations' && styles.tabActive]}
+          onPress={() => setActiveTab('organizations')}
+        >
+          <Text style={[styles.tabText, activeTab === 'organizations' && styles.tabTextActive]}>
+            Tổ chức
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Results */}
+      <View style={styles.content}>
         {activeTab === 'campaigns' ? (
           <FlatList
             data={campaigns}
             keyExtractor={(i) => i.id}
             refreshing={loading}
+            showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -102,17 +120,21 @@ export default function SearchPage() {
                         style={styles.thumbImage}
                         resizeMode="cover"
                       />
-                    ) : null}
+                    ) : (
+                      <Ionicons name="image-outline" size={28} color="#ccc" />
+                    )}
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.campaignTitle}>{item.title}</Text>
+                  <View style={styles.campaignInfo}>
+                    <Text style={styles.campaignTitle} numberOfLines={2}>{item.title}</Text>
                     <View style={styles.metaRow}>
                       <Text style={styles.metaText}>{item.donationCount ?? 0} lượt ủng hộ</Text>
-                      <Text style={[styles.metaText, { marginLeft: 8 }]}>•</Text>
-                      <Text style={[styles.metaText, { marginLeft: 8 }]}>Còn lại {item.daysLeft ?? '--'} ngày</Text>
+                      <Text style={styles.metaDot}>•</Text>
+                      <Text style={styles.metaText}>Còn {item.daysLeft ?? '--'} ngày</Text>
                     </View>
-                    <Text style={[styles.amount, { marginTop: 8 }]}>
-                      {item.receivedAmount ? Number(item.receivedAmount).toLocaleString('vi-VN') + ' đ' : 'Hãy là người ủng hộ đầu tiên'}
+                    <Text style={styles.amount}>
+                      {item.receivedAmount
+                        ? Number(item.receivedAmount).toLocaleString('vi-VN') + ' đ'
+                        : '0 đ'}
                     </Text>
                     <View style={styles.progressBar}>
                       <View style={[styles.progressFill, { width: `${Math.min(item.fundingProgress ?? 0, 100)}%` }]} />
@@ -121,30 +143,44 @@ export default function SearchPage() {
                 </View>
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<Text style={styles.empty}>Không có kết quả</Text>}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color="#ddd" />
+                <Text style={styles.emptyText}>Không tìm thấy kết quả</Text>
+              </View>
+            }
           />
         ) : (
           <FlatList
             data={organizations}
             keyExtractor={(i) => i.id}
             refreshing={loading}
+            showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => router.push(`/organization/${item.id}`)}
               >
-                <View style={styles.accountItem}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.name?.charAt(0)?.toUpperCase() || '?'}</Text>
+                <View style={styles.orgItem}>
+                  <View style={styles.orgAvatar}>
+                    <Text style={styles.orgAvatarText}>
+                      {item.name?.charAt(0)?.toUpperCase() || '?'}
+                    </Text>
                   </View>
-                  <View style={{ marginLeft: 12 }}>
-                    <Text style={styles.accountName}>{item.name}</Text>
-                    <Text style={styles.accountHandle}>{item.email || item.phone || ''}</Text>
+                  <View style={styles.orgInfo}>
+                    <Text style={styles.orgName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.orgMeta}>{item.email || item.phone || 'Tổ chức từ thiện'}</Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
                 </View>
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<Text style={styles.empty}>Không có kết quả</Text>}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="business-outline" size={48} color="#ddd" />
+                <Text style={styles.emptyText}>Không tìm thấy tổ chức</Text>
+              </View>
+            }
           />
         )}
       </View>
@@ -153,67 +189,93 @@ export default function SearchPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  topBack: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    zIndex: 10,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f3f3',
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#ad4e28',
+    paddingVertical: 10,
+    marginRight: 10,
   },
-  topBackText: { color: '#fff', fontWeight: '700' },
-
-  inner: { flex: 1, padding: 20, paddingTop: 64 },
-  heading: { fontSize: 22, fontWeight: '700', marginBottom: 12, color: '#333' },
-
   searchInput: {
-    width: '100%',
-    backgroundColor: '#f6f6f6',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    marginBottom: 12,
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    padding: 0,
   },
-  tabContainer: { flexDirection: 'row', marginBottom: 12, backgroundColor: 'transparent' },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#f7f7f7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#f3f3f3',
+  },
+
+  // Tabs
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
   tabButton: {
     flex: 1,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: '#f5f5f5',
     paddingVertical: 10,
-    borderRadius: 999,
-    marginRight: 8,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  tabActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  tabText: { color: '#333', fontWeight: '600' },
-  tabTextActive: { color: '#000' },
-
-  resultItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  tabActive: {
+    backgroundColor: PRIMARY,
   },
-  resultText: { fontSize: 16, color: '#333' },
-  empty: { color: '#999', textAlign: 'center', marginTop: 24 },
+  tabText: {
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
 
-  /* accounts */
-  accountItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ffb46b', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700' },
-  accountName: { fontSize: 16, fontWeight: '700', color: '#111' },
-  accountHandle: { fontSize: 13, color: '#9b9b9b', marginTop: 4 },
+  // Content
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
 
-  /* campaigns */
-  campaignItem: { flexDirection: 'row', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5', alignItems: 'flex-start' },
+  // Campaign Item
+  campaignItem: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+    alignItems: 'flex-start',
+  },
   thumb: {
-    width: 84,
-    height: 84,
-    borderRadius: 10,
-    backgroundColor: '#f2d9b8',
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,13 +283,96 @@ const styles = StyleSheet.create({
   thumbImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 10,
   },
-  campaignTitle: { fontSize: 17, fontWeight: '700', color: '#111' },
-  metaRow: { flexDirection: 'row', marginTop: 6, alignItems: 'center' },
-  metaText: { color: '#9b9b9b', fontSize: 13 },
-  /* amount displayed above progress */
-  amount: { color: '#f59a2a', fontWeight: '700' },
-  progressBar: { width: '100%', height: 8, backgroundColor: '#f0f0f0', borderRadius: 8, marginTop: 8, overflow: 'hidden' },
-  progressFill: { height: 8, backgroundColor: '#f59a2a', borderRadius: 8 },
+  campaignInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  campaignTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 4,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  metaText: {
+    color: '#999',
+    fontSize: 12,
+  },
+  metaDot: {
+    color: '#ccc',
+    marginHorizontal: 6,
+  },
+  amount: {
+    color: PRIMARY,
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  progressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    backgroundColor: PRIMARY,
+    borderRadius: 3,
+  },
+
+  // Organization Item
+  orgItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  orgAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgAvatarText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  orgInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  orgName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222',
+  },
+  orgMeta: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+
+  // Empty state
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 12,
+    fontSize: 15,
+  },
 });
+

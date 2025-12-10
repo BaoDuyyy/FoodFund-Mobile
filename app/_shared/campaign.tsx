@@ -1,9 +1,9 @@
+import AppHeader from '@/components/AppHeader';
 import CampaignCard from '@/components/CampaignCard';
 import Loading from '@/components/Loading';
 import CampaignService from '@/services/campaignService';
 import CategoryService from '@/services/categoryService';
 import type { CampaignItem } from '@/types/api/campaign';
-import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -114,24 +114,9 @@ export default function HomePage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <AppHeader showProfile={false} />
       <Loading visible={loading} message="Loading campaigns..." />
-
-      {/* top-right modern icon buttons */}
-      <View style={styles.topButtonsRight}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => router.push('/search')}
-        >
-          <Feather name="search" size={22} color="#ad4e28" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => router.push('/profile')}
-        >
-          <FontAwesome name="user-circle" size={22} color="#ad4e28" />
-        </TouchableOpacity>
-      </View>
 
       <View style={styles.content}>
         <Text style={styles.title}>Chiến dịch nổi bật</Text>
@@ -244,39 +229,13 @@ export default function HomePage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
-  // top-right modern icon buttons
-  topButtonsRight: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: '#f7f7f7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-    shadowColor: '#ad4e28',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f3f3f3',
-  },
-
-  content: { flex: 1, paddingTop: 56 },
+  content: { flex: 1 },
   title: {
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 8,
     paddingHorizontal: 16,
+    marginTop: 12,
   },
 
   // block filter: 2 dòng

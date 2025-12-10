@@ -1,7 +1,9 @@
 import Loading from '@/components/Loading';
 import { GOOGLE_CLIENT_ID } from '@/config/google';
 import { BG_AUTH as BG, PRIMARY } from '@/constants/colors';
+import { useAuth } from '@/hooks';
 import AuthService from '@/services/authService';
+import GuestMode from '@/services/guestMode';
 import { AntDesign } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
 import { useRouter } from 'expo-router';
@@ -34,6 +36,7 @@ function isNetworkError(err: any) {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login: authLogin, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,11 +70,15 @@ export default function LoginScreen() {
       }
       setIsLoading(true);
 
-      const result = await AuthService.login(email, password);
-      await SecureStore.setItemAsync('accessToken', result.accessToken || '');
-      await SecureStore.setItemAsync('refreshToken', result.refreshToken || '');
+      // Use login from useAuth hook
+      const result = await authLogin(email, password);
 
-      const { role } = await AuthService.getUserInfo();
+      // Clear guest mode after successful login
+      await GuestMode.setGuestMode(false);
+
+      // Get user info after login to determine role-based routing
+      const userInfo = await AuthService.getUserInfo();
+      const role = userInfo?.role;
 
       if (role === 'KITCHEN_STAFF') {
         router.replace('/k-organization');
@@ -124,6 +131,9 @@ export default function LoginScreen() {
         const payload = await AuthService.loginWithGoogle(idToken);
         await SecureStore.setItemAsync('accessToken', payload.accessToken || '');
         await SecureStore.setItemAsync('refreshToken', payload.refreshToken || '');
+
+        // Clear guest mode after successful Google login
+        await GuestMode.setGuestMode(false);
 
         // user Google -> group tabs thường
         router.replace('/(tabs)' as any);

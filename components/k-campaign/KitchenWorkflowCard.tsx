@@ -12,12 +12,12 @@ const ACCENT_BLUE = "#2563eb";
 // Map phase status code -> Vietnamese label
 const phaseStatusLabels: Record<string, string> = {
     PLANNING: "Đang lên kế hoạch",
-    AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân nguyên liệu",
+    AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân tiền nguyên liệu",
     INGREDIENT_PURCHASE: "Đang mua nguyên liệu",
     AWAITING_AUDIT: "Chờ kiểm tra chứng từ",
-    AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí nấu ăn",
+    AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí nấu và vận chuyển",
     COOKING: "Đang nấu ăn",
-    AWAITING_DELIVERY_DISBURSEMENT: "Chờ giải ngân chi phí vận chuyển",
+    AWAITING_DELIVERY_DISBURSEMENT: "Chờ cập nhật suất ăn",
     DELIVERY: "Đang vận chuyển",
     COMPLETED: "Hoàn thành",
     CANCELLED: "Đã hủy",
@@ -141,16 +141,62 @@ export default function KitchenWorkflowCard({
         });
     };
 
+    // Determine current workflow step based on phase status
+    const getCurrentWorkflowStep = (status?: string | null): 1 | 2 | 3 => {
+        if (!status) return 1;
+        const s = status.toUpperCase().trim();
+
+        // Step 3: Delivery related or cooking done
+        if (
+            s === "AWAITING_DELIVERY_DISBURSEMENT" ||
+            s === "DELIVERY" ||
+            s === "COMPLETED"
+        ) {
+            return 3;
+        }
+
+        // Step 2: Disbursement related
+        if (
+            s === "AWAITING_COOKING_DISBURSEMENT" ||
+            s === "COOKING" ||
+            s === "AWAITING_AUDIT"
+        ) {
+            return 2;
+        }
+
+        // Step 1: Ingredient related (default)
+        return 1;
+    };
+
+    const currentWorkflowStep = getCurrentWorkflowStep(currentPhase?.status);
+
+    // Get box style based on current workflow step
+    const getCurrentPhaseBoxStyle = () => {
+        switch (currentWorkflowStep) {
+            case 3:
+                return styles.currentPhaseBoxGreen;
+            case 2:
+                return styles.currentPhaseBoxBlue;
+            default:
+                return styles.currentPhaseBoxPrimary;
+        }
+    };
+
     return (
         <View style={styles.workflowCard}>
             <Text style={styles.workflowTitle}>Quy trình nấu ăn</Text>
 
             {/* Current Phase Info */}
             {currentPhase && (
-                <View style={styles.currentPhaseBox}>
+                <View style={[styles.currentPhaseBox, getCurrentPhaseBoxStyle()]}>
                     <Text style={styles.currentPhaseLabel}>Giai đoạn hiện tại</Text>
                     <Text style={styles.currentPhaseName}>{currentPhase.phaseName}</Text>
-                    <Text style={styles.currentPhaseStatus}>
+                    <Text style={[
+                        styles.currentPhaseStatus,
+                        currentWorkflowStep === 3 && { color: ACCENT_GREEN },
+                        currentWorkflowStep === 2 && { color: ACCENT_BLUE },
+                        currentWorkflowStep === 1 && { color: PRIMARY },
+                    ]}>
                         {getPhaseStatusLabel(currentPhase.status)}
                     </Text>
                 </View>
@@ -160,7 +206,7 @@ export default function KitchenWorkflowCard({
             <View style={styles.workflowSteps}>
                 {/* Step 1 */}
                 <TouchableOpacity
-                    style={styles.workflowStep}
+                    style={[styles.workflowStep, styles.workflowStepPrimary]}
                     onPress={handleIngredientRequest}
                 >
                     <View style={styles.stepNumber}>
@@ -177,7 +223,7 @@ export default function KitchenWorkflowCard({
 
                 {/* Step 2 */}
                 <TouchableOpacity
-                    style={styles.workflowStep}
+                    style={[styles.workflowStep, styles.workflowStepBlue]}
                     onPress={handleDisbursement}
                 >
                     <View style={[styles.stepNumber, styles.stepNumberSecondary]}>
@@ -193,7 +239,7 @@ export default function KitchenWorkflowCard({
                 <View style={styles.stepConnector} />
 
                 {/* Step 3 */}
-                <TouchableOpacity style={styles.workflowStep} onPress={handleMealBatch}>
+                <TouchableOpacity style={[styles.workflowStep, styles.workflowStepGreen]} onPress={handleMealBatch}>
                     <View style={[styles.stepNumber, styles.stepNumberTertiary]}>
                         <Text style={styles.stepNumberText}>3</Text>
                     </View>
@@ -248,6 +294,18 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         marginTop: 4,
     },
+    currentPhaseBoxPrimary: {
+        backgroundColor: "#fff7ed",
+        borderColor: PRIMARY,
+    },
+    currentPhaseBoxBlue: {
+        backgroundColor: "#eff6ff",
+        borderColor: ACCENT_BLUE,
+    },
+    currentPhaseBoxGreen: {
+        backgroundColor: "#f0fdf4",
+        borderColor: ACCENT_GREEN,
+    },
     workflowSteps: {
         gap: 0,
     },
@@ -257,8 +315,20 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderRadius: 14,
         padding: 14,
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: "#e5e7eb",
+    },
+    workflowStepPrimary: {
+        backgroundColor: "#fff7ed",
+        borderColor: PRIMARY,
+    },
+    workflowStepBlue: {
+        backgroundColor: "#eff6ff",
+        borderColor: ACCENT_BLUE,
+    },
+    workflowStepGreen: {
+        backgroundColor: "#f0fdf4",
+        borderColor: ACCENT_GREEN,
     },
     stepNumber: {
         width: 36,
