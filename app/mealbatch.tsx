@@ -1,7 +1,7 @@
 import {
     ACCENT_BLUE,
     ACCENT_GREEN,
-    BG,
+    BG_KITCHEN as BG,
     BORDER,
     DANGER,
     MUTED_TEXT,
@@ -41,11 +41,12 @@ type SelectedFile = {
 
 export default function MealBatchPage() {
     const router = useRouter();
-    const { campaignId, campaignPhaseId, campaignPhaseName } =
+    const { campaignId, campaignPhaseId, campaignPhaseName, plannedMeals: plannedMealsParam } =
         useLocalSearchParams<{
             campaignId?: string;
             campaignPhaseId?: string;
             campaignPhaseName?: string;
+            plannedMeals?: string;
         }>();
 
     const [loadingRequests, setLoadingRequests] = useState(false);
@@ -61,6 +62,23 @@ export default function MealBatchPage() {
         Set<string>
     >(new Set());
     const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+
+    // Parse plannedMeals from params
+    type PlannedMeal = { id: string; name: string; quantity: number };
+    const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
+
+    useEffect(() => {
+        if (plannedMealsParam) {
+            try {
+                const parsed = JSON.parse(
+                    Array.isArray(plannedMealsParam) ? plannedMealsParam[0] : plannedMealsParam
+                ) as PlannedMeal[];
+                setPlannedMeals(parsed);
+            } catch (e) {
+                console.error("Error parsing plannedMeals:", e);
+            }
+        }
+    }, [plannedMealsParam]);
 
     // Lấy plannedIngredients từ campaign
     useEffect(() => {
@@ -468,6 +486,36 @@ export default function MealBatchPage() {
                             )}
                         </View>
                     </View>
+
+                    {/* Card suất ăn dự kiến */}
+                    {plannedMeals.length > 0 && (
+                        <View style={styles.card}>
+                            <View style={styles.cardHeaderRow}>
+                                <Text style={styles.sectionTitle}>Suất ăn dự kiến (theo kế hoạch)</Text>
+                                <Text style={styles.sectionDescription}>
+                                    Danh sách các suất ăn đã được lên kế hoạch cho giai đoạn này.
+                                </Text>
+                            </View>
+
+                            <View style={styles.badgeCount}>
+                                <Text style={styles.badgeCountText}>
+                                    {plannedMeals.length} món
+                                </Text>
+                            </View>
+
+                            {plannedMeals.map((meal, idx) => (
+                                <View key={meal.id || idx} style={styles.plannedMealRow}>
+                                    <View style={styles.plannedMealBullet} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.plannedMealName}>{meal.name}</Text>
+                                        <Text style={styles.plannedMealQuantity}>
+                                            Số lượng: {meal.quantity} suất
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
                     {/* Card nguyên liệu */}
                     <View style={styles.card}>
@@ -902,5 +950,31 @@ const styles = StyleSheet.create({
         color: PRIMARY,
         fontSize: 14,
         fontWeight: "700",
+    },
+
+    // Planned Meals styles
+    plannedMealRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: BORDER,
+    },
+    plannedMealBullet: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: ACCENT_GREEN,
+        marginRight: 12,
+    },
+    plannedMealName: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: STRONG_TEXT,
+    },
+    plannedMealQuantity: {
+        fontSize: 13,
+        color: MUTED_TEXT,
+        marginTop: 2,
     },
 });

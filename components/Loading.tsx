@@ -28,6 +28,13 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
   const dotAnim3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Store references to all animations for proper cleanup
+    let spinAnimation: Animated.CompositeAnimation | null = null;
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
+    let dotAnimation1: Animated.CompositeAnimation | null = null;
+    let dotAnimation2: Animated.CompositeAnimation | null = null;
+    let dotAnimation3: Animated.CompositeAnimation | null = null;
+
     if (visible) {
       // Fade in & scale up the box
       Animated.parallel([
@@ -45,7 +52,7 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
       ]).start();
 
       // Spinning animation
-      const spin = Animated.loop(
+      spinAnimation = Animated.loop(
         Animated.timing(spinAnim, {
           toValue: 1,
           duration: 1200,
@@ -53,10 +60,10 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
           useNativeDriver: true,
         })
       );
-      spin.start();
+      spinAnimation.start();
 
       // Pulse animation for the ring
-      const pulse = Animated.loop(
+      pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.15,
@@ -72,7 +79,7 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
           }),
         ])
       );
-      pulse.start();
+      pulseAnimation.start();
 
       // Bouncing dots animation
       const createDotAnimation = (anim: Animated.Value, delay: number) =>
@@ -94,16 +101,24 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
           ])
         );
 
-      createDotAnimation(dotAnim1, 0).start();
-      createDotAnimation(dotAnim2, 150).start();
-      createDotAnimation(dotAnim3, 300).start();
+      dotAnimation1 = createDotAnimation(dotAnim1, 0);
+      dotAnimation2 = createDotAnimation(dotAnim2, 150);
+      dotAnimation3 = createDotAnimation(dotAnim3, 300);
 
-      return () => {
-        spin.stop();
-        pulse.stop();
-      };
-    } else {
-      // Reset animations
+      dotAnimation1.start();
+      dotAnimation2.start();
+      dotAnimation3.start();
+    }
+
+    return () => {
+      // Cleanup ALL animations when component unmounts or visibility changes
+      spinAnimation?.stop();
+      pulseAnimation?.stop();
+      dotAnimation1?.stop();
+      dotAnimation2?.stop();
+      dotAnimation3?.stop();
+
+      // Reset all animation values
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
       spinAnim.setValue(0);
@@ -111,7 +126,7 @@ const Loading: FC<Props> = ({ visible = false, message = "Loading..." }) => {
       dotAnim1.setValue(0);
       dotAnim2.setValue(0);
       dotAnim3.setValue(0);
-    }
+    };
   }, [visible]);
 
   const spin = spinAnim.interpolate({

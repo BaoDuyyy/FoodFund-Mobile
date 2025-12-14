@@ -1,10 +1,13 @@
 import Loading from "@/components/Loading";
+import { PostsSection, SectionDivider } from "@/components/PostCard";
 import TimelineTabs from "@/components/TimelineTabs";
 import CampaignService from "@/services/campaignService";
 import DonationService from "@/services/donationService";
 import GuestMode from "@/services/guestMode";
-import OrganizationService from "@/services/organizationService"; // 👈 NEW
+import OrganizationService from "@/services/organizationService";
+import PostService from "@/services/postService";
 import type { CampaignDetail, Phase } from "@/types/api/campaign";
+import type { Post } from "@/types/api/post";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -62,6 +65,9 @@ export default function CampaignDetailPage() {
 
   // Guest mode state
   const [isGuest, setIsGuest] = useState(false);
+
+  // Posts state
+  const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
     AsyncStorage.getItem("agreedRefundPolicy").then((val) => {
@@ -140,6 +146,26 @@ export default function CampaignDetailPage() {
       }
     }
     loadDonationStats();
+  }, [id]);
+
+  // Load posts for this campaign
+  useEffect(() => {
+    let mounted = true;
+    async function loadPosts() {
+      if (!id) return;
+      try {
+        const data = await PostService.getPostsByCampaign({
+          campaignId: id,
+          limit: 10,
+          offset: 0,
+        });
+        if (mounted) setPosts(data);
+      } catch (err) {
+        console.log("Load posts error:", err);
+      }
+    }
+    loadPosts();
+    return () => { mounted = false; };
   }, [id]);
 
   async function handleDonateSubmit() {
@@ -340,6 +366,34 @@ export default function CampaignDetailPage() {
 
           {/* Danh sách ủng hộ */}
           <DonationList donationStats={donationStats} campaign={campaign} />
+
+          {/* Divider */}
+          <SectionDivider />
+
+          {/* Bài viết mới */}
+          <PostsSection
+            posts={posts}
+            onPostPress={(post) => console.log("View post:", post.id)}
+            onLike={async (post) => {
+              try {
+                if (post.isLikedByMe) {
+                  await PostService.unlikePost(post.id);
+                } else {
+                  await PostService.likePost(post.id);
+                }
+                // Reload posts
+                const updated = await PostService.getPostsByCampaign({ campaignId: id!, limit: 10, offset: 0 });
+                setPosts(updated);
+              } catch (err) {
+                console.log("Like error:", err);
+              }
+            }}
+            onComment={(post) => console.log("Comment post:", post.id)}
+            onShare={(post) => console.log("Share post:", post.id)}
+          />
+
+          {/* Divider */}
+          <SectionDivider />
 
           {/* Timeline / Giai đoạn */}
           <TimelineTabs campaign={campaign}>

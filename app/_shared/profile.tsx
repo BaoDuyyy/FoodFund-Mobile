@@ -149,14 +149,8 @@ export default function ProfilePage() {
 
       {/* COVER + AVATAR */}
       <View style={styles.coverWrap}>
-        <Image
-          source={{
-            uri:
-              'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-          }}
-          style={styles.coverImg}
-        />
-        <View style={styles.coverOverlay} />
+        {/* Removed external image dependency, using solid background color */}
+
         {/* Notification Bell */}
         <TouchableOpacity
           style={styles.notificationBtn}
@@ -174,11 +168,11 @@ export default function ProfilePage() {
         <View style={styles.avatarWrap}>
           <View style={styles.avatarCircle}>
             <Image
-              source={{
-                uri:
-                  profile?.avatar_url ||
-                  'https://api.dicebear.com/7.x/bottts-neutral/png?seed=foodfund',
-              }}
+              source={
+                profile?.avatar_url
+                  ? { uri: profile.avatar_url }
+                  : require('@/assets/images/avatar.jpg')
+              }
               style={styles.avatarImg}
             />
           </View>

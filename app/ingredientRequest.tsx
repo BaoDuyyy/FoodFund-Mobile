@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
+import { ACCENT_ORANGE, BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import IngredientService from "@/services/ingredientService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: "800",
-    color: PRIMARY,
+    color: ACCENT_ORANGE,
   },
 
   divider: {

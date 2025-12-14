@@ -1,5 +1,5 @@
 import {
-  BG,
+  BG_KITCHEN as BG,
   BORDER,
   CARD_BG,
   MUTED_TEXT,
@@ -7,7 +7,7 @@ import {
   INFO as STATUS_DELIVERED,
   ACCENT as STATUS_PREPARING,
   SUCCESS as STATUS_READY,
-  STRONG_TEXT,
+  STRONG_TEXT
 } from "@/constants/colors";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";

@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
+import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
 import IngredientService from "@/services/ingredientService";
 import type { Phase, PlannedIngredient } from "@/types/api/campaign";
@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -43,6 +44,15 @@ type IngredientItem = {
   plannedIngredientId: string | null; // null nếu là item mới thêm
   isFromPlan: boolean; // để đánh dấu item từ plan hay mới thêm
 };
+
+// Danh sách đơn vị theo nhóm
+const UNIT_GROUPS: { label: string; units: string[] }[] = [
+  { label: "Trọng lượng", units: ["kg", "g", "mg", "tấn", "tạ", "yến"] },
+  { label: "Thể tích", units: ["lít", "ml", "cc"] },
+  { label: "Đơn vị đếm", units: ["cái", "chiếc", "quả", "trái", "củ", "hạt", "bó", "mớ", "cây", "nhánh", "tép", "lát", "khúc"] },
+  { label: "Quy cách đóng gói", units: ["hộp", "thùng", "gói", "bao", "túi", "chai", "lọ", "hũ", "lon", "bình", "can", "vỉ", "khay"] },
+  { label: "Khác", units: ["suất", "phần", "bộ", "cặp", "tá"] },
+];
 
 // helpers VND
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -100,6 +110,9 @@ export default function IngredientRequestFormPage() {
   const [totalCost, setTotalCost] = useState("");
   const [items, setItems] = useState<IngredientItem[]>([createEmptyItem()]);
   const [submitting, setSubmitting] = useState(false);
+  // Unit picker modal state
+  const [unitPickerVisible, setUnitPickerVisible] = useState(false);
+  const [unitPickerItemIdx, setUnitPickerItemIdx] = useState<number>(0);
 
   // Load campaign và plannedIngredients
   useEffect(() => {
@@ -517,16 +530,18 @@ export default function IngredientRequestFormPage() {
                       placeholder="Ví dụ: 3"
                       keyboardType="numeric"
                     />
-                    <View style={{ flex: 1 }}>
-                      <TextInput
-                        style={styles.input}
-                        value={item.quantityUnit}
-                        onChangeText={(v) =>
-                          handleChangeItem(idx, "quantityUnit", v)
-                        }
-                        placeholder="Đơn vị (kg, chai...)"
-                      />
-                    </View>
+                    <TouchableOpacity
+                      style={[styles.input, styles.unitPickerBtn, { flex: 1 }]}
+                      onPress={() => {
+                        setUnitPickerItemIdx(idx);
+                        setUnitPickerVisible(true);
+                      }}
+                    >
+                      <Text style={styles.unitPickerText}>
+                        {item.quantityUnit || "Chọn đơn vị"}
+                      </Text>
+                      <Text style={styles.unitPickerArrow}>▼</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -641,6 +656,60 @@ export default function IngredientRequestFormPage() {
           <Text style={styles.secondaryBtnText}>Yêu cầu đã gửi</Text>
         </TouchableOpacity>
       </View>
+
+      {/* UNIT PICKER MODAL */}
+      <Modal
+        visible={unitPickerVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setUnitPickerVisible(false)}
+      >
+        <View style={styles.unitModalOverlay}>
+          <View style={styles.unitModalContent}>
+            <View style={styles.unitModalHeader}>
+              <Text style={styles.unitModalTitle}>Chọn đơn vị</Text>
+              <TouchableOpacity onPress={() => setUnitPickerVisible(false)}>
+                <Text style={styles.unitModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.unitModalScroll} showsVerticalScrollIndicator={false}>
+              {UNIT_GROUPS.map((group) => (
+                <View key={group.label} style={styles.unitGroup}>
+                  <Text style={styles.unitGroupLabel}>{group.label}</Text>
+                  <View style={styles.unitChipsWrap}>
+                    {group.units.map((unit) => {
+                      const isSelected = items[unitPickerItemIdx]?.quantityUnit === unit;
+                      return (
+                        <TouchableOpacity
+                          key={unit}
+                          style={[
+                            styles.unitChip,
+                            isSelected && styles.unitChipActive,
+                          ]}
+                          onPress={() => {
+                            handleChangeItem(unitPickerItemIdx, "quantityUnit", unit);
+                            setUnitPickerVisible(false);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.unitChipText,
+                              isSelected && styles.unitChipTextActive,
+                            ]}
+                          >
+                            {unit}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+              <View style={{ height: 20 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -942,5 +1011,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#8c8c8c",
     marginTop: 4,
+  },
+
+  // Unit picker button styles
+  unitPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  unitPickerText: {
+    fontSize: 15,
+    color: "#333",
+  },
+  unitPickerArrow: {
+    fontSize: 10,
+    color: "#999",
+  },
+
+  // Unit modal styles
+  unitModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  unitModalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "70%",
+  },
+  unitModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0e4da",
+  },
+  unitModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: PRIMARY,
+  },
+  unitModalClose: {
+    fontSize: 20,
+    color: "#999",
+    padding: 4,
+  },
+  unitModalScroll: {
+    paddingHorizontal: 20,
+  },
+  unitGroup: {
+    marginTop: 16,
+  },
+  unitGroupLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#8a7b6e",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  unitChipsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  unitChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e2d5c8",
+    backgroundColor: "#fff",
+  },
+  unitChipActive: {
+    borderColor: PRIMARY,
+    backgroundColor: "#fff5ee",
+  },
+  unitChipText: {
+    fontSize: 15,
+    color: "#4a4a4a",
+  },
+  unitChipTextActive: {
+    color: PRIMARY,
+    fontWeight: "700",
   },
 });

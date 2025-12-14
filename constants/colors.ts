@@ -33,6 +33,9 @@ export const BG = "#f5f7fb";
 /** Alternative background - warm cream */
 export const BG_WARM = "#f8f6f4";
 
+/** Kitchen/Delivery pages background - warm cream */
+export const BG_KITCHEN = "#fdf5ea";
+
 /** Light warm background */
 export const BG_CREAM = "#fff7f2";
 
@@ -48,6 +51,9 @@ export const CARD_BG = "#ffffff";
 
 /** Accent orange */
 export const ACCENT = "#f97316";
+
+/** Bright orange for numbers/prices */
+export const ACCENT_ORANGE = "#e77731";
 
 /** Success/positive - green */
 export const ACCENT_GREEN = "#45b69c";
@@ -109,12 +115,14 @@ export const Colors = {
     // Background
     bg: BG,
     bgWarm: BG_WARM,
+    bgKitchen: BG_KITCHEN,
     bgCream: BG_CREAM,
     bgAuth: BG_AUTH,
     cardBg: CARD_BG,
 
     // Accent
     accent: ACCENT,
+    accentOrange: ACCENT_ORANGE,
     accentGreen: ACCENT_GREEN,
     success: SUCCESS,
     accentBlue: ACCENT_BLUE,

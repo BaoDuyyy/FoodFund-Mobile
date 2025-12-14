@@ -134,10 +134,9 @@ export default function EditProfilePage() {
     }
   };
 
-  const currentAvatar =
-    avatarUrl ||
-    profile?.avatar_url ||
-    'https://api.dicebear.com/7.x/bottts-neutral/png?seed=foodfund';
+  const avatarSource = (avatarUrl || profile?.avatar_url)
+    ? { uri: avatarUrl || profile?.avatar_url }
+    : require('@/assets/images/avatar.jpg');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,7 +159,7 @@ export default function EditProfilePage() {
         {/* Avatar */}
         <Text style={styles.sectionLabel}>Ảnh đại diện</Text>
         <View style={styles.avatarRow}>
-          <Image source={{ uri: currentAvatar }} style={styles.avatarImgBig} />
+          <Image source={avatarSource} style={styles.avatarImgBig} />
           <TouchableOpacity style={styles.avatarBtn} onPress={handlePickAvatar}>
             <Feather name="image" size={18} color="#fff" />
             <Text style={styles.avatarBtnText}>Chọn ảnh</Text>

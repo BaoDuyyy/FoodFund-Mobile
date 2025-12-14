@@ -1,10 +1,12 @@
 // src/config/api.ts
 import { Platform } from "react-native";
 
-// Lấy biến môi trường từ process.env hoặc globalThis (tùy môi trường build)
+/**
+ * GraphQL API URL - loaded from environment variable
+ * In Expo SDK 49+, env vars must be prefixed with EXPO_PUBLIC_ to be accessible
+ */
 const REMOTE_API_URL =
-  process.env.GRAPHQL_API_URL ||
-  (globalThis as any).GRAPHQL_API_URL ||
+  process.env.EXPO_PUBLIC_GRAPHQL_API_URL ||
   "https://api.minhphuoc.io.vn/graphql";
 
 export function getGraphqlUrl(override?: string) {

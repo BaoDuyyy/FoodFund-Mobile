@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG, PRIMARY } from "@/constants/colors";
+import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";

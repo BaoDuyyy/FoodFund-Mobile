@@ -2,11 +2,25 @@ import type { CampaignDetail } from "@/types/api/campaign";
 import React, { ReactNode, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+type PlannedIngredientItem = {
+  name: string;
+  quantity: number;
+  unit: string;
+};
+
+type PlannedMealItem = {
+  name: string;
+  quantity: number;
+};
+
 type TimelineItem = {
   label: string;
   date: string;
   time: string;
   status: "done" | "current" | "upcoming";
+  type?: "ingredient" | "cooking" | "delivery" | "other";
+  plannedIngredients?: PlannedIngredientItem[];
+  plannedMeals?: PlannedMealItem[];
 };
 
 function formatDateTime(dt?: string | null) {
@@ -54,30 +68,42 @@ function getTimeline(campaign: CampaignDetail): TimelineItem[] {
     if (p.ingredientPurchaseDate) {
       const dt = formatDateTime(p.ingredientPurchaseDate);
       items.push({
-        label: `Mua nguyên liệu: ${p.phaseName}`,
+        label: `${p.phaseName} - Mua nguyên liệu`,
         date: dt.date,
         time: dt.time,
         status: now > new Date(p.ingredientPurchaseDate).getTime() ? "done" : "upcoming",
+        type: "ingredient",
+        plannedIngredients: (p.plannedIngredients || []).map((ing) => ({
+          name: ing.name || "",
+          quantity: Number(ing.quantity) || 0,
+          unit: ing.unit || "",
+        })),
       });
     }
     // Cooking
     if (p.cookingDate) {
       const dt = formatDateTime(p.cookingDate);
       items.push({
-        label: `Nấu ăn: ${p.phaseName}`,
+        label: `${p.phaseName} - Nấu ăn`,
         date: dt.date,
         time: dt.time,
         status: now > new Date(p.cookingDate).getTime() ? "done" : "upcoming",
+        type: "cooking",
+        plannedMeals: (p.plannedMeals || []).map((meal) => ({
+          name: meal.name || "",
+          quantity: Number(meal.quantity) || 0,
+        })),
       });
     }
     // Delivery
     if (p.deliveryDate) {
       const dt = formatDateTime(p.deliveryDate);
       items.push({
-        label: `Vận chuyển: ${p.phaseName}`,
+        label: `${p.phaseName} - Giao hàng`,
         date: dt.date,
         time: dt.time,
         status: now > new Date(p.deliveryDate).getTime() ? "done" : "upcoming",
+        type: "delivery",
       });
     }
   });
@@ -92,8 +118,8 @@ function getTimeline(campaign: CampaignDetail): TimelineItem[] {
       idx < currentIdx
         ? "done"
         : idx === currentIdx
-        ? "current"
-        : "upcoming",
+          ? "current"
+          : "upcoming",
   }));
 
   return finalItems;
@@ -155,22 +181,22 @@ export default function TimelineTabs({
               item.status === "done"
                 ? "#16a34a"
                 : item.status === "current"
-                ? "#f97316"
-                : "#d4d4d4";
+                  ? "#f97316"
+                  : "#d4d4d4";
 
             const statusText =
               item.status === "done"
                 ? "Hoàn thành"
                 : item.status === "current"
-                ? "Đang thực hiện"
-                : "Sắp tới";
+                  ? "Đang thực hiện"
+                  : "Sắp tới";
 
             const cardBg =
               item.status === "done"
                 ? "#ecfdf3"
                 : item.status === "current"
-                ? "#fff7ed"
-                : "#f9fafb";
+                  ? "#fff7ed"
+                  : "#f9fafb";
 
             return (
               <View style={styles.timelineRow}>
@@ -195,31 +221,46 @@ export default function TimelineTabs({
 
                 {/* Card nội dung */}
                 <View style={[styles.timelineCard, { backgroundColor: cardBg }]}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.timelineLabel}>{item.label}</Text>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: `${statusColor}22` },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusText,
-                          { color: statusColor },
-                        ]}
-                      >
-                        {statusText}
-                      </Text>
-                    </View>
-                  </View>
+                  <Text style={styles.timelineLabel}>{item.label}</Text>
                   <View style={styles.dateRow}>
-                    <Text style={styles.calendarIcon}>📅</Text>
+                    <Text style={styles.calendarIcon}>🗓</Text>
                     <Text style={styles.timelineDate}>
                       {item.date}
                       {item.time ? ` | ${item.time}` : ""}
                     </Text>
                   </View>
+
+                  {/* Planned Ingredients for "Mua nguyên liệu" */}
+                  {item.type === "ingredient" &&
+                    item.plannedIngredients &&
+                    item.plannedIngredients.length > 0 && (
+                      <View style={styles.detailBox}>
+                        <Text style={styles.detailTitle}>⚙ Nguyên liệu dự kiến</Text>
+                        {item.plannedIngredients.map((ing, ingIdx) => (
+                          <View key={ingIdx} style={styles.detailRow}>
+                            <Text style={styles.detailName}>{ing.name}</Text>
+                            <Text style={styles.detailValue}>
+                              {ing.quantity} {ing.unit}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                  {/* Planned Meals for "Nấu ăn" */}
+                  {item.type === "cooking" &&
+                    item.plannedMeals &&
+                    item.plannedMeals.length > 0 && (
+                      <View style={styles.detailBox}>
+                        <Text style={styles.detailTitle}>🍴 Món ăn dự kiến</Text>
+                        {item.plannedMeals.map((meal, mealIdx) => (
+                          <View key={mealIdx} style={styles.detailRow}>
+                            <Text style={styles.detailName}>{meal.name}</Text>
+                            <Text style={styles.detailValue}>x{meal.quantity}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                 </View>
               </View>
             );
@@ -318,5 +359,37 @@ const styles = StyleSheet.create({
     color: "#888",
     fontSize: 13,
     fontWeight: "500",
+  },
+
+  // Detail box for ingredients/meals
+  detailBox: {
+    marginTop: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e8e8e8",
+  },
+  detailTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#16a34a",
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  detailName: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "600",
   },
 });

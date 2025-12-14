@@ -206,6 +206,36 @@ export default function PhaseBudget({ phase }: any) {
           />
         </View>
       </View>
+
+      {/* Planned Meals */}
+      {Array.isArray(phase.plannedMeals) && phase.plannedMeals.length > 0 && (
+        <View style={styles.plannedSection}>
+          <Text style={styles.plannedTitle}>🍴 Suất ăn dự kiến</Text>
+          {phase.plannedMeals.map((meal: any, idx: number) => (
+            <View key={meal.id || idx} style={styles.plannedItem}>
+              <View style={styles.plannedDot} />
+              <Text style={styles.plannedName}>{meal.name}</Text>
+              <Text style={styles.plannedQty}>x{meal.quantity}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Planned Ingredients */}
+      {Array.isArray(phase.plannedIngredients) && phase.plannedIngredients.length > 0 && (
+        <View style={styles.plannedSection}>
+          <Text style={styles.plannedTitle}>🥬 Nguyên liệu dự kiến</Text>
+          {phase.plannedIngredients.map((ing: any, idx: number) => (
+            <View key={ing.id || idx} style={styles.plannedItem}>
+              <View style={[styles.plannedDot, { backgroundColor: "#ff8800" }]} />
+              <Text style={styles.plannedName}>{ing.name}</Text>
+              <Text style={styles.plannedQty}>
+                {ing.quantity} {ing.unit}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -347,5 +377,45 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: "100%",
     borderRadius: 6,
+  },
+
+  // Planned Meals & Ingredients
+  plannedSection: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e8e8e8",
+  },
+  plannedTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#16a34a",
+    marginBottom: 8,
+  },
+  plannedItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  plannedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#16a34a",
+    marginRight: 10,
+  },
+  plannedName: {
+    flex: 1,
+    fontSize: 14,
+    color: "#333",
+  },
+  plannedQty: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "600",
   },
 });

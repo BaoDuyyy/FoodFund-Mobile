@@ -8,6 +8,15 @@ import {
 } from "@/components/k-campaign";
 import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
+import {
+  INFO as ACCENT_BLUE,
+  SUCCESS as ACCENT_GREEN,
+  BG_KITCHEN as BG,
+  BORDER,
+  MUTED_TEXT as MUTED,
+  PRIMARY,
+  STRONG_TEXT as TEXT
+} from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
 import ExpenseProofService from "@/services/expenseProofService";
 import UserService from "@/services/userService";
@@ -26,14 +35,6 @@ import {
 } from "react-native";
 import RenderHtml from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PRIMARY = "#ad4e28";
-const BG = "#f3f4f8";
-const TEXT = "#111827";
-const MUTED = "#6b7280";
-const BORDER = "#e5e7eb";
-const ACCENT_GREEN = "#16a34a";
-const ACCENT_BLUE = "#2563eb";
 
 type UserRole = "KITCHEN_STAFF" | "DELIVERY_STAFF" | string;
 
@@ -322,6 +323,26 @@ export default function CampaignDetailPage() {
                           </Text>
                         </View>
                       </View>
+
+                      {/* Planned Meals */}
+                      {Array.isArray(phase.plannedMeals) && phase.plannedMeals.length > 0 && (
+                        <View style={styles.plannedMealsSection}>
+                          <Text style={styles.plannedMealsSectionTitle}>
+                            Suất ăn dự kiến ({phase.plannedMeals.length} món)
+                          </Text>
+                          {phase.plannedMeals.map((meal, mealIdx) => (
+                            <View key={meal.id || mealIdx} style={styles.plannedMealItem}>
+                              <View style={styles.plannedMealDot} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.plannedMealName}>{meal.name}</Text>
+                                <Text style={styles.plannedMealQty}>
+                                  {meal.quantity} suất
+                                </Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   ))
                 ) : (
@@ -556,5 +577,41 @@ const styles = StyleSheet.create({
     marginTop: 40,
     color: "#dc2626",
     fontWeight: "600",
+  },
+
+  // Planned Meals styles
+  plannedMealsSection: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#fde68a",
+  },
+  plannedMealsSectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PRIMARY,
+    marginBottom: 8,
+  },
+  plannedMealItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  plannedMealDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: ACCENT_GREEN,
+    marginRight: 10,
+  },
+  plannedMealName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: TEXT,
+  },
+  plannedMealQty: {
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 1,
   },
 });

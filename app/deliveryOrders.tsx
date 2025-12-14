@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG_WARM as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
+import { BG_KITCHEN as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import DeliveryService from "@/services/deliveryService";
 import type { DeliveryTask } from "@/types/api/delivery";
 import { Ionicons } from "@expo/vector-icons";

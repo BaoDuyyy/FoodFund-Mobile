@@ -1,13 +1,14 @@
+import {
+    INFO as ACCENT_BLUE,
+    SUCCESS as ACCENT_GREEN,
+    MUTED_TEXT as MUTED,
+    PRIMARY,
+    STRONG_TEXT as TEXT
+} from "@/constants/colors";
 import type { Phase } from "@/types/api/campaign";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-const PRIMARY = "#ad4e28";
-const TEXT = "#111827";
-const MUTED = "#6b7280";
-const ACCENT_GREEN = "#16a34a";
-const ACCENT_BLUE = "#2563eb";
 
 // Map phase status code -> Vietnamese label
 const phaseStatusLabels: Record<string, string> = {
@@ -84,6 +85,10 @@ export default function KitchenWorkflowCard({
             ingredientFundsAmount = chosen.ingredientFundsAmount ?? null;
         }
 
+        // Get plannedIngredients from chosen phase
+        const chosenPhase = phases.find(p => p.id === selectedPhaseId);
+        const plannedIngredients = chosenPhase?.plannedIngredients || [];
+
         router.push({
             pathname: "/ingredientRequestForm",
             params: {
@@ -91,6 +96,7 @@ export default function KitchenWorkflowCard({
                 ingredientFundsAmount:
                     ingredientFundsAmount != null ? String(ingredientFundsAmount) : "",
                 campaignPhaseId: selectedPhaseId,
+                plannedIngredients: JSON.stringify(plannedIngredients),
             },
         });
     };
@@ -131,12 +137,17 @@ export default function KitchenWorkflowCard({
             selectedPhaseName = chosen.phaseName ?? "";
         }
 
+        // Get plannedMeals from chosen phase
+        const chosenPhase = phases.find(p => p.id === selectedPhaseId);
+        const plannedMeals = chosenPhase?.plannedMeals || [];
+
         router.push({
             pathname: "/mealbatch",
             params: {
                 campaignId: campaignId,
                 campaignPhaseId: selectedPhaseId,
                 campaignPhaseName: selectedPhaseName,
+                plannedMeals: JSON.stringify(plannedMeals),
             },
         });
     };

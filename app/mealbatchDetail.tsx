@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
+import { BG_KITCHEN as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";
 import { useLocalSearchParams, useRouter } from "expo-router";

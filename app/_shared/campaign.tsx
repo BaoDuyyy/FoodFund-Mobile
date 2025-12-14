@@ -1,9 +1,19 @@
 import AppHeader from '@/components/AppHeader';
 import CampaignCard from '@/components/CampaignCard';
 import Loading from '@/components/Loading';
+import {
+  CAMPAIGN_SORT_OPTIONS,
+  CAMPAIGN_STATUS_OPTIONS,
+  DEFAULT_SORT,
+  DEFAULT_STATUS,
+  type CampaignSortKey,
+  type CampaignStatusKey,
+  type StatusOption
+} from '@/constants/campaignFilters';
 import CampaignService from '@/services/campaignService';
 import CategoryService from '@/services/categoryService';
 import type { CampaignItem } from '@/types/api/campaign';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,24 +28,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type StatusKey = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'IN_PROGRESS' | 'APPROVED';
-
-const STATUS_TABS: { key: StatusKey; label: string; backendStatus: string | null }[] = [
-  { key: 'ALL', label: 'Tất cả trạng thái', backendStatus: null },
-  { key: 'ACTIVE', label: 'Đang gây quỹ', backendStatus: 'ACTIVE' },
-  { key: 'COMPLETED', label: 'Hoàn thành', backendStatus: 'COMPLETED' },
-  { key: 'IN_PROGRESS', label: 'Đang trong tiến trình', backendStatus: 'IN_PROGRESS' },
-  { key: 'APPROVED', label: 'Đã duyệt', backendStatus: 'APPROVED' },
-];
-
 export default function HomePage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Filter state
-  const [statusTabs, setStatusTabs] = useState(STATUS_TABS);
-  const [selectedStatusKey, setSelectedStatusKey] = useState<StatusKey>('ACTIVE');
+  const [statusTabs, setStatusTabs] = useState<StatusOption[]>(CAMPAIGN_STATUS_OPTIONS);
+  const [selectedStatusKey, setSelectedStatusKey] = useState<CampaignStatusKey>(DEFAULT_STATUS);
+
+  // Sort state
+  const [selectedSortKey, setSelectedSortKey] = useState<CampaignSortKey>(DEFAULT_SORT);
+  const [sortPopup, setSortPopup] = useState(false);
+
+  // Category state
   const [categories, setCategories] = useState<
     { id: string; title: string; description?: string }[]
   >([]);
@@ -73,18 +79,18 @@ export default function HomePage() {
     async function load() {
       setLoading(true);
       try {
-        const current = statusTabs.find((t) => t.key === selectedStatusKey) || STATUS_TABS[0];
+        const current = statusTabs.find((t) => t.key === selectedStatusKey) || CAMPAIGN_STATUS_OPTIONS[0];
         const statusFilter =
           current.backendStatus === null ? null : [current.backendStatus];
 
         const data = await CampaignService.listCampaigns({
           filter: {
-            status: statusFilter as any, // null hoặc string[]
+            status: statusFilter as any,
             creatorId: null,
             categoryId: categoryId || null,
           },
           search: '',
-          sortBy: 'MOST_DONATED',
+          sortBy: selectedSortKey,
           limit: 10,
           offset: 0,
         });
@@ -99,9 +105,9 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [selectedStatusKey, categoryId, statusTabs]);
+  }, [selectedStatusKey, selectedSortKey, categoryId, statusTabs]);
 
-  const handleSelectStatus = (key: StatusKey) => {
+  const handleSelectStatus = (key: CampaignStatusKey) => {
     setSelectedStatusKey(key);
     setStatusTabs((prev) => {
       const idx = prev.findIndex((t) => t.key === key);
@@ -112,6 +118,13 @@ export default function HomePage() {
       return copy;
     });
   };
+
+  const handleSelectSort = (key: CampaignSortKey) => {
+    setSelectedSortKey(key);
+    setSortPopup(false);
+  };
+
+  const currentSortLabel = CAMPAIGN_SORT_OPTIONS.find((s) => s.key === selectedSortKey)?.label || 'Sort';
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -150,22 +163,61 @@ export default function HomePage() {
             })}
           </ScrollView>
 
-          {/* Row 2: danh mục */}
-          <TouchableOpacity
-            style={styles.categoryBtn}
-            onPress={() => setCategoryPopup(true)}
-          >
-            <Text
-              style={styles.categoryBtnText}
-              numberOfLines={1}
-              ellipsizeMode="tail"
+          {/* Row 2: Sort + Category buttons */}
+          <View style={styles.filterRow2}>
+            {/* Sort Dropdown */}
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() => setSortPopup(true)}
             >
-              {categoryId
-                ? categories.find((c) => c.id === categoryId)?.title || 'Danh mục'
-                : 'Danh mục'}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.filterBtnText} numberOfLines={1}>
+                {currentSortLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#ad4e28" />
+            </TouchableOpacity>
+
+            {/* Category Dropdown */}
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() => setCategoryPopup(true)}
+            >
+              <Text
+                style={styles.filterBtnText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {categoryId
+                  ? categories.find((c) => c.id === categoryId)?.title || 'Category'
+                  : 'Category'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#ad4e28" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Sort Popup */}
+        <Modal visible={sortPopup} transparent animationType="fade">
+          <TouchableWithoutFeedback onPress={() => setSortPopup(false)}>
+            <View style={styles.popupOverlay} />
+          </TouchableWithoutFeedback>
+          <View style={styles.popupBox}>
+            <Text style={styles.popupTitle}>Sort By</Text>
+            <ScrollView>
+              {CAMPAIGN_SORT_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.popupItem,
+                    selectedSortKey === option.key && styles.popupItemActive,
+                  ]}
+                  onPress={() => handleSelectSort(option.key)}
+                >
+                  <Text style={styles.popupItemTitle}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
 
         {/* Category Popup */}
         <Modal visible={categoryPopup} transparent animationType="fade">
@@ -173,7 +225,7 @@ export default function HomePage() {
             <View style={styles.popupOverlay} />
           </TouchableWithoutFeedback>
           <View style={styles.popupBox}>
-            <Text style={styles.popupTitle}>Chọn danh mục</Text>
+            <Text style={styles.popupTitle}>Select Category</Text>
             <ScrollView>
               <TouchableOpacity
                 style={[styles.popupItem, !categoryId && styles.popupItemActive]}
@@ -182,7 +234,7 @@ export default function HomePage() {
                   setCategoryPopup(false);
                 }}
               >
-                <Text style={styles.popupItemTitle}>Tất cả</Text>
+                <Text style={styles.popupItemTitle}>All Categories</Text>
               </TouchableOpacity>
               {categories.map((c) => (
                 <TouchableOpacity
@@ -270,18 +322,25 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // giữ nguyên category styles
-  categoryBtn: {
+  // Row 2: Sort + Category buttons
+  filterRow2: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 8,
-    alignSelf: 'flex-start',
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#eee',
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
+    gap: 6,
   },
-  categoryBtnText: {
+  filterBtnText: {
     color: '#ad4e28',
     fontWeight: '700',
     fontSize: 14,

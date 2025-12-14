@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { BG_CREAM as BG, PRIMARY } from "@/constants/colors";
+import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
 import type { OperationRequest } from "@/types/api/operationRequest";
 import { useRouter } from "expo-router";

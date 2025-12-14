@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CAMPAIGN_CARD_WIDTH = SCREEN_WIDTH * 0.75;
 const CAMPAIGN_CARD_HEIGHT = 220;
-const PLACEHOLDER_IMAGE = "https://foodfund.minhphuoc.io.vn/placeholder-campaign.jpg"; // add your placeholder url
+const WEB_REGISTER_URL = process.env.EXPO_PUBLIC_WEB_REGISTER_URL || "https://food-fund.vercel.app/register";
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -108,7 +108,7 @@ export default function DiscoverPage() {
                   onPress={() => router.push(`/campaign/${item.id}` as any)}
                 >
                   <Image
-                    source={{ uri: item.coverImage || (index === 0 ? PLACEHOLDER_IMAGE : undefined) }}
+                    source={{ uri: item.coverImage || undefined }}
                     style={styles.campaignImage}
                   />
                   <View style={styles.campaignInfo}>
@@ -140,7 +140,7 @@ export default function DiscoverPage() {
         {/* Volunteer CTA Banner */}
         <TouchableOpacity
           style={styles.ctaBanner}
-          onPress={() => Linking.openURL("https://food-fund.vercel.app/register")}
+          onPress={() => Linking.openURL(WEB_REGISTER_URL)}
           activeOpacity={0.9}
         >
           <LinearGradient

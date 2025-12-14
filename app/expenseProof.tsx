@@ -1,4 +1,4 @@
-import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
+import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import ExpenseProofService, {
   ExpenseProofFileType,
   ExpenseProofUploadUrl,
