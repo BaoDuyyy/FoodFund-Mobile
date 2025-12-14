@@ -1,10 +1,10 @@
 import {
   CampaignCoverCard,
-  DeliveryBottomBar,
+  DeliveryWorkflowCard,
   ExpenseProofCard,
   FundingProgressCard,
   ImageZoomOverlay,
-  KitchenWorkflowCard,
+  KitchenWorkflowCard
 } from "@/components/k-campaign";
 import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
@@ -202,6 +202,11 @@ export default function CampaignDetailPage() {
               <KitchenWorkflowCard campaignId={campaign.id} phases={phases} />
             )}
 
+            {/* WORKFLOW CARD FOR DELIVERY STAFF */}
+            {userRole === "DELIVERY_STAFF" && (
+              <DeliveryWorkflowCard campaignId={campaign.id} phases={phases} />
+            )}
+
             {/* PROGRESS CARD */}
             <FundingProgressCard
               receivedAmount={campaign.receivedAmount}
@@ -360,11 +365,6 @@ export default function CampaignDetailPage() {
           </View>
         }
       />
-
-      {/* BOTTOM ACTION BAR - Only for Delivery Staff */}
-      {userRole === "DELIVERY_STAFF" && (
-        <DeliveryBottomBar campaignId={campaign.id} phases={phases} />
-      )}
 
       {/* IMAGE ZOOM OVERLAY FOR EXPENSE PROOFS */}
       <ImageZoomOverlay

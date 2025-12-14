@@ -128,9 +128,23 @@ export default function IngredientRequestFormPage() {
           if (mounted) {
             setPhaseList(parsed);
             // Tìm index của phase đã chọn
+            let selectedIdx = 0;
             if (campaignPhaseId) {
               const idx = parsed.findIndex((p) => p.id === campaignPhaseId);
-              if (idx >= 0) setSelectedPhaseIdx(idx);
+              if (idx >= 0) selectedIdx = idx;
+            }
+            setSelectedPhaseIdx(selectedIdx);
+
+            // Pre-fill items từ plannedIngredients của phase đã chọn
+            const selectedPhase = parsed[selectedIdx];
+            if (
+              selectedPhase?.plannedIngredients &&
+              selectedPhase.plannedIngredients.length > 0
+            ) {
+              const prefilledItems = selectedPhase.plannedIngredients.map(
+                createItemFromPlan
+              );
+              setItems(prefilledItems);
             }
           }
         } catch { }
@@ -317,22 +331,6 @@ export default function IngredientRequestFormPage() {
       return;
     }
 
-    // Validate totalCost must equal ingredientFundsAmount
-    if (
-      ingredientFundsAmountNumber > 0 &&
-      totalCostNumber !== ingredientFundsAmountNumber
-    ) {
-      Alert.alert(
-        "Sai số tiền",
-        `Tổng chi phí dự kiến (${formatVnd(
-          totalCostNumber
-        )} VND) phải bằng đúng ngân sách nguyên liệu của giai đoạn (${formatVnd(
-          ingredientFundsAmountNumber
-        )} VND).`
-      );
-      return;
-    }
-
     setSubmitting(true);
     try {
       const input = {
@@ -464,6 +462,36 @@ export default function IngredientRequestFormPage() {
           />
         </View>
 
+        {/* CARD: Nguyên liệu dự kiến (từ kế hoạch) */}
+        {currentPhase?.plannedIngredients && currentPhase.plannedIngredients.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>📋 Nguyên liệu dự kiến</Text>
+                <Text style={styles.cardSubtitle}>
+                  Thông tin nguyên liệu từ kế hoạch chiến dịch
+                </Text>
+              </View>
+              <View style={styles.badgeCount}>
+                <Text style={styles.badgeCountText}>
+                  {currentPhase.plannedIngredients.length}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.plannedList}>
+              {currentPhase.plannedIngredients.map((plan, idx) => (
+                <View key={plan.id || idx} style={styles.plannedItem}>
+                  <Text style={styles.plannedName}>{plan.name}</Text>
+                  <Text style={styles.plannedQty}>
+                    {plan.quantity} {plan.unit}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* CARD: Danh sách nguyên liệu */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
@@ -578,7 +606,7 @@ export default function IngredientRequestFormPage() {
                     digitsOnly(v)
                   )
                 }
-                placeholder="Hệ thống tự tính, có thể sửa"
+                placeholder="Hệ thống tự tính"
                 keyboardType="numeric"
               />
 
@@ -1097,5 +1125,34 @@ const styles = StyleSheet.create({
   unitChipTextActive: {
     color: PRIMARY,
     fontWeight: "700",
+  },
+
+  // Planned ingredients section
+  plannedList: {
+    marginTop: 8,
+  },
+  plannedItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#fafafa",
+    borderRadius: 10,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: PRIMARY,
+  },
+  plannedName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+  },
+  plannedQty: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: PRIMARY,
+    marginLeft: 12,
   },
 });

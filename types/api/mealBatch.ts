@@ -23,6 +23,7 @@ export interface MealBatch {
   quantity: number;
   media: string[] | null; // hoặc string, tùy backend
   status: MealBatchStatus;
+  plannedMealId?: string | null;
   kitchenStaff?: MealBatchKitchenStaff | null;
   ingredientUsages?: MealBatchIngredientUsage[] | null;
   cookedDate?: string | null;
@@ -119,6 +120,7 @@ export interface CreateMealBatchServiceInput {
   foodName: string;
   quantity: number;
   ingredientIds: string[];
+  plannedMealId?: string | null;
   files: MealBatchFileInput[];
 }
 
@@ -129,6 +131,7 @@ export interface CreateMealBatchMutationInput {
   quantity: number;
   mediaFileKeys: string[];
   ingredientIds: string[];
+  plannedMealId?: string | null;
 }
 
 // Filter for getMealBatches query

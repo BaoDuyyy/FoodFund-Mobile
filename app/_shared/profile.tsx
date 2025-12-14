@@ -123,9 +123,11 @@ export default function ProfilePage() {
           }
         } catch (err) {
           // không chặn profile nếu lịch sử ủng hộ lỗi
-          console.error('Error loading my donations:', err);
+          console.log('Error loading my donations:', err);
         }
       } catch (err: any) {
+        // Any error (including Internal server error) means user is not logged in
+        console.log('Profile load error:', err?.message || err);
         if (mounted) setLoginRequire(true);
       } finally {
         if (mounted) setLoading(false);
@@ -239,10 +241,23 @@ export default function ProfilePage() {
             <TouchableOpacity
               style={styles.logoutBtn}
               onPress={async () => {
-                await logout();
-                setProfile(null);
-                setLoginRequire(true);
-                router.replace('/login');
+                // Check guest mode directly instead of using state
+                const isGuest = await GuestMode.isGuest();
+                if (isGuest || loginRequire) {
+                  // If guest mode, go to welcome page
+                  router.replace('/welcome');
+                } else {
+                  // Normal logout flow
+                  try {
+                    await logout();
+                  } catch (err) {
+                    // Ignore logout errors (e.g., if already logged out)
+                    console.log('Logout error:', err);
+                  }
+                  setProfile(null);
+                  setLoginRequire(true);
+                  router.replace('/login');
+                }
               }}
             >
               <Feather name="log-out" size={18} color="#dc2626" />
@@ -446,7 +461,7 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    overflow: 'hidden',
+    marginBottom: 50, // Space for avatar to overlap
   },
   coverImg: {
     width: '100%',
@@ -487,7 +502,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 56, // để avatar không bị che
+    paddingTop: 10, // Reduced since header has marginBottom now
     paddingBottom: 24,
   },
 

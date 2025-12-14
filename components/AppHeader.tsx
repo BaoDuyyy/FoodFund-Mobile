@@ -28,7 +28,10 @@ export default function AppHeader({
     showProfile = true,
 }: AppHeaderProps) {
     const router = useRouter();
-    const { unreadCount } = useNotificationPolling();
+    const { unreadCount, isGuest } = useNotificationPolling();
+
+    // Hide notification when in guest mode
+    const shouldShowNotification = showNotification && !isGuest;
 
     return (
         <View style={styles.container}>
@@ -53,7 +56,7 @@ export default function AppHeader({
                     </TouchableOpacity>
                 )}
 
-                {showNotification && (
+                {shouldShowNotification && (
                     <TouchableOpacity
                         style={styles.iconButton}
                         onPress={() => router.push("/notifications" as any)}

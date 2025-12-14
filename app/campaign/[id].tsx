@@ -219,10 +219,10 @@ export default function CampaignDetailPage() {
   // 👇 nhấn "Xem sao kê tài khoản →"
   const handleViewStatement = () => {
     if (!representativeId) return;
-    router.push({
-      pathname: "/statement",
-      params: { representativeId },
-    });
+    // router.push({
+    //   pathname: "/statement",
+    //   params: { representativeId },
+    // });
   };
 
   const progress = Math.max(

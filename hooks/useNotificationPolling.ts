@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import GuestMode from "../services/guestMode";
 import NotificationService from "../services/notificationService";
 import type { Notification, PaginatedNotifications } from "../types/api/notification";
 
@@ -19,6 +20,8 @@ export interface UseNotificationPollingReturn {
     loading: boolean;
     /** Error message if any */
     error: string | null;
+    /** Whether the user is in guest mode */
+    isGuest: boolean;
     /** Refresh notifications and unread count */
     refresh: () => Promise<void>;
     /** Load more notifications (pagination) */
@@ -64,6 +67,7 @@ export function useNotificationPolling(
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isGuest, setIsGuest] = useState(true); // Default to true to prevent initial API call
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -71,6 +75,9 @@ export function useNotificationPolling(
     // Fetch unread count
     // -------------------------------------------------------------------------
     const fetchUnreadCount = useCallback(async () => {
+        // Skip if in guest mode
+        if (isGuest) return;
+
         try {
             const count = await NotificationService.getUnreadCount();
             setUnreadCount(count);
@@ -79,13 +86,16 @@ export function useNotificationPolling(
             // Silently fail - don't break the app if notification API fails
             console.log("Failed to fetch unread count:", err);
         }
-    }, []);
+    }, [isGuest]);
 
     // -------------------------------------------------------------------------
     // Fetch notifications
     // -------------------------------------------------------------------------
     const fetchNotifications = useCallback(
         async (cursor?: string) => {
+            // Skip if in guest mode
+            if (isGuest) return;
+
             setLoading(true);
             setError(null);
 
@@ -113,7 +123,7 @@ export function useNotificationPolling(
                 setLoading(false);
             }
         },
-        [limit]
+        [limit, isGuest]
     );
 
     // -------------------------------------------------------------------------
@@ -170,12 +180,24 @@ export function useNotificationPolling(
     // Start polling on mount
     // -------------------------------------------------------------------------
     useEffect(() => {
-        // Initial fetch
-        fetchUnreadCount();
-        fetchNotifications();
+        // Check guest mode first
+        GuestMode.isGuest().then((guest) => {
+            setIsGuest(guest);
+            if (!guest) {
+                // Only fetch if not guest
+                fetchUnreadCount();
+                fetchNotifications();
+            }
+        });
 
-        // Start polling
-        intervalRef.current = setInterval(fetchUnreadCount, intervalMs);
+        // Start polling only if not guest
+        const startPolling = async () => {
+            const guest = await GuestMode.isGuest();
+            if (!guest) {
+                intervalRef.current = setInterval(fetchUnreadCount, intervalMs);
+            }
+        };
+        startPolling();
 
         return () => {
             if (intervalRef.current) {
@@ -191,6 +213,7 @@ export function useNotificationPolling(
         nextCursor,
         loading,
         error,
+        isGuest, // Export isGuest so components can hide notification UI
         refresh,
         loadMore,
         markAllAsRead,

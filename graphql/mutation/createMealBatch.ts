@@ -6,6 +6,7 @@ export const CREATE_MEAL_BATCH = `
       quantity
       media
       status
+      plannedMealId
       kitchenStaff {
         id
         full_name

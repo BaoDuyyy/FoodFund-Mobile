@@ -167,11 +167,11 @@ export default function SignupScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Loading visible={isLoading} message="Signing up..." />
+      <Loading visible={isLoading} message="Đang đăng ký..." />
 
       {/* Header với nút back giống login */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/welcome')} style={styles.backBtn}>
           <Text style={styles.backText}>{'‹'} Quay lại</Text>
         </TouchableOpacity>
       </View>

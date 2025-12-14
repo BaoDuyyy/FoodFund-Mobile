@@ -4,7 +4,7 @@ import React from 'react';
 import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const BG = require('../assets/images/welcome.png');
+const BG = require('../assets/images/welcome.jpg');
 // logo to the left of the small label above heading
 const LOGO = require('../assets/images/logo.png');
 

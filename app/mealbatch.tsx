@@ -66,6 +66,7 @@ export default function MealBatchPage() {
     // Parse plannedMeals from params
     type PlannedMeal = { id: string; name: string; quantity: number };
     const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
+    const [selectedPlannedMealId, setSelectedPlannedMealId] = useState<string | null>(null);
 
     useEffect(() => {
         if (plannedMealsParam) {
@@ -74,6 +75,20 @@ export default function MealBatchPage() {
                     Array.isArray(plannedMealsParam) ? plannedMealsParam[0] : plannedMealsParam
                 ) as PlannedMeal[];
                 setPlannedMeals(parsed);
+
+                // Pre-fill form with first planned meal
+                if (parsed.length > 0) {
+                    const firstMeal = parsed[0];
+                    if (firstMeal.name && !foodName) {
+                        setFoodName(firstMeal.name);
+                    }
+                    if (firstMeal.quantity && !quantity) {
+                        setQuantity(String(firstMeal.quantity));
+                    }
+                    if (firstMeal.id) {
+                        setSelectedPlannedMealId(firstMeal.id);
+                    }
+                }
             } catch (e) {
                 console.error("Error parsing plannedMeals:", e);
             }
@@ -256,6 +271,7 @@ export default function MealBatchPage() {
                 foodName: foodName.trim(),
                 quantity: qtyNum,
                 ingredientIds: Array.from(selectedIngredientIds),
+                plannedMealId: selectedPlannedMealId,
                 files: selectedFiles.map((f) => ({
                     uri: f.uri,
                     // map sang mime type giống bên expenseProof

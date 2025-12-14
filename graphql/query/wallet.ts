@@ -13,3 +13,18 @@ export const GET_WALLET = `
     }
   }
 `;
+
+export const GET_SYSTEM_WALLET = `
+  query GetSystemWallet {
+    getSystemWallet {
+      balance
+      created_at
+      id
+      updated_at
+      userId
+      walletType
+      totalExpense
+      totalIncome
+    }
+  }
+`;

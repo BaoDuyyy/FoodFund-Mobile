@@ -1,10 +1,10 @@
 import React from "react";
 import {
-    ImageBackground,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import type { CampaignItem } from "../types/api/campaign";
 
@@ -15,6 +15,19 @@ type Props = {
 
 const PRIMARY = "#ad4e28";
 
+// Status config for badge
+const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  ACTIVE: { label: "Đang gây quỹ", color: "#fff", bgColor: "#16a34a" },
+  COMPLETED: { label: "Hoàn thành", color: "#fff", bgColor: "#2563eb" },
+  PROCESSING: { label: "Đang xử lý", color: "#fff", bgColor: "#f59e0b" },
+  APPROVED: { label: "Đã duyệt", color: "#fff", bgColor: "#8b5cf6" },
+  CANCELLED: { label: "Đã hủy", color: "#fff", bgColor: "#dc2626" },
+};
+
+function getStatusConfig(status?: string) {
+  return STATUS_CONFIG[status || ""] || { label: status || "—", color: "#fff", bgColor: "#6b7280" };
+}
+
 function formatCurrency(v?: string | number | null) {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN") + " đ";
@@ -22,6 +35,8 @@ function formatCurrency(v?: string | number | null) {
 
 export default function CampaignCard({ campaign, onPress }: Props) {
   const progress = Math.max(0, Math.min(100, Number(campaign.fundingProgress || 0)));
+  const statusConfig = getStatusConfig(campaign.status ?? undefined);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <ImageBackground
@@ -29,6 +44,14 @@ export default function CampaignCard({ campaign, onPress }: Props) {
         style={styles.image}
         imageStyle={styles.imageRadius}
       >
+        {/* Status Badge - Top Right */}
+        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+          <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
+            {statusConfig.label}
+          </Text>
+        </View>
+
+        {/* Donation Count Badge - Top Left */}
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{(campaign.donationCount ?? 0) + " lượt ủng hộ"}</Text>
         </View>
@@ -89,7 +112,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   image: {
-    height: 160,
+    height: 200,
     backgroundColor: "#eee",
     justifyContent: "flex-end",
   },
@@ -97,6 +120,20 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
+  // Status badge - top right
+  statusBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusBadgeText: {
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  // Donation count badge - top left
   badge: {
     position: "absolute",
     top: 10,

@@ -124,19 +124,19 @@ export default function HomePage() {
     setSortPopup(false);
   };
 
-  const currentSortLabel = CAMPAIGN_SORT_OPTIONS.find((s) => s.key === selectedSortKey)?.label || 'Sort';
+  const currentSortLabel = CAMPAIGN_SORT_OPTIONS.find((s) => s.key === selectedSortKey)?.label || 'Sắp xếp';
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <AppHeader showProfile={false} />
-      <Loading visible={loading} message="Loading campaigns..." />
+      <Loading visible={loading} message="Đang tải chiến dịch..." />
 
       <View style={styles.content}>
         <Text style={styles.title}>Chiến dịch nổi bật</Text>
 
         {/* Block filter: dòng 1 là trạng thái (scroll ngang), dòng 2 là danh mục */}
         <View style={styles.filterBlock}>
-          {/* Row 1: trạng thái dạng thẻ ngang */}
+          {/* Row 1: trạng thái dạng thẻ ngang với màu sắc */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -147,13 +147,22 @@ export default function HomePage() {
               return (
                 <TouchableOpacity
                   key={tab.key}
-                  style={[styles.statusChip, active && styles.statusChipActive]}
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: active ? tab.color : tab.bgColor, borderColor: tab.color },
+                  ]}
                   onPress={() => handleSelectStatus(tab.key)}
                 >
+                  <Ionicons
+                    name={tab.icon as any}
+                    size={16}
+                    color={active ? '#fff' : tab.color}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text
                     style={[
                       styles.statusChipText,
-                      active && styles.statusChipTextActive,
+                      { color: active ? '#fff' : tab.color },
                     ]}
                   >
                     {tab.label}
@@ -188,7 +197,7 @@ export default function HomePage() {
               >
                 {categoryId
                   ? categories.find((c) => c.id === categoryId)?.title || 'Category'
-                  : 'Category'}
+                  : 'Danh mục'}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#ad4e28" />
             </TouchableOpacity>
@@ -201,7 +210,7 @@ export default function HomePage() {
             <View style={styles.popupOverlay} />
           </TouchableWithoutFeedback>
           <View style={styles.popupBox}>
-            <Text style={styles.popupTitle}>Sort By</Text>
+            <Text style={styles.popupTitle}>Sắp xếp theo</Text>
             <ScrollView>
               {CAMPAIGN_SORT_OPTIONS.map((option) => (
                 <TouchableOpacity
@@ -225,7 +234,7 @@ export default function HomePage() {
             <View style={styles.popupOverlay} />
           </TouchableWithoutFeedback>
           <View style={styles.popupBox}>
-            <Text style={styles.popupTitle}>Select Category</Text>
+            <Text style={styles.popupTitle}>Chọn danh mục</Text>
             <ScrollView>
               <TouchableOpacity
                 style={[styles.popupItem, !categoryId && styles.popupItemActive]}
@@ -234,7 +243,7 @@ export default function HomePage() {
                   setCategoryPopup(false);
                 }}
               >
-                <Text style={styles.popupItemTitle}>All Categories</Text>
+                <Text style={styles.popupItemTitle}>Tất cả danh mục</Text>
               </TouchableOpacity>
               {categories.map((c) => (
                 <TouchableOpacity
@@ -301,25 +310,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   statusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#eee',
-    backgroundColor: '#f7f7f7',
-    marginRight: 8,
-  },
-  statusChipActive: {
-    backgroundColor: '#ad4e28',
-    borderColor: '#ad4e28',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    marginRight: 10,
   },
   statusChipText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ad4e28',
-  },
-  statusChipTextActive: {
-    color: '#fff',
   },
 
   // Row 2: Sort + Category buttons

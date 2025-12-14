@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { useNotificationPolling } from "@/hooks";
 import type { Notification } from "@/types/api/notification";
 import { Ionicons } from "@expo/vector-icons";
@@ -150,13 +151,10 @@ export default function NotificationsScreen() {
         if (loading) return null;
 
         return (
-            <View style={styles.emptyState}>
-                <Ionicons name="notifications-off-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyStateTitle}>Không có thông báo</Text>
-                <Text style={styles.emptyStateSubtitle}>
-                    Bạn sẽ nhận được thông báo khi có cập nhật mới
-                </Text>
-            </View>
+            <EmptyState
+                message="Không có thông báo"
+                subMessage="Bạn sẽ nhận được thông báo khi có cập nhật mới"
+            />
         );
     }, [loading]);
 

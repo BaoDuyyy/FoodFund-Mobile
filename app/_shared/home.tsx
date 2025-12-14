@@ -1,4 +1,5 @@
 import AppHeader from "@/components/AppHeader";
+import EmptyState from "@/components/EmptyState";
 import Loading from "@/components/Loading";
 import { PRIMARY } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
@@ -46,7 +47,7 @@ export default function DiscoverPage() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <AppHeader />
-      <Loading visible={loading} message="Loading..." />
+      <Loading visible={loading} message="Đang tải..." />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Tổ chức gây quỹ hiệu quả */}
@@ -62,7 +63,6 @@ export default function DiscoverPage() {
             keyExtractor={item => item?.id ?? ""}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item }) =>
               item ? (
                 <View style={styles.orgCard}>
@@ -79,6 +79,12 @@ export default function DiscoverPage() {
                     <Text style={styles.orgFollowText}>Xem chi tiết</Text>
                   </TouchableOpacity>
                 </View>
+              ) : null
+            }
+            contentContainerStyle={organizations.length === 0 ? { flexGrow: 1, justifyContent: "center" } : { paddingVertical: 8 }}
+            ListEmptyComponent={
+              !loading ? (
+                <EmptyState message="Chưa có tổ chức" logoSize={60} />
               ) : null
             }
           />
@@ -100,7 +106,6 @@ export default function DiscoverPage() {
             keyExtractor={item => item?.id ?? ""}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item, index }) =>
               item ? (
                 <TouchableOpacity
@@ -129,6 +134,12 @@ export default function DiscoverPage() {
                     </Text>
                   </View>
                 </TouchableOpacity>
+              ) : null
+            }
+            contentContainerStyle={campaigns.length === 0 ? { flexGrow: 1, justifyContent: "center" } : { paddingVertical: 8 }}
+            ListEmptyComponent={
+              !loading ? (
+                <EmptyState message="Chưa có chiến dịch" logoSize={80} />
               ) : null
             }
           />
