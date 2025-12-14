@@ -197,22 +197,15 @@ const MealBatchService = {
       plannedMealId: params.plannedMealId || null,
     };
 
-    // DEBUG: Log input
-    console.log("[MealBatchService] createMealBatch input:", JSON.stringify(input, null, 2));
-
     const response = await graphqlRequest<CreateMealBatchResponse>(
       CREATE_MEAL_BATCH,
       { input },
       overrideUrl
     );
 
-    // DEBUG: Log response
-    console.log("[MealBatchService] createMealBatch response:", JSON.stringify(response, null, 2));
-
     // Handle GraphQL errors
     const errorMsg = extractErrorMessage(response.errors);
     if (errorMsg) {
-      console.error("[MealBatchService] GraphQL error:", errorMsg);
       throw new Error(errorMsg);
     }
 

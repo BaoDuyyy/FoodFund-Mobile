@@ -116,7 +116,6 @@ export default function CampaignDetailPage() {
         const repId = org?.representative?.id ?? null;
         setRepresentativeId(repId);
       } catch (err) {
-        console.error("Error loading organization:", err);
         if (mounted) setRepresentativeId(null);
       }
     };
@@ -161,7 +160,7 @@ export default function CampaignDetailPage() {
         });
         if (mounted) setPosts(data);
       } catch (err) {
-        console.log("Load posts error:", err);
+        // Error loading posts
       }
     }
     loadPosts();
@@ -373,7 +372,7 @@ export default function CampaignDetailPage() {
           {/* Bài viết mới */}
           <PostsSection
             posts={posts}
-            onPostPress={(post) => console.log("View post:", post.id)}
+            onPostPress={() => { }}
             onLike={async (post) => {
               try {
                 if (post.isLikedByMe) {
@@ -385,11 +384,11 @@ export default function CampaignDetailPage() {
                 const updated = await PostService.getPostsByCampaign({ campaignId: id!, limit: 10, offset: 0 });
                 setPosts(updated);
               } catch (err) {
-                console.log("Like error:", err);
+                // Like error
               }
             }}
-            onComment={(post) => console.log("Comment post:", post.id)}
-            onShare={(post) => console.log("Share post:", post.id)}
+            onComment={() => { }}
+            onShare={() => { }}
           />
 
           {/* Divider */}

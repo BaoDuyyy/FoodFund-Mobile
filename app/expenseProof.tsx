@@ -1,3 +1,4 @@
+import AlertPopup from "@/components/AlertPopup";
 import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import ExpenseProofService, {
   ExpenseProofFileType,
@@ -58,6 +59,13 @@ export default function ExpenseProofPage() {
   const [amount, setAmount] = useState<string>(""); // lưu dạng "80000"
   const [submitting, setSubmitting] = useState(false);
   const [uploadUrls, setUploadUrls] = useState<ExpenseProofUploadUrl[]>([]);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   // Detect type từ file name / uri
   const detectTypeFromUri = (uri: string): ExpenseProofFileType => {
@@ -180,17 +188,17 @@ export default function ExpenseProofPage() {
   // Flow đầy đủ: generate URL -> upload file -> createExpenseProof
   const handleUploadAndCreate = async () => {
     if (!requestId) {
-      Alert.alert("Lỗi", "Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
+      showAlert("Thiếu requestId, vui lòng quay lại và chọn yêu cầu.");
       return;
     }
 
     const amountNumber = amount ? Number(digitsOnly(amount)) : 0;
     if (!amountNumber) {
-      Alert.alert("Lỗi", "Vui lòng nhập số tiền chi tiêu.");
+      showAlert("Vui lòng nhập số tiền chi tiêu.");
       return;
     }
     if (selectedFiles.length === 0) {
-      Alert.alert("Lỗi", "Vui lòng chọn ít nhất 1 file cần upload.");
+      showAlert("Vui lòng chọn ít nhất 1 file cần upload.");
       return;
     }
 
@@ -229,7 +237,7 @@ export default function ExpenseProofPage() {
       ]);
     } catch (err: any) {
       console.error("handleUploadAndCreate error:", err);
-      Alert.alert("Lỗi", err?.message || "Không upload được file / tạo chứng từ.");
+      showAlert(err?.message || "Không upload được file / tạo chứng từ.");
     } finally {
       setSubmitting(false);
     }
@@ -238,6 +246,11 @@ export default function ExpenseProofPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
       {/* Header */}
       <View style={styles.headerBg} />
       <View style={styles.header}>

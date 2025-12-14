@@ -1,3 +1,4 @@
+import AlertPopup from '@/components/AlertPopup';
 import Loading from '@/components/Loading';
 import { GOOGLE_CLIENT_ID } from '@/config/google';
 import { BG_AUTH as BG, PRIMARY } from '@/constants/colors';
@@ -10,7 +11,6 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   Image,
@@ -18,7 +18,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,6 +40,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // animation cho nút
   const loginAnim = useRef(new Animated.Value(1)).current;
@@ -62,10 +64,15 @@ export default function LoginScreen() {
     ]).start();
   }
 
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   async function handleLogin() {
     try {
       if (!email || !password) {
-        Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu');
+        showAlert('Vui lòng nhập email và mật khẩu');
         return;
       }
       setIsLoading(true);
@@ -89,9 +96,9 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       if (isNetworkError(err)) {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ, hãy thử lại sau.');
+        showAlert('Không thể kết nối tới máy chủ, hãy thử lại sau.');
       } else {
-        Alert.alert('Đăng nhập thất bại', err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        showAlert(err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -140,12 +147,9 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       if (isNetworkError(err)) {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ, hãy thử lại sau.');
+        showAlert('Không thể kết nối tới máy chủ, hãy thử lại sau.');
       } else {
-        Alert.alert(
-          'Đăng nhập Google thất bại',
-          err?.message || 'Có lỗi xảy ra, vui lòng thử lại.',
-        );
+        showAlert(err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -155,6 +159,11 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Loading visible={isLoading} message="Đang đăng nhập..." />
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
 
       {/* Header với nút back */}
       <View style={styles.header}>

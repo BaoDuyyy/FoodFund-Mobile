@@ -1,3 +1,4 @@
+import AlertPopup from "@/components/AlertPopup";
 import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
@@ -68,6 +69,8 @@ export default function OperationRequestPage() {
   const [title, setTitle] = useState("Chi phí");
   const [totalCost, setTotalCost] = useState<string>(""); // lưu digits "20000"
   const [submitting, setSubmitting] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || null;
 
@@ -96,19 +99,24 @@ export default function OperationRequestPage() {
     }
   }, [expenseType, selectedPhaseId]);
 
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   const handleSubmit = async () => {
     if (!selectedPhase) {
-      Alert.alert("Lỗi", "Vui lòng chọn giai đoạn.");
+      showAlert("Vui lòng chọn giai đoạn.");
       return;
     }
     if (!title.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề.");
+      showAlert("Vui lòng nhập tiêu đề.");
       return;
     }
 
     const totalCostNumber = totalCost ? Number(digitsOnly(totalCost)) : 0;
     if (!totalCostNumber) {
-      Alert.alert("Lỗi", "Tổng chi phí phải là số lớn hơn 0.");
+      showAlert("Tổng chi phí phải là số lớn hơn 0.");
       return;
     }
 
@@ -129,7 +137,7 @@ export default function OperationRequestPage() {
       ]);
     } catch (err: any) {
       console.error("createOperationRequest error:", err);
-      Alert.alert("Lỗi", err?.message || "Không thể tạo yêu cầu giải ngân.");
+      showAlert(err?.message || "Không thể tạo yêu cầu giải ngân.");
     } finally {
       setSubmitting(false);
     }
@@ -138,6 +146,11 @@ export default function OperationRequestPage() {
   return (
     <SafeAreaView style={styles.container}>
       <Loading visible={submitting} message="Đang gửi yêu cầu..." />
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
 
       {/* HEADER */}
       <View style={styles.headerBg} />

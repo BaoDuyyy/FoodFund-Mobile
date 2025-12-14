@@ -1,3 +1,4 @@
+import AlertPopup from '@/components/AlertPopup';
 import Loading from '@/components/Loading';
 import { BG_CREAM as BG, PRIMARY } from '@/constants/colors';
 import UserService from '@/services/userService';
@@ -37,6 +38,13 @@ export default function EditProfilePage() {
   const [phoneNumber, setPhoneNumber] = useState(params.phone_number ?? '');
   const [address, setAddress] = useState(params.address ?? '');
   const [avatarUrl, setAvatarUrl] = useState(params.avatar_url ?? '');
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -66,7 +74,7 @@ export default function EditProfilePage() {
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Quyền truy cập', 'Cần quyền truy cập thư viện ảnh để đổi avatar.');
+      showAlert('Cần quyền truy cập thư viện ảnh để đổi avatar.');
       return;
     }
 
@@ -101,10 +109,10 @@ export default function EditProfilePage() {
 
       // 3. Cập nhật avatar_url local (cdnUrl)
       setAvatarUrl(cdnUrl);
-      Alert.alert('Thành công', 'Ảnh đại diện đã được tải lên, nhớ bấm Cập nhật.');
+      showAlert('Ảnh đại diện đã được tải lên, nhớ bấm Cập nhật.');
     } catch (err: any) {
       console.error('Upload avatar error:', err);
-      Alert.alert('Lỗi', err?.message || 'Không thể tải lên ảnh đại diện.');
+      showAlert(err?.message || 'Không thể tải lên ảnh đại diện.');
     } finally {
       setSaving(false);
     }
@@ -128,7 +136,7 @@ export default function EditProfilePage() {
       ]);
     } catch (err: any) {
       console.error('updateMyProfile error:', err);
-      Alert.alert('Lỗi', err?.message || 'Không thể cập nhật hồ sơ.');
+      showAlert(err?.message || 'Không thể cập nhật hồ sơ.');
     } finally {
       setSaving(false);
     }
@@ -141,6 +149,11 @@ export default function EditProfilePage() {
   return (
     <SafeAreaView style={styles.container}>
       <Loading visible={loading || saving} message="Đang xử lý..." />
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
 
       {/* HEADER */}
       <View style={styles.headerRow}>

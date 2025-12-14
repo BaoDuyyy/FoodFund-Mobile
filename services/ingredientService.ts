@@ -10,6 +10,7 @@ import type {
   GetIngredientRequestsVars,
   GetMyIngredientRequestsOptions,
   GetMyIngredientRequestsResponse,
+  IngredientRequestListResponse,
   MyIngredientRequest,
 } from "@/types/api/ingredientRequest";
 import type { GraphQLResponse } from "@/types/graphql";
@@ -128,10 +129,11 @@ export const IngredientService = {
 
   /**
    * Get all ingredient requests with filtering and pagination (admin/overview)
+   * Returns requests with kitchenStaff, campaignPhase, and items details
    */
   async getIngredientRequests(
     params: GetIngredientRequestsVars = {}
-  ): Promise<MyIngredientRequest[]> {
+  ): Promise<IngredientRequestListResponse[]> {
     const variables = {
       filter: params.filter || {},
       limit: params.limit ?? 10,

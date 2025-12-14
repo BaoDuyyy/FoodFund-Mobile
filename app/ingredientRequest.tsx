@@ -1,28 +1,28 @@
 import Loading from "@/components/Loading";
 import { ACCENT_ORANGE, BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
+import {
+  INGREDIENT_REQUEST_STATUS_FILTER_OPTIONS,
+  getIngredientRequestStatusColors,
+  getIngredientRequestStatusLabel,
+  type IngredientRequestStatusFilter
+} from "@/constants/ingredientRequestStatus";
 import IngredientService from "@/services/ingredientService";
+import type { IngredientRequestListItem, IngredientRequestListResponse } from "@/types/api/ingredientRequest";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type StatusFilter = "ALL" | "PENDING" | "ACCEPTED" | "REJECTED" | "DISBURSED";
 type SortOrder = "OLDEST_FIRST" | "NEWEST_FIRST";
-
-const STATUS_FILTER_OPTIONS: { key: StatusFilter; label: string }[] = [
-  { key: "ALL", label: "Tất cả" },
-  { key: "PENDING", label: "Chờ duyệt" },
-  { key: "ACCEPTED", label: "Đã duyệt" },
-  { key: "REJECTED", label: "Từ chối" },
-  { key: "DISBURSED", label: "Đã giải ngân" },
-];
 
 const SORT_OPTIONS: { key: SortOrder; label: string }[] = [
   { key: "OLDEST_FIRST", label: "Cũ nhất" },
@@ -30,10 +30,11 @@ const SORT_OPTIONS: { key: SortOrder; label: string }[] = [
 ];
 
 export default function IngredientRequestPage() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<IngredientRequestListResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<IngredientRequestStatusFilter>("ALL");
   const [sortOrder, setSortOrder] = useState<SortOrder>("OLDEST_FIRST");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
   const params = useLocalSearchParams<{ campaignPhaseId?: string }>();
@@ -44,8 +45,6 @@ export default function IngredientRequestPage() {
       : Array.isArray(params.campaignPhaseId)
         ? params.campaignPhaseId[0]
         : "";
-
-  console.log("[ingredientRequest] campaignPhaseId =", campaignPhaseId);
 
   useEffect(() => {
     let mounted = true;
@@ -76,7 +75,7 @@ export default function IngredientRequestPage() {
 
         if (mounted) setRequests(data || []);
       } catch (err) {
-        console.error("Error loading ingredient requests:", err);
+        // Error loading ingredient requests
       } finally {
         if (mounted) setLoading(false);
       }
@@ -88,6 +87,21 @@ export default function IngredientRequestPage() {
     };
   }, [campaignPhaseId, statusFilter, sortOrder]);
 
+  // Filter requests by search query (searches in ingredient names)
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+    const query = searchQuery.toLowerCase().trim();
+    return requests.filter((req) => {
+      // Search in items' ingredientName
+      if (Array.isArray(req.items)) {
+        return req.items.some((item) =>
+          item.ingredientName.toLowerCase().includes(query)
+        );
+      }
+      return false;
+    });
+  }, [requests, searchQuery]);
+
   const formatCurrency = (v?: number | string | null) => {
     const n = Number(v || 0);
     if (Number.isNaN(n)) return "0 đ";
@@ -96,30 +110,85 @@ export default function IngredientRequestPage() {
 
   const renderStatusChip = (status?: string) => {
     if (!status) return null;
-    const s = String(status).toUpperCase();
-    let color = "#999";
-    let bg = "#f2f2f2";
-
-    if (s === "PENDING") {
-      color = "#b26a00";
-      bg = "#fff4e0";
-    } else if (s === "ACCEPTED") {
-      color = "#1b873f";
-      bg = "#e5f7ec";
-    } else if (s === "REJECTED") {
-      color = "#c82333";
-      bg = "#ffe5e5";
-    } else if (s === "DISBURSED") {
-      color = "#0f766e";
-      bg = "#ccfbf1";
-    }
+    const colors = getIngredientRequestStatusColors(status);
+    const label = getIngredientRequestStatusLabel(status);
 
     return (
-      <View style={[styles.statusChip, { backgroundColor: bg }]}>
-        <Text style={[styles.statusChipText, { color }]}>{s}</Text>
+      <View style={[styles.statusChip, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.statusChipText, { color: colors.text }]}>{label}</Text>
       </View>
     );
   };
+
+  const renderItem = ({ item }: { item: IngredientRequestListResponse }) => (
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: "/expenseProof",
+          params: {
+            requestId: item.id,
+            totalCost: String(item.totalCost ?? ""),
+          },
+        })
+      }
+      activeOpacity={0.9}
+    >
+      <View style={styles.card}>
+        {/* Header card */}
+        <View style={styles.cardHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>
+              Yêu cầu #{item.id?.slice(0, 8) || "—"}
+            </Text>
+            <Text style={styles.cardMeta}>
+              Ngày tạo:{" "}
+              {item.created_at
+                ? new Date(item.created_at).toLocaleString("vi-VN")
+                : "—"}
+            </Text>
+          </View>
+          {renderStatusChip(item.status)}
+        </View>
+
+        {/* Tổng tiền */}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Tổng chi phí dự kiến</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrency(item.totalCost)}
+          </Text>
+        </View>
+
+        {/* Danh sách nguyên liệu */}
+        <View style={styles.divider} />
+        <Text style={styles.cardSectionTitle}>Danh sách nguyên liệu</Text>
+        {Array.isArray(item.items) && item.items.length > 0 ? (
+          item.items.map((ing: IngredientRequestListItem) => (
+            <View key={ing.id} style={styles.ingredientRow}>
+              <View style={styles.ingredientBullet} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ingredientName}>
+                  {ing.ingredientName}
+                </Text>
+                <Text style={styles.ingredientDetail}>
+                  Số lượng: {ing.quantity} {ing.unit} • Thành tiền:{" "}
+                  {formatCurrency(ing.estimatedTotalPrice)}
+                </Text>
+                {ing.supplier ? (
+                  <Text style={styles.ingredientSupplier}>
+                    Nhà cung cấp: {ing.supplier}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyItemsText}>
+            Không có nguyên liệu nào trong yêu cầu này.
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -137,6 +206,25 @@ export default function IngredientRequestPage() {
         </Text>
       </View>
 
+      {/* SEARCH BAR */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <Ionicons name="search" size={18} color="#999" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm nguyên liệu..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color="#999" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* FILTER BAR */}
       <View style={styles.filterBar}>
         <ScrollView
@@ -144,7 +232,7 @@ export default function IngredientRequestPage() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterScrollContent}
         >
-          {STATUS_FILTER_OPTIONS.map((opt) => (
+          {INGREDIENT_REQUEST_STATUS_FILTER_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.key}
               style={[
@@ -192,93 +280,31 @@ export default function IngredientRequestPage() {
         <Loading visible={loading} message="Đang tải danh sách yêu cầu..." />
       ) : (
         <FlatList
-          data={requests}
+          data={filteredRequests}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/expenseProof",
-                  params: {
-                    requestId: item.id,
-                    totalCost: String(item.totalCost ?? ""),
-                  },
-                })
-              }
-              activeOpacity={0.9}
-            >
-              <View style={styles.card}>
-                {/* Header card */}
-                <View style={styles.cardHeaderRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>
-                      Yêu cầu #{item.shortCode || item.id?.slice(0, 8) || "—"}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      Ngày tạo:{" "}
-                      {item.created_at
-                        ? new Date(item.created_at).toLocaleString("vi-VN")
-                        : "—"}
-                    </Text>
-                  </View>
-                  {renderStatusChip(item.status)}
-                </View>
-
-                {/* Tổng tiền */}
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Tổng chi phí dự kiến</Text>
-                  <Text style={styles.totalValue}>
-                    {formatCurrency(item.totalCost)}
-                  </Text>
-                </View>
-
-                {/* Danh sách nguyên liệu */}
-                <View style={styles.divider} />
-                <Text style={styles.cardSectionTitle}>Danh sách nguyên liệu</Text>
-                {Array.isArray(item.items) && item.items.length > 0 ? (
-                  item.items.map((ing: any) => (
-                    <View key={ing.id} style={styles.ingredientRow}>
-                      <View style={styles.ingredientBullet} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.ingredientName}>
-                          {ing.ingredientName}
-                        </Text>
-                        <Text style={styles.ingredientDetail}>
-                          Số lượng: {ing.quantity} • Thành tiền ước tính:{" "}
-                          {formatCurrency(ing.estimatedTotalPrice)}
-                        </Text>
-                        {ing.supplier ? (
-                          <Text style={styles.ingredientSupplier}>
-                            Nhà cung cấp: {ing.supplier}
-                          </Text>
-                        ) : null}
-                      </View>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.emptyItemsText}>
-                    Không có nguyên liệu nào trong yêu cầu này.
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={renderItem}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyIcon}>♡</Text>
               <Text style={styles.emptyTitle}>
-                Bạn chưa có yêu cầu nguyên liệu nào
+                {searchQuery
+                  ? "Không tìm thấy nguyên liệu phù hợp"
+                  : "Bạn chưa có yêu cầu nguyên liệu nào"}
               </Text>
               <Text style={styles.emptyDesc}>
-                Hãy tạo yêu cầu đầu tiên cho giai đoạn nấu ăn của bạn.
+                {searchQuery
+                  ? "Thử tìm kiếm với từ khóa khác."
+                  : "Hãy tạo yêu cầu đầu tiên cho giai đoạn nấu ăn của bạn."}
               </Text>
-              <TouchableOpacity
-                style={styles.emptyBtn}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.emptyBtnText}>Tạo yêu cầu nguyên liệu</Text>
-              </TouchableOpacity>
+              {!searchQuery && (
+                <TouchableOpacity
+                  style={styles.emptyBtn}
+                  onPress={() => router.back()}
+                >
+                  <Text style={styles.emptyBtnText}>Tạo yêu cầu nguyên liệu</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -341,6 +367,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#ffe8d4",
     marginTop: 4,
+  },
+
+  /* SEARCH BAR */
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#f3e1d6",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#222",
+    padding: 0,
   },
 
   /* FILTER BAR */

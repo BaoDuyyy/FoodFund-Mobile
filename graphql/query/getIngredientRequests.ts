@@ -15,6 +15,14 @@ export const GET_INGREDIENT_REQUESTS = `
       totalCost
       status
       created_at
+      items {
+        id
+        ingredientName
+        quantity
+        unit
+        estimatedTotalPrice
+        supplier
+      }
     }
   }
 `;

@@ -1,3 +1,4 @@
+import AlertPopup from "@/components/AlertPopup";
 import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
@@ -6,14 +7,13 @@ import type { Phase, PlannedIngredient } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -113,6 +113,14 @@ export default function IngredientRequestFormPage() {
   // Unit picker modal state
   const [unitPickerVisible, setUnitPickerVisible] = useState(false);
   const [unitPickerItemIdx, setUnitPickerItemIdx] = useState<number>(0);
+  // Alert popup state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   // Load campaign và plannedIngredients
   useEffect(() => {
@@ -191,7 +199,7 @@ export default function IngredientRequestFormPage() {
           setItems(prefilledItems);
         }
       } catch (err: any) {
-        console.error("Error loading campaign:", err);
+        // Error loading campaign
       } finally {
         if (mounted) setLoading(false);
       }
@@ -307,10 +315,6 @@ export default function IngredientRequestFormPage() {
   };
 
   const handleSubmit = async () => {
-    console.log(
-      "[ingredientRequestForm] submit campaignPhaseId =",
-      currentCampaignPhaseId
-    );
     const totalCostNumber = totalCost ? parseInt(totalCost, 10) : 0;
 
     const isInvalidBase =
@@ -327,7 +331,7 @@ export default function IngredientRequestFormPage() {
       );
 
     if (isInvalidBase) {
-      Alert.alert("Thiếu thông tin", "Vui lòng điền đầy đủ tất cả các trường.");
+      showAlert("Vui lòng điền đầy đủ tất cả các trường.");
       return;
     }
 
@@ -347,19 +351,14 @@ export default function IngredientRequestFormPage() {
         })),
       };
 
-      console.log("[ingredientRequestForm] input =", JSON.stringify(input, null, 2));
-
       await IngredientService.createIngredientRequest(input);
-      Alert.alert("Thành công", "Gửi yêu cầu nguyên liệu thành công.");
+      showAlert("Gửi yêu cầu nguyên liệu thành công.");
       router.push({
         pathname: "/ingredientRequest",
         params: { campaignPhaseId: currentCampaignPhaseId },
       });
     } catch (err: any) {
-      Alert.alert(
-        "Gửi yêu cầu thất bại",
-        err?.message || "Có lỗi xảy ra, vui lòng thử lại."
-      );
+      showAlert(err?.message || "Có lỗi xảy ra, vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -380,6 +379,11 @@ export default function IngredientRequestFormPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>

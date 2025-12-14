@@ -215,17 +215,7 @@ const SecureStoreHelper = {
    * Log current SecureStore state (for debugging)
    */
   async logCurrentState(): Promise<void> {
-    const [accessToken, refreshToken, userInfo] = await Promise.all([
-      SecureStoreHelper.getAccessToken(),
-      SecureStoreHelper.getRefreshToken(),
-      SecureStoreHelper.getUserInfo(),
-    ]);
-
-    console.log("SecureStore state:", {
-      accessToken: accessToken ? "[SET]" : null,
-      refreshToken: refreshToken ? "[SET]" : null,
-      ...userInfo,
-    });
+    // Debug logging disabled in production
   },
 };
 

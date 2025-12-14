@@ -123,11 +123,9 @@ export default function ProfilePage() {
           }
         } catch (err) {
           // không chặn profile nếu lịch sử ủng hộ lỗi
-          console.log('Error loading my donations:', err);
         }
       } catch (err: any) {
         // Any error (including Internal server error) means user is not logged in
-        console.log('Profile load error:', err?.message || err);
         if (mounted) setLoginRequire(true);
       } finally {
         if (mounted) setLoading(false);
@@ -252,7 +250,6 @@ export default function ProfilePage() {
                     await logout();
                   } catch (err) {
                     // Ignore logout errors (e.g., if already logged out)
-                    console.log('Logout error:', err);
                   }
                   setProfile(null);
                   setLoginRequire(true);

@@ -108,13 +108,13 @@ export default function SharedNewsPage() {
               });
               allPosts.push(...campaignPosts);
             } catch (err) {
-              console.log("Load posts error for campaign:", campaign.id, err);
+              // Error loading posts for campaign
             }
           }
           if (mounted) setPosts(allPosts);
         }
       } catch (err: any) {
-        console.warn("Load news data failed:", err?.message || err);
+        // Load news data failed
       } finally {
         if (mounted) setLoading(false);
       }
@@ -288,7 +288,7 @@ export default function SharedNewsPage() {
         {/* Section 3: Posts from Completed Campaigns */}
         <PostsSection
           posts={posts}
-          onPostPress={(post) => console.log("View post:", post.id)}
+          onPostPress={() => { }}
           onLike={async (post) => {
             try {
               if (post.isLikedByMe) {
@@ -307,16 +307,16 @@ export default function SharedNewsPage() {
                   });
                   allPosts.push(...campaignPosts);
                 } catch (err) {
-                  console.log("Reload posts error:", err);
+                  // Error reloading posts
                 }
               }
               setPosts(allPosts);
             } catch (err) {
-              console.log("Like error:", err);
+              // Like error
             }
           }}
-          onComment={(post) => console.log("Comment post:", post.id)}
-          onShare={(post) => console.log("Share post:", post.id)}
+          onComment={() => { }}
+          onShare={() => { }}
         />
 
         {/* Bottom spacing */}

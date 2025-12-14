@@ -9,8 +9,10 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from "react-native";
+import RenderHtml from "react-native-render-html";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const POST_CARD_WIDTH = SCREEN_WIDTH * 0.85;
@@ -24,6 +26,53 @@ interface PostCardProps {
 }
 
 /**
+ * Parse HTML content and extract plain text for preview
+ */
+function stripHtmlTags(html: string): string {
+    return html
+        .replace(/<[^>]*>/g, '') // Remove all HTML tags
+        .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+}
+
+/**
+ * Get the first valid image URL from media array
+ * Handles both string[] and object[] cases
+ */
+function getFirstMediaUrl(media: any): string | null {
+    if (!media) {
+        return null;
+    }
+
+    // Handle array case
+    if (Array.isArray(media) && media.length > 0) {
+        const firstItem = media[0];
+
+        // If it's already a string URL
+        if (typeof firstItem === 'string' && firstItem.length > 0) {
+            return firstItem;
+        }
+
+        // If it's an object with url/cdnUrl/uploadUrl property
+        if (typeof firstItem === 'object' && firstItem !== null) {
+            return firstItem.url || firstItem.cdnUrl || firstItem.uploadUrl || firstItem.fileUrl || null;
+        }
+    }
+
+    // Handle single string case
+    if (typeof media === 'string' && media.length > 0) {
+        return media;
+    }
+
+    return null;
+}
+
+/**
  * Single post card component - used in horizontal scroll
  */
 export function PostCard({
@@ -34,6 +83,12 @@ export function PostCard({
     onShare,
 }: PostCardProps) {
     const timeAgo = getTimeAgo(post.created_at);
+
+    // Check if content contains HTML
+    const isHtmlContent = post.content && post.content.includes('<');
+
+    // Get plain text preview for the card
+    const contentPreview = isHtmlContent ? stripHtmlTags(post.content) : post.content;
 
     return (
         <TouchableOpacity
@@ -61,9 +116,9 @@ export function PostCard({
                 </Text>
             )}
 
-            {post.content && (
+            {contentPreview && (
                 <Text style={styles.postContent} numberOfLines={3}>
-                    {post.content}
+                    {contentPreview}
                 </Text>
             )}
 
@@ -73,8 +128,10 @@ export function PostCard({
                     source={{ uri: post.media[0] }}
                     style={styles.postImage}
                     resizeMode="cover"
+                    onError={() => { }}
                 />
             )}
+
 
             {/* Footer: Like, Comment, Share */}
             <View style={styles.postFooter}>
@@ -152,6 +209,48 @@ export function PostsSection({
                 )}
             />
         </View>
+    );
+}
+
+/**
+ * Full post content component with HTML rendering
+ * Use this in post detail screen
+ */
+interface PostContentRendererProps {
+    content: string;
+    contentWidth?: number;
+}
+
+export function PostContentRenderer({ content, contentWidth }: PostContentRendererProps) {
+    const { width } = useWindowDimensions();
+    const actualWidth = contentWidth || width - 32;
+
+    if (!content) {
+        return null;
+    }
+
+    // Check if content contains HTML
+    const isHtmlContent = content.includes('<');
+
+    if (isHtmlContent) {
+        return (
+            <RenderHtml
+                contentWidth={actualWidth}
+                source={{ html: content }}
+                baseStyle={styles.htmlBaseStyle}
+                tagsStyles={{
+                    p: { marginVertical: 4 },
+                    strong: { fontWeight: '700' },
+                    em: { fontStyle: 'italic' },
+                }}
+            />
+        );
+    }
+
+    return (
+        <Text style={styles.plainTextContent}>
+            {content}
+        </Text>
     );
 }
 
@@ -279,6 +378,16 @@ const styles = StyleSheet.create({
         color: "#555",
         lineHeight: 20,
         marginBottom: 10,
+    },
+    plainTextContent: {
+        fontSize: 15,
+        color: "#333",
+        lineHeight: 22,
+    },
+    htmlBaseStyle: {
+        fontSize: 15,
+        color: "#333",
+        lineHeight: 22,
     },
 
     // Image

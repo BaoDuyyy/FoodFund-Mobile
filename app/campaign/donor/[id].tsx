@@ -27,11 +27,10 @@ export default function DonorListPage() {
         query: search || null,
         sortBy: sort === "desc" ? "NEWEST" : "OLDEST",
       });
-      console.log("Donation statements response:", res);
       setDonors(res.transactions || []);
       setTotal(res.totalDonations || 0);
     } catch (e) {
-      console.error("Error fetching donation statements:", e);
+      // Error fetching donation statements
     }
     setLoading(false);
   };

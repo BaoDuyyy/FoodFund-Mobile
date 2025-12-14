@@ -8,6 +8,7 @@ import {
 } from "@/components/k-campaign";
 import Loading from "@/components/Loading";
 import TimelineTabs from "@/components/TimelineTabs";
+import { CAMPAIGN_STATUS_OPTIONS } from "@/constants/campaignFilters";
 import {
   INFO as ACCENT_BLUE,
   SUCCESS as ACCENT_GREEN,
@@ -59,6 +60,15 @@ function getPhaseStatusLabel(status?: string | null): string {
   if (!status) return "Không xác định";
   const key = status.toUpperCase().trim();
   return phaseStatusLabels[key] || "Không xác định";
+}
+
+// Get campaign status label from constants
+function getCampaignStatusLabel(status?: string | null): string {
+  if (!status) return "Không xác định";
+  const found = CAMPAIGN_STATUS_OPTIONS.find(
+    (opt) => opt.backendStatus === status.toUpperCase()
+  );
+  return found ? found.label : status;
 }
 
 export default function CampaignDetailPage() {
@@ -118,13 +128,12 @@ export default function CampaignDetailPage() {
           }
           if (mounted) {
             setUserRole(role);
-            console.log("CampaignDetail userRole =", role);
           }
         } catch (err) {
-          console.error("Error loading user role:", err);
+          // Error loading user role
         }
       } catch (err) {
-        console.error("Error loading campaign detail:", err);
+        // Error loading campaign detail
       } finally {
         if (mounted) setLoading(false);
       }
@@ -182,7 +191,7 @@ export default function CampaignDetailPage() {
             <CampaignCoverCard
               coverImage={campaign.coverImage}
               title={campaign.title}
-              status={campaign.status}
+              status={getCampaignStatusLabel(campaign.status)}
             />
 
             {/* META CHIPS */}

@@ -4,11 +4,12 @@ import {
   CARD_BG,
   MUTED_TEXT,
   PRIMARY,
-  INFO as STATUS_DELIVERED,
-  ACCENT as STATUS_PREPARING,
-  SUCCESS as STATUS_READY,
   STRONG_TEXT
 } from "@/constants/colors";
+import {
+  getMealBatchStatusColors,
+  getMealBatchStatusLabel
+} from "@/constants/mealBatchStatus";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -115,15 +116,6 @@ export default function MealBatchListPage() {
     return batches.filter((b) => b.foodName.toLowerCase().includes(q));
   }, [batches, search]);
 
-  const getStatusColor = (status?: string | null) => {
-    if (!status) return MUTED_TEXT;
-    const s = status.toUpperCase();
-    if (s === "READY") return STATUS_READY;
-    if (s === "PREPARING") return STATUS_PREPARING;
-    if (s === "DELIVERED") return STATUS_DELIVERED;
-    return PRIMARY;
-  };
-
   const renderItem = ({ item }: { item: MealBatch }) => (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -147,16 +139,16 @@ export default function MealBatchListPage() {
               <View
                 style={[
                   styles.statusPill,
-                  { borderColor: getStatusColor(item.status) },
+                  { backgroundColor: getMealBatchStatusColors(item.status).bg },
                 ]}
               >
                 <Text
                   style={[
                     styles.statusPillText,
-                    { color: getStatusColor(item.status) },
+                    { color: getMealBatchStatusColors(item.status).text },
                   ]}
                 >
-                  {item.status}
+                  {getMealBatchStatusLabel(item.status)}
                 </Text>
               </View>
             </View>
@@ -385,8 +377,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: 1,
-    backgroundColor: "#fefce8",
   },
   statusPillText: {
     fontSize: 11,

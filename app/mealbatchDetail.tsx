@@ -1,7 +1,12 @@
 import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
+import {
+  getMealBatchStatusColors,
+  getMealBatchStatusLabel
+} from "@/constants/mealBatchStatus";
 import MealBatchService from "@/services/mealBatchService";
 import type { MealBatch } from "@/types/api/mealBatch";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -52,15 +57,6 @@ export default function MealBatchDetailPage() {
     };
   }, [mealBatchId]);
 
-  const getStatusLabel = (status?: string | null) => {
-    if (!status) return "Không xác định";
-    const s = status.toUpperCase();
-    if (s === "READY") return "Đã sẵn sàng";
-    if (s === "PREPARING") return "Đang chuẩn bị";
-    if (s === "DELIVERED") return "Đã giao";
-    return status;
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -72,27 +68,38 @@ export default function MealBatchDetailPage() {
   if (error || !batch) {
     return (
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-          <Text style={styles.backText}>Quay lại</Text>
-        </TouchableOpacity>
-        <Text style={[styles.errorText, { marginTop: 16 }]}>{error || "Không tìm thấy suất ăn."}</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color={PRIMARY} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitleDark}>Chi tiết suất ăn</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <View style={styles.errorIconWrap}>
+            <Ionicons name="alert-circle-outline" size={48} color="#dc2626" />
+          </View>
+          <Text style={styles.errorText}>{error || "Không tìm thấy suất ăn."}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+            <Text style={styles.retryBtnText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
+  const statusColors = getMealBatchStatusColors(batch.status);
+  const hasMedia = Array.isArray(batch.media) && batch.media.length > 0;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.headerBg} />
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.back()}>
-          <Text style={styles.headerBackIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Chi tiết suất ăn
-        </Text>
-        <View style={{ width: 32 }} />
+        <Text style={styles.headerTitleDark}>Chi tiết suất ăn</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView
@@ -100,51 +107,117 @@ export default function MealBatchDetailPage() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.title}>{batch.foodName}</Text>
-          <Text style={styles.label}>Trạng thái</Text>
-          <Text style={styles.value}>{getStatusLabel(batch.status)}</Text>
-
-          <Text style={styles.label}>Số lượng</Text>
-          <Text style={styles.value}>{batch.quantity}</Text>
-
-          {batch.cookedDate && (
-            <>
-              <Text style={styles.label}>Ngày nấu</Text>
-              <Text style={styles.value}>
-                {new Date(batch.cookedDate).toLocaleString("vi-VN")}
+        {/* Hero Card */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColors.text }]} />
+              <Text style={[styles.statusBadgeText, { color: statusColors.text }]}>
+                {getMealBatchStatusLabel(batch.status)}
               </Text>
-            </>
-          )}
+            </View>
+          </View>
 
-          {batch.kitchenStaff && (
-            <>
-              <Text style={styles.label}>Bếp phụ trách</Text>
-              <Text style={styles.value}>{batch.kitchenStaff.full_name}</Text>
-            </>
-          )}
+          <Text style={styles.heroTitle}>{batch.foodName}</Text>
+
+          <View style={styles.heroStats}>
+            <View style={styles.heroStatItem}>
+              <View style={styles.heroStatIconWrap}>
+                <Ionicons name="restaurant-outline" size={20} color={PRIMARY} />
+              </View>
+              <View>
+                <Text style={styles.heroStatValue}>{batch.quantity}</Text>
+                <Text style={styles.heroStatLabel}>Số lượng</Text>
+              </View>
+            </View>
+
+            {batch.cookedDate && (
+              <View style={styles.heroStatItem}>
+                <View style={styles.heroStatIconWrap}>
+                  <Ionicons name="calendar-outline" size={20} color={PRIMARY} />
+                </View>
+                <View>
+                  <Text style={styles.heroStatValue}>
+                    {new Date(batch.cookedDate).toLocaleDateString("vi-VN")}
+                  </Text>
+                  <Text style={styles.heroStatLabel}>Ngày nấu</Text>
+                </View>
+              </View>
+            )}
+          </View>
         </View>
 
-        {Array.isArray(batch.media) && batch.media.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Hình ảnh / Video</Text>
-            <View style={styles.mediaRow}>
-              {batch.media.map((url, idx) => {
+        {/* Kitchen Staff Card */}
+        {batch.kitchenStaff && (
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="person-outline" size={18} color={PRIMARY} />
+              </View>
+              <Text style={styles.infoCardTitle}>Bếp phụ trách</Text>
+            </View>
+            <View style={styles.staffInfo}>
+              <View style={styles.staffAvatar}>
+                <Text style={styles.staffAvatarText}>
+                  {batch.kitchenStaff.full_name?.charAt(0)?.toUpperCase() || "?"}
+                </Text>
+              </View>
+              <Text style={styles.staffName}>{batch.kitchenStaff.full_name}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Ingredient Usages Card */}
+        {batch.ingredientUsages && batch.ingredientUsages.length > 0 && (
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="leaf-outline" size={18} color={PRIMARY} />
+              </View>
+              <Text style={styles.infoCardTitle}>Nguyên liệu sử dụng</Text>
+            </View>
+            <View style={styles.ingredientList}>
+              {batch.ingredientUsages.map((usage, idx) => (
+                <View key={idx} style={styles.ingredientItem}>
+                  <View style={styles.ingredientDot} />
+                  <Text style={styles.ingredientName}>
+                    {usage.ingredientItem?.ingredientName || "N/A"}
+                  </Text>
+                  <Text style={styles.ingredientQty}>
+                    x{usage.ingredientItem?.quantity || 0}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Media Card */}
+        {hasMedia && (
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="images-outline" size={18} color={PRIMARY} />
+              </View>
+              <Text style={styles.infoCardTitle}>Hình ảnh</Text>
+              <View style={styles.mediaBadge}>
+                <Text style={styles.mediaBadgeText}>{batch.media?.length ?? 0}</Text>
+              </View>
+            </View>
+            <View style={styles.mediaGrid}>
+              {batch.media?.map((url, idx) => {
                 if (!url) return null;
-                const lower = url.toLowerCase();
-                const isImage =
-                  lower.endsWith(".jpg") ||
-                  lower.endsWith(".jpeg") ||
-                  lower.endsWith(".png") ||
-                  lower.includes("image");
-                if (!isImage) return null;
                 return (
                   <TouchableOpacity
                     key={`${url}-${idx}`}
+                    style={styles.mediaThumb}
                     activeOpacity={0.9}
                     onPress={() => setZoomImageUrl(url)}
                   >
                     <Image source={{ uri: url }} style={styles.mediaImage} />
+                    <View style={styles.mediaOverlay}>
+                      <Ionicons name="expand-outline" size={20} color="#fff" />
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -152,10 +225,22 @@ export default function MealBatchDetailPage() {
           </View>
         )}
 
+        {/* ID Info */}
+        <View style={styles.idCard}>
+          <Text style={styles.idLabel}>Mã suất ăn</Text>
+          <Text style={styles.idValue}>{batch.id}</Text>
+          {batch.campaignPhaseId && (
+            <>
+              <Text style={[styles.idLabel, { marginTop: 8 }]}>Mã giai đoạn</Text>
+              <Text style={styles.idValue}>{batch.campaignPhaseId}</Text>
+            </>
+          )}
+        </View>
+
         <View style={{ height: 32 }} />
       </ScrollView>
 
-      {/* Simple full-screen image viewer */}
+      {/* Image Zoom Overlay */}
       {zoomImageUrl && (
         <View style={styles.zoomOverlay}>
           <TouchableOpacity
@@ -173,6 +258,7 @@ export default function MealBatchDetailPage() {
               style={styles.zoomCloseBtn}
               onPress={() => setZoomImageUrl(null)}
             >
+              <Ionicons name="close" size={20} color={PRIMARY} />
               <Text style={styles.zoomCloseText}>Đóng</Text>
             </TouchableOpacity>
           </View>
@@ -185,128 +271,305 @@ export default function MealBatchDetailPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  headerBg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
   headerBackBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#fff2e8",
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
   },
-  headerBackIcon: {
-    color: PRIMARY,
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: -2,
-  },
-  headerTitle: {
+  headerTitleDark: {
     flex: 1,
-    color: "#fff",
-    fontSize: 18,
+    color: TEXT,
+    fontSize: 17,
     fontWeight: "700",
     textAlign: "center",
   },
 
   content: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 24,
   },
 
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
+  // Hero Card
+  heroCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 12,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: TEXT,
+    marginBottom: 20,
+  },
+  heroStats: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  heroStatItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef7f0",
     padding: 14,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderRadius: 14,
+    gap: 12,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
+  heroStatIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  heroStatValue: {
+    fontSize: 16,
+    fontWeight: "700",
     color: TEXT,
-    marginBottom: 8,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: PRIMARY,
-    marginBottom: 6,
-  },
-  label: {
-    fontSize: 13,
+  heroStatLabel: {
+    fontSize: 12,
     color: MUTED,
-    marginTop: 6,
-  },
-  value: {
-    fontSize: 14,
-    color: TEXT,
-    fontWeight: "600",
     marginTop: 2,
   },
 
-  mediaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 6,
+  // Info Card
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  mediaImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 10,
-    backgroundColor: "#e5e7eb",
-  },
-
-  backBtn: {
+  infoCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    marginBottom: 14,
   },
-  backIcon: {
-    color: PRIMARY,
-    fontSize: 20,
-    fontWeight: "800",
-    marginRight: 4,
+  infoCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "#fff7ed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
-  backText: {
-    color: PRIMARY,
-    fontSize: 14,
+  infoCardTitle: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: "700",
+    color: TEXT,
   },
 
-  helperText: {
-    textAlign: "center",
-    marginTop: 8,
+  // Staff Info
+  staffInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 12,
+  },
+  staffAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  staffAvatarText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  staffName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: TEXT,
+  },
+
+  // Ingredient List
+  ingredientList: {
+    gap: 10,
+  },
+  ingredientItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 10,
+  },
+  ingredientDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#22c55e",
+    marginRight: 10,
+  },
+  ingredientName: {
+    flex: 1,
+    fontSize: 14,
+    color: TEXT,
+  },
+  ingredientQty: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: PRIMARY,
+    backgroundColor: "#fff7ed",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  // Media
+  mediaBadge: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  mediaBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  mediaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  mediaThumb: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: "hidden",
+    position: "relative",
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#e5e7eb",
+  },
+  mediaOverlay: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 6,
+    borderTopLeftRadius: 10,
+  },
+
+  // ID Card
+  idCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  idLabel: {
+    fontSize: 11,
     color: MUTED,
-    fontSize: 13,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  idValue: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontFamily: "monospace",
+    marginTop: 2,
+  },
+
+  // Error State
+  errorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  errorIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
   errorText: {
     textAlign: "center",
     color: "#dc2626",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
+    marginBottom: 20,
+  },
+  retryBtn: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  retryBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
 
-  // zoom overlay
+  // Zoom Overlay
   zoomOverlay: {
     position: "absolute",
     top: 0,
@@ -323,7 +586,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.75)",
+    backgroundColor: "rgba(0,0,0,0.85)",
   },
   zoomContent: {
     width: "90%",
@@ -337,14 +600,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   zoomCloseBtn: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    gap: 6,
   },
   zoomCloseText: {
     color: PRIMARY,
     fontWeight: "700",
+    fontSize: 14,
   },
 });

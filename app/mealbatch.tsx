@@ -1,3 +1,4 @@
+import AlertPopup from "@/components/AlertPopup";
 import {
     ACCENT_BLUE,
     ACCENT_GREEN,
@@ -10,8 +11,9 @@ import {
     STRONG_TEXT
 } from "@/constants/colors";
 import CampaignService from "@/services/campaignService";
+import IngredientService from "@/services/ingredientService";
 import MealBatchService from "@/services/mealBatchService";
-import type { PlannedIngredient } from "@/types/api/campaign";
+import type { IngredientRequestListItem, IngredientRequestListResponse } from "@/types/api/ingredientRequest";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -27,6 +29,12 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+/** Type for ingredient items from DISBURSED requests */
+type DisbursedIngredient = {
+    id: string;
+    ingredientName: string;
+};
 
 type CampaignPhase = {
     id: string;
@@ -52,7 +60,7 @@ export default function MealBatchPage() {
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [loadingCreate, setLoadingCreate] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [plannedIngredients, setPlannedIngredients] = useState<PlannedIngredient[]>([]);
+    const [disbursedIngredients, setDisbursedIngredients] = useState<DisbursedIngredient[]>([]);
     const [phases, setPhases] = useState<CampaignPhase[]>([]);
     const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
 
@@ -62,6 +70,13 @@ export default function MealBatchPage() {
         Set<string>
     >(new Set());
     const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
+
+    const showAlert = (message: string) => {
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
 
     // Parse plannedMeals from params
     type PlannedMeal = { id: string; name: string; quantity: number };
@@ -95,13 +110,11 @@ export default function MealBatchPage() {
         }
     }, [plannedMealsParam]);
 
-    // Lấy plannedIngredients từ campaign
+    // Lấy phase info từ campaign
     useEffect(() => {
         if (!campaignId || !campaignPhaseId) return;
         let mounted = true;
         const fetchCampaign = async () => {
-            setLoadingRequests(true);
-            setError(null);
             try {
                 const campaign = await CampaignService.getCampaign(campaignId);
                 if (!mounted) return;
@@ -114,7 +127,6 @@ export default function MealBatchPage() {
                         name: phase.phaseName || campaignPhaseName || "Giai đoạn chiến dịch",
                     }]);
                     setSelectedPhaseId(phase.id);
-                    setPlannedIngredients(phase.plannedIngredients || []);
                 } else {
                     // Fallback nếu không tìm thấy phase
                     setPhases([{
@@ -122,12 +134,9 @@ export default function MealBatchPage() {
                         name: campaignPhaseName || "Giai đoạn chiến dịch",
                     }]);
                     setSelectedPhaseId(campaignPhaseId);
-                    setPlannedIngredients([]);
                 }
             } catch (e: any) {
-                if (mounted) setError(e?.message || "Có lỗi xảy ra");
-            } finally {
-                if (mounted) setLoadingRequests(false);
+                console.error("Error fetching campaign:", e);
             }
         };
         fetchCampaign();
@@ -135,6 +144,53 @@ export default function MealBatchPage() {
             mounted = false;
         };
     }, [campaignId, campaignPhaseId, campaignPhaseName]);
+
+    // Lấy ingredients từ DISBURSED requests
+    useEffect(() => {
+        if (!campaignId || !campaignPhaseId) return;
+        let mounted = true;
+        const fetchDisbursedIngredients = async () => {
+            setLoadingRequests(true);
+            setError(null);
+            try {
+                const requests = await IngredientService.getIngredientRequests({
+                    filter: {
+                        campaignPhaseId: campaignPhaseId,
+                        status: "DISBURSED",
+                        sortBy: "NEWEST_FIRST",
+                    },
+                    limit: 10,
+                    offset: 0,
+                });
+                if (!mounted) return;
+
+                // Collect all items from all DISBURSED requests
+                const allItems: DisbursedIngredient[] = [];
+                requests.forEach((req: IngredientRequestListResponse) => {
+                    if (Array.isArray(req.items)) {
+                        req.items.forEach((item: IngredientRequestListItem) => {
+                            // Avoid duplicates by id
+                            if (!allItems.some((i) => i.id === item.id)) {
+                                allItems.push({
+                                    id: item.id,
+                                    ingredientName: item.ingredientName,
+                                });
+                            }
+                        });
+                    }
+                });
+                setDisbursedIngredients(allItems);
+            } catch (e: any) {
+                if (mounted) setError(e?.message || "Có lỗi xảy ra khi tải nguyên liệu");
+            } finally {
+                if (mounted) setLoadingRequests(false);
+            }
+        };
+        fetchDisbursedIngredients();
+        return () => {
+            mounted = false;
+        };
+    }, [campaignId, campaignPhaseId]);
 
     const toggleIngredient = (id: string) => {
         setSelectedIngredientIds((prev) => {
@@ -192,7 +248,7 @@ export default function MealBatchPage() {
                                 );
                             } catch (err: any) {
                                 console.error("camera error:", err);
-                                Alert.alert("Lỗi", "Không chụp được, vui lòng thử lại.");
+                                showAlert("Không chụp được, vui lòng thử lại.");
                             }
                         },
                     },
@@ -223,10 +279,7 @@ export default function MealBatchPage() {
                                 setSelectedFiles(files);
                             } catch (err: any) {
                                 console.error("pick files error:", err);
-                                Alert.alert(
-                                    "Lỗi",
-                                    "Không chọn được file từ thư viện, vui lòng thử lại."
-                                );
+                                showAlert("Không chọn được file từ thư viện, vui lòng thử lại.");
                             }
                         },
                     },
@@ -238,29 +291,26 @@ export default function MealBatchPage() {
             );
         } catch (err: any) {
             console.error("pick media error:", err);
-            Alert.alert("Lỗi", "Không thể mở lựa chọn file, vui lòng thử lại.");
+            showAlert("Không thể mở lựa chọn file, vui lòng thử lại.");
         }
     };
 
     const onCreateMealBatch = async () => {
         if (!selectedPhaseId) {
-            Alert.alert("Thiếu thông tin", "Vui lòng chọn phase của chiến dịch.");
+            showAlert("Vui lòng chọn phase của chiến dịch.");
             return;
         }
         if (!foodName.trim()) {
-            Alert.alert("Thiếu thông tin", "Vui lòng nhập tên suất ăn.");
+            showAlert("Vui lòng nhập tên suất ăn.");
             return;
         }
         const qtyNum = Number(quantity);
         if (!qtyNum || qtyNum <= 0) {
-            Alert.alert("Thiếu thông tin", "Vui lòng nhập số lượng hợp lệ.");
+            showAlert("Vui lòng nhập số lượng hợp lệ.");
             return;
         }
         if (selectedIngredientIds.size === 0) {
-            Alert.alert(
-                "Thiếu nguyên liệu",
-                "Vui lòng chọn ít nhất một nguyên liệu từ danh sách."
-            );
+            showAlert("Vui lòng chọn ít nhất một nguyên liệu từ danh sách.");
             return;
         }
 
@@ -300,16 +350,13 @@ export default function MealBatchPage() {
                 },
             ]);
         } catch (e: any) {
-            Alert.alert(
-                "Lỗi",
-                e?.message || "Không thể tạo suất ăn, vui lòng thử lại sau."
-            );
+            showAlert(e?.message || "Không thể tạo suất ăn, vui lòng thử lại sau.");
         } finally {
             setLoadingCreate(false);
         }
     };
 
-    const renderIngredientItem = ({ item }: { item: PlannedIngredient }) => {
+    const renderIngredientItem = ({ item }: { item: DisbursedIngredient }) => {
         const selected = selectedIngredientIds.has(item.id);
         return (
             <TouchableOpacity
@@ -320,10 +367,7 @@ export default function MealBatchPage() {
                 ]}
             >
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{item.name || "Nguyên liệu"}</Text>
-                    <Text style={styles.itemQuantity}>
-                        {item.quantity} {item.unit || ""}
-                    </Text>
+                    <Text style={styles.itemName}>{item.ingredientName || "Nguyên liệu"}</Text>
                 </View>
                 <View style={styles.itemRight}>
                     {selected && (
@@ -338,6 +382,11 @@ export default function MealBatchPage() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
+            <AlertPopup
+                visible={alertVisible}
+                message={alertMessage}
+                onClose={() => setAlertVisible(false)}
+            />
             {/* Header có gradient nhẹ */}
             <View style={styles.headerWrapper}>
                 <View style={styles.headerRow}>
@@ -536,7 +585,7 @@ export default function MealBatchPage() {
                     {/* Card nguyên liệu */}
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
-                            <Text style={styles.sectionTitle}>Nguyên liệu đã được duyệt</Text>
+                            <Text style={styles.sectionTitle}>Nguyên liệu đã được giải ngân</Text>
                             <Text style={styles.sectionDescription}>
                                 Chọn những nguyên liệu đã sử dụng cho mẻ suất ăn này.
                             </Text>
@@ -559,14 +608,14 @@ export default function MealBatchPage() {
 
                         {!loadingRequests && !error && (
                             <>
-                                {plannedIngredients.length === 0 ? (
+                                {disbursedIngredients.length === 0 ? (
                                     <Text style={styles.emptyText}>
-                                        Chưa có nguyên liệu nào được lên kế hoạch.
+                                        Chưa có nguyên liệu nào đã được giải ngân.
                                     </Text>
                                 ) : (
                                     <FlatList
                                         scrollEnabled={false}
-                                        data={plannedIngredients}
+                                        data={disbursedIngredients}
                                         keyExtractor={(item) => item.id}
                                         renderItem={renderIngredientItem}
                                         contentContainerStyle={{ paddingTop: 8 }}

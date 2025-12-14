@@ -49,12 +49,37 @@ function formatTimeAgo(dateStr: string): string {
     return date.toLocaleDateString("vi-VN");
 }
 
-function parseNotificationData(data: string): { title?: string; message?: string } {
-    try {
-        return JSON.parse(data);
-    } catch {
-        return { message: data };
+function parseNotificationData(data: any): { title?: string; message?: string } {
+    // If data is null or undefined
+    if (!data) {
+        return { message: "Bạn có thông báo mới" };
     }
+
+    // If data is already an object
+    if (typeof data === 'object') {
+        // Extract meaningful fields for display
+        const title = data.postTitle || data.campaignTitle || data.title || undefined;
+        const message = data.postPreview || data.message || data.description || undefined;
+        return { title, message };
+    }
+
+    // If data is a string, try to parse as JSON
+    if (typeof data === 'string') {
+        try {
+            const parsed = JSON.parse(data);
+            if (typeof parsed === 'object' && parsed !== null) {
+                const title = parsed.postTitle || parsed.campaignTitle || parsed.title || undefined;
+                const message = parsed.postPreview || parsed.message || parsed.description || undefined;
+                return { title, message };
+            }
+            return { message: String(parsed) };
+        } catch {
+            // If JSON parse fails, use the string directly
+            return { message: data };
+        }
+    }
+
+    return { message: String(data) };
 }
 
 export default function NotificationsScreen() {
@@ -83,7 +108,7 @@ export default function NotificationsScreen() {
         try {
             await markAllAsRead();
         } catch (err) {
-            console.log("Failed to mark all as read:", err);
+            // Failed to mark all as read
         }
     }, [markAllAsRead]);
 
@@ -93,7 +118,7 @@ export default function NotificationsScreen() {
             try {
                 await deleteNotification(id);
             } catch (err) {
-                console.log("Failed to delete notification:", err);
+                // Failed to delete notification
             } finally {
                 setDeletingId(null);
             }

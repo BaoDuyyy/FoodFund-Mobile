@@ -84,7 +84,6 @@ export function useNotificationPolling(
             setError(null);
         } catch (err) {
             // Silently fail - don't break the app if notification API fails
-            console.log("Failed to fetch unread count:", err);
         }
     }, [isGuest]);
 
@@ -118,7 +117,6 @@ export function useNotificationPolling(
             } catch (err) {
                 const message = err instanceof Error ? err.message : String(err);
                 setError(message);
-                console.log("Failed to fetch notifications:", message);
             } finally {
                 setLoading(false);
             }

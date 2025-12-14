@@ -1,53 +1,25 @@
 import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, BORDER, MUTED_TEXT as MUTED, PRIMARY, TEXT } from "@/constants/colors";
+import {
+  DELIVERY_STATUS,
+  getDeliveryStatusColors,
+  getDeliveryStatusLabel
+} from "@/constants/deliveryStatus";
 import DeliveryService from "@/services/deliveryService";
 import type { DeliveryTask } from "@/types/api/delivery";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// map status -> Vietnamese
-const DELIVERY_STATUS_LABELS: Record<string, string> = {
-  PENDING: "Chờ nhận",
-  ACCEPTED: "Đã nhận",
-  OUT_FOR_DELIVERY: "Đang giao",
-  COMPLETED: "Hoàn thành",
-  REJECTED: "Đã từ chối",
-};
-
-function getStatusLabel(status?: string | null) {
-  if (!status) return "Không xác định";
-  const key = status.toUpperCase();
-  return DELIVERY_STATUS_LABELS[key] || status;
-}
-
-function getStatusColors(status?: string | null) {
-  const s = (status || "").toUpperCase();
-  if (s === "COMPLETED") {
-    return { bg: "#dcfce7", text: "#15803d" };
-  }
-  if (s === "REJECTED") {
-    return { bg: "#fee2e2", text: "#b91c1c" };
-  }
-  if (s === "OUT_FOR_DELIVERY") {
-    return { bg: "#e0f2fe", text: "#0369a1" };
-  }
-  if (s === "ACCEPTED") {
-    return { bg: "#fef9c3", text: "#b45309" };
-  }
-  if (s === "PENDING") {
-    return { bg: "#f3e8ff", text: "#6d28d9" };
-  }
-  return { bg: "#e5e7eb", text: "#374151" };
-}
 
 export default function DeliveryOrdersPage() {
   const router = useRouter();
@@ -61,6 +33,42 @@ export default function DeliveryOrdersPage() {
   const [tasks, setTasks] = useState<DeliveryTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterFromDate, setFilterFromDate] = useState<Date | null>(null);
+  const [filterToDate, setFilterToDate] = useState<Date | null>(null);
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  // Filtered tasks
+  const filteredTasks = useMemo(() => {
+    let result = tasks;
+
+    if (filterFromDate) {
+      result = result.filter((item) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at);
+        return itemDate >= filterFromDate;
+      });
+    }
+    if (filterToDate) {
+      const toDateEnd = new Date(filterToDate);
+      toDateEnd.setHours(23, 59, 59, 999);
+      result = result.filter((item) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at);
+        return itemDate <= toDateEnd;
+      });
+    }
+
+    return result;
+  }, [tasks, filterFromDate, filterToDate]);
 
   useEffect(() => {
     let mounted = true;
@@ -116,37 +124,23 @@ export default function DeliveryOrdersPage() {
       : "—";
     const isUpdating = updatingId === item.id;
     const status = item.status;
-    const statusLabel = getStatusLabel(status);
-    const statusColors = getStatusColors(status);
+    const statusLabel = getDeliveryStatusLabel(status);
+    const statusColors = getDeliveryStatusColors(status);
 
     return (
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.9}
-        onPress={() =>
-          router.push({
-            pathname: "/deliveryTaskDetail",
-            params: { taskId: item.id },
-          })
-        }
-      >
-        {/* Header card: mã đơn + badge trạng thái */}
-        <View style={styles.cardHeaderRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Đơn giao #{item.id.slice(0, 8)}</Text>
-            <Text style={styles.cardSubTitle}>
-              Tạo lúc {createdAt}
-            </Text>
-          </View>
+      <View style={styles.card}>
+        {/* Header with status badge */}
+        <View style={styles.cardHeader}>
           <View
             style={[
-              styles.statusChip,
+              styles.statusBadge,
               { backgroundColor: statusColors.bg },
             ]}
           >
+            <View style={[styles.statusDot, { backgroundColor: statusColors.text }]} />
             <Text
               style={[
-                styles.statusChipText,
+                styles.statusBadgeText,
                 { color: statusColors.text },
               ]}
             >
@@ -155,69 +149,96 @@ export default function DeliveryOrdersPage() {
           </View>
         </View>
 
-        {/* Meta info */}
-        <View style={styles.cardMetaRow}>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Mã suất ăn</Text>
-            <Text style={styles.metaValue}>{item.mealBatchId || "—"}</Text>
-          </View>
-          <View style={styles.metaItemRight}>
-            <Text style={styles.metaLabel}>Trạng thái hệ thống</Text>
-            <Text style={styles.metaValueRaw}>{status || "—"}</Text>
+        {/* Order info */}
+        <View style={styles.orderInfo}>
+          <Text style={styles.orderId}>#{item.id.slice(0, 8).toUpperCase()}</Text>
+          <View style={styles.dateRow}>
+            <Ionicons name="time-outline" size={14} color={MUTED} />
+            <Text style={styles.dateText}>{createdAt}</Text>
           </View>
         </View>
 
-        {/* Buttons */}
-        <View style={styles.cardButtonRow}>
-          {status === "PENDING" && (
-            <>
+        {/* Meal batch info */}
+        <View style={styles.mealBatchRow}>
+          <Ionicons name="restaurant-outline" size={16} color={PRIMARY} />
+          <Text style={styles.mealBatchLabel}>Mã suất ăn:</Text>
+          <Text style={styles.mealBatchValue}>{item.mealBatchId?.slice(0, 8) || "—"}</Text>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Action Buttons */}
+        <View style={styles.actionRow}>
+          {/* View Detail Button */}
+          <TouchableOpacity
+            style={styles.detailBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/deliveryTaskDetail",
+                params: { taskId: item.id },
+              })
+            }
+          >
+            <Ionicons name="eye-outline" size={16} color={PRIMARY} />
+            <Text style={styles.detailBtnText}>Xem chi tiết</Text>
+          </TouchableOpacity>
+
+          {/* Status Action Buttons */}
+          <View style={styles.statusActions}>
+            {status === DELIVERY_STATUS.PENDING && (
+              <>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.acceptBtn, isUpdating && styles.disabledBtn]}
+                  disabled={isUpdating}
+                  onPress={() => handleUpdateTaskStatus(item, "ACCEPTED")}
+                >
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.actionBtnText}>
+                    {isUpdating ? "..." : "Nhận"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.rejectBtn, isUpdating && styles.disabledBtn]}
+                  disabled={isUpdating}
+                  onPress={() => handleUpdateTaskStatus(item, "REJECTED")}
+                >
+                  <Ionicons name="close" size={16} color="#dc2626" />
+                </TouchableOpacity>
+              </>
+            )}
+
+            {status === DELIVERY_STATUS.ACCEPTED && (
               <TouchableOpacity
-                style={[styles.acceptBtn, isUpdating && { opacity: 0.6 }]}
+                style={[styles.actionBtn, styles.startBtn, isUpdating && styles.disabledBtn]}
                 disabled={isUpdating}
-                onPress={() => handleUpdateTaskStatus(item, "ACCEPTED")}
+                onPress={() =>
+                  handleUpdateTaskStatus(item, "OUT_FOR_DELIVERY")
+                }
               >
-                <Text style={styles.acceptBtnText}>
-                  {isUpdating ? "Đang xử lý..." : "Nhận đơn"}
+                <Ionicons name="bicycle-outline" size={16} color="#fff" />
+                <Text style={styles.actionBtnText}>
+                  {isUpdating ? "..." : "Bắt đầu giao"}
                 </Text>
               </TouchableOpacity>
+            )}
 
+            {status === DELIVERY_STATUS.OUT_FOR_DELIVERY && (
               <TouchableOpacity
-                style={[styles.rejectBtn, isUpdating && { opacity: 0.6 }]}
+                style={[styles.actionBtn, styles.completeBtn, isUpdating && styles.disabledBtn]}
                 disabled={isUpdating}
-                onPress={() => handleUpdateTaskStatus(item, "REJECTED")}
+                onPress={() => handleUpdateTaskStatus(item, "COMPLETED")}
               >
-                <Text style={styles.rejectBtnText}>Từ chối</Text>
+                <Ionicons name="checkmark-done" size={16} color="#fff" />
+                <Text style={styles.actionBtnText}>
+                  {isUpdating ? "..." : "Hoàn thành"}
+                </Text>
               </TouchableOpacity>
-            </>
-          )}
-
-          {status === "ACCEPTED" && (
-            <TouchableOpacity
-              style={[styles.acceptBtn, isUpdating && { opacity: 0.6 }]}
-              disabled={isUpdating}
-              onPress={() =>
-                handleUpdateTaskStatus(item, "OUT_FOR_DELIVERY")
-              }
-            >
-              <Text style={styles.acceptBtnText}>
-                {isUpdating ? "Đang xử lý..." : "Bắt đầu giao"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {status === "OUT_FOR_DELIVERY" && (
-            <TouchableOpacity
-              style={[styles.acceptBtn, isUpdating && { opacity: 0.6 }]}
-              disabled={isUpdating}
-              onPress={() => handleUpdateTaskStatus(item, "COMPLETED")}
-            >
-              <Text style={styles.acceptBtnText}>
-                {isUpdating ? "Đang xử lý..." : "Hoàn thành"}
-              </Text>
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -228,31 +249,127 @@ export default function DeliveryOrdersPage() {
       {/* HEADER */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={18} color={PRIMARY} />
+          <Ionicons name="chevron-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Đơn giao hàng</Text>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity
+          style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Ionicons name="filter" size={18} color={showFilters ? "#fff" : PRIMARY} />
+        </TouchableOpacity>
       </View>
 
-      {!loading && tasks.length === 0 ? (
+      {/* Filter Panel */}
+      {showFilters && (
+        <View style={styles.filterPanel}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Lọc theo ngày tạo</Text>
+            {(filterFromDate || filterToDate) && (
+              <TouchableOpacity
+                onPress={() => {
+                  setFilterFromDate(null);
+                  setFilterToDate(null);
+                }}
+              >
+                <Text style={styles.filterClearText}>Xóa lọc</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={styles.filterDateBtn}
+              onPress={() => setShowFromPicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+              <Text style={filterFromDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                {filterFromDate ? formatDate(filterFromDate) : 'Từ ngày'}
+              </Text>
+            </TouchableOpacity>
+            <Ionicons name="arrow-forward" size={16} color={MUTED} />
+            <TouchableOpacity
+              style={styles.filterDateBtn}
+              onPress={() => setShowToPicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+              <Text style={filterToDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                {filterToDate ? formatDate(filterToDate) : 'Đến ngày'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Date Pickers */}
+          {showFromPicker && (
+            <DateTimePicker
+              value={filterFromDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowFromPicker(Platform.OS === 'ios');
+                if (date) setFilterFromDate(date);
+              }}
+            />
+          )}
+          {showToPicker && (
+            <DateTimePicker
+              value={filterToDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowToPicker(Platform.OS === 'ios');
+                if (date) setFilterToDate(date);
+              }}
+            />
+          )}
+        </View>
+      )}
+
+      {/* Stats Row */}
+      {!loading && (
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{filteredTasks.length}</Text>
+            <Text style={styles.statLabel}>Tổng đơn</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {filteredTasks.filter(t => t.status === DELIVERY_STATUS.PENDING).length}
+            </Text>
+            <Text style={styles.statLabel}>Chờ nhận</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {filteredTasks.filter(t => t.status === DELIVERY_STATUS.OUT_FOR_DELIVERY).length}
+            </Text>
+            <Text style={styles.statLabel}>Đang giao</Text>
+          </View>
+        </View>
+      )}
+
+      {!loading && filteredTasks.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Ionicons
-            name="cube-outline"
-            size={40}
-            color="#d7bfae"
-            style={{ marginBottom: 8 }}
-          />
-          <Text style={styles.emptyTitle}>Chưa có đơn giao hàng nào</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="cube-outline" size={48} color={PRIMARY} />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {tasks.length === 0 ? "Chưa có đơn giao hàng" : "Không có đơn phù hợp"}
+          </Text>
           <Text style={styles.emptyDesc}>
-            Đơn giao hàng sẽ xuất hiện tại đây khi được tạo.
+            {tasks.length === 0
+              ? "Đơn giao hàng sẽ xuất hiện tại đây khi được tạo."
+              : "Thử thay đổi bộ lọc để xem thêm kết quả."
+            }
           </Text>
         </View>
       ) : !loading ? (
         <FlatList
-          data={tasks}
+          data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
       ) : null}
     </SafeAreaView>
@@ -266,164 +383,292 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingVertical: 12,
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
   backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#f3e1d6",
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: PRIMARY,
+    color: TEXT,
   },
-
-  loadingBox: {
-    flex: 1,
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
   },
-  loadingText: {
-    marginTop: 8,
+  filterBtnActive: {
+    backgroundColor: PRIMARY,
+  },
+
+  filterPanel: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  filterTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: TEXT,
+  },
+  filterClearText: {
+    fontSize: 13,
+    color: PRIMARY,
+    fontWeight: "500",
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  filterDateBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef7f0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    gap: 8,
+  },
+  filterDateText: {
+    fontSize: 13,
+    color: TEXT,
+    fontWeight: "500",
+  },
+  filterDatePlaceholder: {
+    fontSize: 13,
     color: MUTED,
-    fontSize: 14,
+  },
+
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: PRIMARY,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: BORDER,
+    marginVertical: 4,
   },
 
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
 
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 12,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: BORDER,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardHeaderRow: {
+  cardHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 6,
+    justifyContent: "flex-end",
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: TEXT,
-  },
-  cardSubTitle: {
-    fontSize: 12,
-    color: MUTED,
-    marginTop: 2,
-  },
-
-  statusChip: {
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    marginLeft: 8,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 6,
   },
-  statusChipText: {
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
   },
 
-  cardMetaRow: {
+  orderInfo: {
+    marginTop: 8,
+  },
+  orderId: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: TEXT,
+    letterSpacing: 0.5,
+  },
+  dateRow: {
     flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
-    gap: 12,
+    gap: 4,
   },
-  metaItem: {
-    flex: 1,
-    marginTop: 4,
-  },
-  metaItemRight: {
-    flex: 1,
-    marginTop: 4,
-    alignItems: "flex-end",
-  },
-  metaLabel: {
-    fontSize: 11,
+  dateText: {
+    fontSize: 12,
     color: MUTED,
   },
-  metaValue: {
-    fontSize: 13,
-    color: TEXT,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  metaValueRaw: {
-    fontSize: 11,
-    color: "#6b7280",
-    fontStyle: "italic",
-    marginTop: 2,
-  },
 
-  cardButtonRow: {
-    marginTop: 10,
+  mealBatchRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    alignItems: "center",
+    marginTop: 12,
+    backgroundColor: "#fef7f0",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
     gap: 8,
   },
-  acceptBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: PRIMARY,
+  mealBatchLabel: {
+    fontSize: 13,
+    color: MUTED,
   },
-  acceptBtnText: {
+  mealBatchValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: TEXT,
+    flex: 1,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: BORDER,
+    marginVertical: 14,
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  detailBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    gap: 6,
+  },
+  detailBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: PRIMARY,
+  },
+  statusActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4,
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
     color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+  },
+  acceptBtn: {
+    backgroundColor: "#22c55e",
   },
   rejectBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#fef2f2",
     borderWidth: 1,
     borderColor: "#fecaca",
+    paddingHorizontal: 10,
   },
-  rejectBtnText: {
-    color: "#b91c1c",
-    fontSize: 12,
-    fontWeight: "700",
+  startBtn: {
+    backgroundColor: "#3b82f6",
+  },
+  completeBtn: {
+    backgroundColor: PRIMARY,
+  },
+  disabledBtn: {
+    opacity: 0.6,
   },
 
   emptyBox: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
+  },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fff7ed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: PRIMARY,
-    marginBottom: 4,
+    color: TEXT,
+    marginBottom: 6,
     textAlign: "center",
   },
   emptyDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: MUTED,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

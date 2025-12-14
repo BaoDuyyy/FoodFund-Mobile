@@ -1,3 +1,4 @@
+import AlertPopup from '@/components/AlertPopup';
 import Loading from '@/components/Loading';
 import { GOOGLE_CLIENT_ID } from '@/config/google';
 import { BG_AUTH as BG, PRIMARY } from '@/constants/colors';
@@ -9,7 +10,6 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   Modal,
@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,6 +41,8 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // modal state for "check your email" popup
   const [modalVisible, setModalVisible] = useState(false);
@@ -90,14 +92,19 @@ export default function SignupScreen() {
     router.replace('/login');
   }
 
+  const showAlert = (message: string) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   async function handleSignup() {
     try {
       if (!name || !email || !password || !confirm) {
-        Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin');
+        showAlert('Vui lòng điền đầy đủ thông tin');
         return;
       }
       if (password !== confirm) {
-        Alert.alert('Mật khẩu không khớp', 'Mật khẩu và xác nhận mật khẩu không khớp');
+        showAlert('Mật khẩu và xác nhận mật khẩu không khớp');
         return;
       }
 
@@ -111,9 +118,9 @@ export default function SignupScreen() {
       setModalVisible(true);
     } catch (err: any) {
       if (isNetworkError(err)) {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ, hãy thử lại sau.');
+        showAlert('Không thể kết nối tới máy chủ, hãy thử lại sau.');
       } else {
-        Alert.alert('Đăng ký thất bại', err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        showAlert(err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -153,12 +160,9 @@ export default function SignupScreen() {
       }
     } catch (err: any) {
       if (isNetworkError(err)) {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ, hãy thử lại sau.');
+        showAlert('Không thể kết nối tới máy chủ, hãy thử lại sau.');
       } else {
-        Alert.alert(
-          'Đăng ký bằng Google thất bại',
-          err?.message || 'Có lỗi xảy ra, vui lòng thử lại.',
-        );
+        showAlert(err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -168,6 +172,11 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Loading visible={isLoading} message="Đang đăng ký..." />
+      <AlertPopup
+        visible={alertVisible}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
 
       {/* Header với nút back giống login */}
       <View style={styles.header}>

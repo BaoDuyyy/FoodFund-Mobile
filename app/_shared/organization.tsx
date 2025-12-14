@@ -1,4 +1,5 @@
 import Loading from "@/components/Loading";
+import { CAMPAIGN_STATUS_OPTIONS } from "@/constants/campaignFilters";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import { useAuth } from "@/hooks";
 import CampaignService from "@/services/campaignService";
@@ -35,6 +36,18 @@ function getMemberRoleLabel(role?: string | null) {
   if (!role) return "Không xác định";
   const key = role.toUpperCase();
   return MEMBER_ROLE_LABELS[key] || role;
+}
+
+// Get campaign status info from constants
+function getCampaignStatusInfo(status?: string | null) {
+  const defaultInfo = { label: "Không xác định", color: "#6b7280", bgColor: "#f3f4f6" };
+  if (!status) return defaultInfo;
+  const found = CAMPAIGN_STATUS_OPTIONS.find(
+    (opt) => opt.backendStatus === status.toUpperCase()
+  );
+  return found
+    ? { label: found.label, color: found.color, bgColor: found.bgColor }
+    : defaultInfo;
 }
 
 export default function KOrganizationPage({ initialOrgId }: KOrganizationPageProps) {
@@ -277,23 +290,26 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
                       <Text style={styles.campaignTitle} numberOfLines={2}>
                         {item.title}
                       </Text>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor: isActive ? "#dcfce7" : "#fee2e2",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.statusBadgeText,
-                            { color: isActive ? "#16a34a" : "#b91c1c" },
-                          ]}
-                        >
-                          {item.status}
-                        </Text>
-                      </View>
+                      {(() => {
+                        const statusInfo = getCampaignStatusInfo(item.status);
+                        return (
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              { backgroundColor: statusInfo.bgColor },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusBadgeText,
+                                { color: statusInfo.color },
+                              ]}
+                            >
+                              {statusInfo.label}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
                     {item.category?.title ? (
                       <Text style={styles.campaignCategory}>
