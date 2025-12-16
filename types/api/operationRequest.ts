@@ -35,6 +35,7 @@ export type CreateOperationRequestResponse = OperationRequest;
 export type ListOperationRequestsOptions = {
   limit?: number;
   offset?: number;
+  sortBy?: string;
 };
 
 // GraphQL response wrapper types

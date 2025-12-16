@@ -16,6 +16,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -34,8 +35,9 @@ export default function DeliveryOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Filter states
+  // Filter & Search states
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterFromDate, setFilterFromDate] = useState<Date | null>(null);
   const [filterToDate, setFilterToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
@@ -50,10 +52,20 @@ export default function DeliveryOrdersPage() {
   const filteredTasks = useMemo(() => {
     let result = tasks;
 
+    // Search by food name
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((item) => {
+        const foodName = item.mealBatch?.foodName?.toLowerCase() || "";
+        return foodName.includes(query);
+      });
+    }
+
+    // Filter by cooked date
     if (filterFromDate) {
       result = result.filter((item) => {
-        if (!item.created_at) return false;
-        const itemDate = new Date(item.created_at);
+        if (!item.mealBatch?.cookedDate) return false;
+        const itemDate = new Date(item.mealBatch.cookedDate);
         return itemDate >= filterFromDate;
       });
     }
@@ -61,14 +73,14 @@ export default function DeliveryOrdersPage() {
       const toDateEnd = new Date(filterToDate);
       toDateEnd.setHours(23, 59, 59, 999);
       result = result.filter((item) => {
-        if (!item.created_at) return false;
-        const itemDate = new Date(item.created_at);
+        if (!item.mealBatch?.cookedDate) return false;
+        const itemDate = new Date(item.mealBatch.cookedDate);
         return itemDate <= toDateEnd;
       });
     }
 
     return result;
-  }, [tasks, filterFromDate, filterToDate]);
+  }, [tasks, searchQuery, filterFromDate, filterToDate]);
 
   useEffect(() => {
     let mounted = true;
@@ -122,10 +134,14 @@ export default function DeliveryOrdersPage() {
     const createdAt = item.created_at
       ? new Date(item.created_at).toLocaleString("vi-VN")
       : "—";
+    const cookedDate = item.mealBatch?.cookedDate
+      ? new Date(item.mealBatch.cookedDate).toLocaleDateString("vi-VN")
+      : "—";
     const isUpdating = updatingId === item.id;
     const status = item.status;
     const statusLabel = getDeliveryStatusLabel(status);
     const statusColors = getDeliveryStatusColors(status);
+    const mealBatchStatus = item.mealBatch?.status || "—";
 
     return (
       <View style={styles.card}>
@@ -149,20 +165,53 @@ export default function DeliveryOrdersPage() {
           </View>
         </View>
 
-        {/* Order info */}
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderId}>#{item.id.slice(0, 8).toUpperCase()}</Text>
-          <View style={styles.dateRow}>
-            <Ionicons name="time-outline" size={14} color={MUTED} />
-            <Text style={styles.dateText}>{createdAt}</Text>
-          </View>
+        {/* Food Name - Highlighted */}
+        <View style={styles.foodNameContainer}>
+          <Ionicons name="fast-food" size={22} color={PRIMARY} />
+          <Text style={styles.foodName}>{item.mealBatch?.foodName || "Không có tên"}</Text>
         </View>
 
-        {/* Meal batch info */}
-        <View style={styles.mealBatchRow}>
-          <Ionicons name="restaurant-outline" size={16} color={PRIMARY} />
-          <Text style={styles.mealBatchLabel}>Mã suất ăn:</Text>
-          <Text style={styles.mealBatchValue}>{item.mealBatchId?.slice(0, 8) || "—"}</Text>
+        {/* Meal Batch Details Grid */}
+        <View style={styles.detailsGrid}>
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconWrap}>
+              <Ionicons name="layers-outline" size={16} color={PRIMARY} />
+            </View>
+            <View>
+              <Text style={styles.detailLabel}>Số lượng</Text>
+              <Text style={styles.detailValue}>{item.mealBatch?.quantity ?? 0} suất</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconWrap}>
+              <Ionicons name="flame-outline" size={16} color="#ef4444" />
+            </View>
+            <View>
+              <Text style={styles.detailLabel}>Trạng thái</Text>
+              <Text style={[styles.detailValue, styles.mealStatusText]}>{mealBatchStatus}</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconWrap}>
+              <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
+            </View>
+            <View>
+              <Text style={styles.detailLabel}>Ngày nấu</Text>
+              <Text style={styles.detailValue}>{cookedDate}</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailItem}>
+            <View style={styles.detailIconWrap}>
+              <Ionicons name="time-outline" size={16} color={MUTED} />
+            </View>
+            <View>
+              <Text style={styles.detailLabel}>Ngày tạo</Text>
+              <Text style={styles.detailValue}>{createdAt}</Text>
+            </View>
+          </View>
         </View>
 
         {/* Divider */}
@@ -260,11 +309,30 @@ export default function DeliveryOrdersPage() {
         </TouchableOpacity>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search" size={18} color={MUTED} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm theo tên món ăn..."
+            placeholderTextColor={MUTED}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color={MUTED} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* Filter Panel */}
       {showFilters && (
         <View style={styles.filterPanel}>
           <View style={styles.filterHeader}>
-            <Text style={styles.filterTitle}>Lọc theo ngày tạo</Text>
+            <Text style={styles.filterTitle}>Lọc theo ngày nấu</Text>
             {(filterFromDate || filterToDate) && (
               <TouchableOpacity
                 onPress={() => {
@@ -559,25 +627,83 @@ const styles = StyleSheet.create({
     color: MUTED,
   },
 
-  mealBatchRow: {
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  searchInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: TEXT,
+    padding: 0,
+  },
+
+  foodNameContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 12,
-    backgroundColor: "#fef7f0",
-    paddingHorizontal: 12,
+    gap: 10,
+    backgroundColor: "#fff7ed",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: PRIMARY,
+  },
+  foodName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: TEXT,
+    flex: 1,
+  },
+
+  detailsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 12,
+    gap: 8,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "48%",
+    backgroundColor: "#fafafa",
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 10,
     gap: 8,
   },
-  mealBatchLabel: {
-    fontSize: 13,
+  detailIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailLabel: {
+    fontSize: 11,
     color: MUTED,
   },
-  mealBatchValue: {
+  detailValue: {
     fontSize: 13,
     fontWeight: "600",
     color: TEXT,
-    flex: 1,
+  },
+  mealStatusText: {
+    color: "#ef4444",
   },
 
   divider: {

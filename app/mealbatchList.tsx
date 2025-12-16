@@ -174,6 +174,25 @@ export default function MealBatchListPage() {
                 <Text style={styles.metaStrong}>{item.kitchenStaff.full_name}</Text>
               </Text>
             )}
+
+            {/* Ingredient Usages */}
+            {item.ingredientUsages && item.ingredientUsages.length > 0 && (
+              <View style={styles.ingredientsSection}>
+                <Text style={styles.ingredientsTitle}>Nguyên liệu:</Text>
+                <View style={styles.ingredientsList}>
+                  {item.ingredientUsages.map((usage, index) => (
+                    <View key={index} style={styles.ingredientChip}>
+                      <Text style={styles.ingredientName}>
+                        {usage.ingredientItem?.ingredientName || "—"}
+                      </Text>
+                      <Text style={styles.ingredientQty}>
+                        x{usage.ingredientItem?.quantity || 0}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -433,5 +452,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: PRIMARY,
+  },
+
+  // Ingredients styles
+  ingredientsSection: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  ingredientsTitle: {
+    fontSize: 12,
+    color: MUTED_TEXT,
+    marginBottom: 6,
+  },
+  ingredientsList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  ingredientChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0fdf4",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    gap: 4,
+  },
+  ingredientName: {
+    fontSize: 12,
+    color: "#166534",
+    fontWeight: "500",
+  },
+  ingredientQty: {
+    fontSize: 11,
+    color: "#15803d",
+    fontWeight: "700",
   },
 });

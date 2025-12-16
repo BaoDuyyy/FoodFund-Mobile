@@ -3,6 +3,7 @@ export const GET_MEAL_BATCHES = `
     getMealBatches(filter: $filter) {
       id
       campaignPhaseId
+      plannedMealId
       foodName
       quantity
       status
@@ -10,6 +11,12 @@ export const GET_MEAL_BATCHES = `
       kitchenStaff {
         id
         full_name
+      }
+      ingredientUsages {
+        ingredientItem {
+          ingredientName
+          quantity
+        }
       }
     }
   }

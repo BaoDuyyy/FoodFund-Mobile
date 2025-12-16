@@ -1,6 +1,14 @@
+export type DeliveryTaskMealBatchSummary = {
+  id: string;
+  foodName: string;
+  quantity: number;
+  status: string;
+  cookedDate: string;
+};
+
 export type DeliveryTask = {
   id: string;
-  mealBatchId: string;
+  mealBatch: DeliveryTaskMealBatchSummary;
   status: string;
   created_at: string;
 };

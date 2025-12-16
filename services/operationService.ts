@@ -105,6 +105,7 @@ const OperationService = {
     const variables = {
       limit: params.limit ?? 10,
       offset: params.offset ?? 0,
+      sortBy: params.sortBy ?? "NEWEST_FIRST",
     };
 
     const response = await graphqlRequest<MyOperationRequestsPayload>(
