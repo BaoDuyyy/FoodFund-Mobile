@@ -6,7 +6,9 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
+    Dimensions,
     FlatList,
+    PixelRatio,
     RefreshControl,
     StyleSheet,
     Text,
@@ -14,6 +16,22 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+    const newSize = scale(size);
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 // Colors
 const PRIMARY = "#d97706";
@@ -256,32 +274,34 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: "4%",
+        paddingVertical: moderateScale(10),
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#f3f4f6",
     },
     backBtn: {
-        padding: 4,
-        marginRight: 12,
+        padding: moderateScale(4),
+        marginRight: moderateScale(10),
+        minHeight: moderateScale(36), // Ensure minimum touch target
     },
     headerTitle: {
         flex: 1,
-        fontSize: 18,
+        fontSize: normalizeFontSize(17),
         fontWeight: "800",
         color: "#222",
     },
     markAllBtn: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(6),
         backgroundColor: "#fff7ed",
-        borderRadius: 16,
+        borderRadius: moderateScale(14),
         borderWidth: 1,
         borderColor: "#fed7aa",
+        minHeight: moderateScale(32), // Ensure minimum touch target
     },
     markAllText: {
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
         fontWeight: "600",
         color: PRIMARY,
     },
@@ -293,14 +313,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     loadingText: {
-        marginTop: 12,
-        fontSize: 14,
+        marginTop: moderateScale(10),
+        fontSize: normalizeFontSize(13),
         color: "#6b7280",
     },
 
     // List
     listContent: {
-        paddingVertical: 8,
+        paddingVertical: moderateScale(8),
         flexGrow: 1,
     },
 
@@ -309,10 +329,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         backgroundColor: "#fff",
-        marginHorizontal: 12,
-        marginVertical: 4,
-        padding: 14,
-        borderRadius: 14,
+        marginHorizontal: "3%",
+        marginVertical: moderateScale(4),
+        padding: moderateScale(12),
+        borderRadius: moderateScale(12),
         borderWidth: 1,
         borderColor: "#f3f4f6",
     },
@@ -321,35 +341,36 @@ const styles = StyleSheet.create({
         borderColor: "#fde68a",
     },
     iconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+        width: moderateScale(40),
+        height: moderateScale(40),
+        borderRadius: moderateScale(10),
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 12,
+        marginRight: moderateScale(10),
     },
     contentWrap: {
         flex: 1,
     },
     notificationTitle: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         fontWeight: "700",
         color: "#222",
-        marginBottom: 2,
+        marginBottom: moderateScale(2),
     },
     notificationMessage: {
-        fontSize: 13,
+        fontSize: normalizeFontSize(12),
         color: "#6b7280",
-        lineHeight: 18,
-        marginBottom: 4,
+        lineHeight: moderateScale(17),
+        marginBottom: moderateScale(4),
     },
     notificationTime: {
-        fontSize: 11,
+        fontSize: normalizeFontSize(10),
         color: "#9ca3af",
     },
     deleteBtn: {
-        padding: 8,
-        marginLeft: 4,
+        padding: moderateScale(8),
+        marginLeft: moderateScale(4),
+        minHeight: moderateScale(36), // Ensure minimum touch target
     },
 
     // Empty State
@@ -357,25 +378,25 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 40,
-        paddingBottom: 80,
+        paddingHorizontal: "10%",
+        paddingBottom: moderateScale(70),
     },
     emptyStateTitle: {
-        fontSize: 18,
+        fontSize: normalizeFontSize(17),
         fontWeight: "700",
         color: "#374151",
-        marginTop: 16,
+        marginTop: moderateScale(14),
     },
     emptyStateSubtitle: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         color: "#6b7280",
         textAlign: "center",
-        marginTop: 8,
+        marginTop: moderateScale(8),
     },
 
     // Footer
     footer: {
-        paddingVertical: 16,
+        paddingVertical: moderateScale(14),
         alignItems: "center",
     },
 });

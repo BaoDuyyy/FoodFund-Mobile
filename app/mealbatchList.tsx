@@ -17,7 +17,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
+  PixelRatio,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +27,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function MealBatchListPage() {
   const router = useRouter();
@@ -286,88 +304,90 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: moderateScale(90),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: moderateScale(22),
+    borderBottomRightRadius: moderateScale(22),
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(8),
   },
   headerBackBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     backgroundColor: "#fff2e8",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerBackIcon: {
     color: PRIMARY,
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
     marginTop: -2,
   },
   headerTitle: {
     flex: 1,
     color: "#fff",
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "700",
     textAlign: "center",
   },
 
   body: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
   },
   captionText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: MUTED_TEXT,
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
 
   searchWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: moderateScale(8),
+    gap: moderateScale(8),
   },
   searchInput: {
     flex: 1,
     backgroundColor: CARD_BG,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
     borderWidth: 1,
     borderColor: BORDER,
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   searchCount: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED_TEXT,
   },
 
   errorText: {
-    marginTop: 8,
+    marginTop: moderateScale(8),
     color: "#dc2626",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
   },
   emptyText: {
-    marginTop: 16,
+    marginTop: moderateScale(14),
     color: MUTED_TEXT,
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
   },
 
   card: {
     backgroundColor: CARD_BG,
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 10,
+    borderRadius: moderateScale(12),
+    padding: moderateScale(10),
+    marginTop: moderateScale(10),
     borderWidth: 1,
     borderColor: BORDER,
     shadowColor: "#000",
@@ -378,57 +398,57 @@ const styles = StyleSheet.create({
   },
   cardRowTop: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+    gap: moderateScale(8),
+    marginBottom: moderateScale(4),
   },
   foodName: {
     flex: 1,
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
     color: STRONG_TEXT,
   },
   statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
     borderRadius: 999,
   },
   statusPillText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
   },
 
   metaChipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 4,
+    gap: moderateScale(6),
+    marginBottom: moderateScale(4),
   },
   metaChip: {
     flexShrink: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
     borderRadius: 999,
     backgroundColor: "#f9fafb",
   },
   metaChipLabel: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: MUTED_TEXT,
   },
   metaChipValue: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: STRONG_TEXT,
     fontWeight: "600",
   },
 
   metaText: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED_TEXT,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   metaStrong: {
     color: STRONG_TEXT,
@@ -438,57 +458,58 @@ const styles = StyleSheet.create({
   cardRowBottom: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 6,
+    marginTop: moderateScale(6),
   },
   updateBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(7),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: PRIMARY,
     backgroundColor: "#fff7ed",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   updateBtnText: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "700",
     color: PRIMARY,
   },
 
   // Ingredients styles
   ingredientsSection: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: moderateScale(8),
+    paddingTop: moderateScale(8),
     borderTopWidth: 1,
     borderTopColor: BORDER,
   },
   ingredientsTitle: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED_TEXT,
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   ingredientsList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: moderateScale(6),
   },
   ingredientChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f0fdf4",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(5),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#bbf7d0",
-    gap: 4,
+    gap: moderateScale(4),
   },
   ingredientName: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#166534",
     fontWeight: "500",
   },
   ingredientQty: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: "#15803d",
     fontWeight: "700",
   },

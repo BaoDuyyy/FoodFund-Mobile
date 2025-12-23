@@ -1,13 +1,25 @@
 import React, { FC, useEffect, useRef } from "react";
 import {
   Animated,
+  Dimensions,
   Easing,
   Image,
   Modal,
+  PixelRatio,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+
+// Responsive scaling functions
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BASE_WIDTH = 375;
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 type Props = {
   visible?: boolean;
@@ -217,15 +229,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: "7%",
   },
   box: {
     width: "100%",
-    maxWidth: 280,
+    maxWidth: moderateScale(260),
     backgroundColor: "#fff",
-    borderRadius: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
+    borderRadius: moderateScale(22),
+    paddingVertical: moderateScale(28),
+    paddingHorizontal: moderateScale(22),
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
@@ -234,25 +246,25 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   spinnerContainer: {
-    width: 80,
-    height: 80,
+    width: moderateScale(70),
+    height: moderateScale(70),
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: moderateScale(18),
   },
   outerRing: {
     position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: moderateScale(70),
+    height: moderateScale(70),
+    borderRadius: moderateScale(35),
     borderWidth: 2,
     borderColor: "rgba(173, 78, 40, 0.15)",
   },
   spinnerRing: {
     position: "absolute",
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: moderateScale(60),
+    height: moderateScale(60),
+    borderRadius: moderateScale(30),
     borderWidth: 4,
     borderColor: "transparent",
     borderTopColor: PRIMARY,
@@ -264,9 +276,9 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   centerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: "#fff7f0",
     alignItems: "center",
     justifyContent: "center",
@@ -277,37 +289,37 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   iconImage: {
-    width: 28,
-    height: 28,
+    width: moderateScale(25),
+    height: moderateScale(25),
     resizeMode: "contain",
   },
   text: {
     color: "#333",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: "700",
     textAlign: "center",
     letterSpacing: 0.3,
   },
   dotsContainer: {
     flexDirection: "row",
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: moderateScale(14),
+    marginBottom: moderateScale(10),
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(4),
     backgroundColor: PRIMARY,
   },
   dotMiddle: {
-    marginHorizontal: 6,
+    marginHorizontal: moderateScale(6),
     backgroundColor: ACCENT,
   },
   tagline: {
     color: "#999",
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "500",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 });
 

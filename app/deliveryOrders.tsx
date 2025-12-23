@@ -12,7 +12,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Dimensions,
   FlatList,
+  PixelRatio,
   Platform,
   StyleSheet,
   Text,
@@ -21,6 +23,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function DeliveryOrdersPage() {
   const router = useRouter();
@@ -450,34 +468,36 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: "4%",
+    paddingVertical: moderateScale(10),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerTitle: {
     flex: 1,
     textAlign: "center",
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     fontWeight: "700",
     color: TEXT,
   },
   filterBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   filterBtnActive: {
     backgroundColor: PRIMARY,
@@ -485,8 +505,8 @@ const styles = StyleSheet.create({
 
   filterPanel: {
     backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: "4%",
+    paddingVertical: moderateScale(10),
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
@@ -494,53 +514,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   filterTitle: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: TEXT,
   },
   filterClearText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: PRIMARY,
     fontWeight: "500",
   },
   filterRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: moderateScale(10),
   },
   filterDateBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fef7f0",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
     borderWidth: 1,
     borderColor: "#fed7aa",
-    gap: 8,
+    gap: moderateScale(8),
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   filterDateText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: TEXT,
     fontWeight: "500",
   },
   filterDatePlaceholder: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: MUTED,
   },
 
   statsRow: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    marginHorizontal: "4%",
+    marginTop: moderateScale(10),
+    borderRadius: moderateScale(12),
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(8),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -552,32 +573,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
     color: PRIMARY,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: MUTED,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   statDivider: {
     width: 1,
     backgroundColor: BORDER,
-    marginVertical: 4,
+    marginVertical: moderateScale(4),
   },
 
   listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(22),
   },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(14),
+    marginBottom: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -591,27 +612,27 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(5),
+    borderRadius: moderateScale(18),
+    gap: moderateScale(6),
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
     textTransform: "uppercase",
   },
 
   orderInfo: {
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   orderId: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: TEXT,
     letterSpacing: 0.5,
@@ -619,17 +640,17 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
-    gap: 4,
+    marginTop: moderateScale(4),
+    gap: moderateScale(4),
   },
   dateText: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED,
   },
 
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: "4%",
+    paddingVertical: moderateScale(10),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
@@ -638,14 +659,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    gap: moderateScale(8),
+    minHeight: moderateScale(42), // Ensure minimum touch target
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: TEXT,
     padding: 0,
   },
@@ -653,17 +675,17 @@ const styles = StyleSheet.create({
   foodNameContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    gap: 10,
+    marginTop: moderateScale(10),
+    gap: moderateScale(10),
     backgroundColor: "#fff7ed",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(10),
     borderLeftWidth: 4,
     borderLeftColor: PRIMARY,
   },
   foodName: {
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     fontWeight: "700",
     color: TEXT,
     flex: 1,
@@ -672,33 +694,33 @@ const styles = StyleSheet.create({
   detailsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 12,
-    gap: 8,
+    marginTop: moderateScale(10),
+    gap: moderateScale(8),
   },
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
     width: "48%",
     backgroundColor: "#fafafa",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 8,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(10),
+    gap: moderateScale(8),
   },
   detailIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(8),
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
   detailLabel: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: MUTED,
   },
   detailValue: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: TEXT,
   },
@@ -709,7 +731,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: BORDER,
-    marginVertical: 14,
+    marginVertical: moderateScale(12),
   },
 
   actionRow: {
@@ -720,33 +742,35 @@ const styles = StyleSheet.create({
   detailBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    borderRadius: moderateScale(18),
     backgroundColor: "#fff7ed",
     borderWidth: 1,
     borderColor: "#fed7aa",
-    gap: 6,
+    gap: moderateScale(6),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   detailBtnText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: PRIMARY,
   },
   statusActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: moderateScale(8),
   },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    borderRadius: moderateScale(18),
+    gap: moderateScale(4),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   actionBtnText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: "#fff",
   },
@@ -757,7 +781,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fef2f2",
     borderWidth: 1,
     borderColor: "#fecaca",
-    paddingHorizontal: 10,
+    paddingHorizontal: moderateScale(10),
   },
   startBtn: {
     backgroundColor: "#3b82f6",
@@ -773,28 +797,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: "8%",
   },
   emptyIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: moderateScale(70),
+    height: moderateScale(70),
+    borderRadius: moderateScale(35),
     backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: moderateScale(14),
   },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     fontWeight: "700",
     color: TEXT,
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
     textAlign: "center",
   },
   emptyDesc: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: MUTED,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: moderateScale(18),
   },
 });

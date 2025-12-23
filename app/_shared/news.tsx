@@ -18,6 +18,7 @@ import {
   Easing,
   FlatList,
   Image,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,8 +27,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const CAMPAIGN_CARD_WIDTH = SCREEN_WIDTH * 0.7;
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
+
+// Responsive campaign card width
+const CAMPAIGN_CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.68, 300);
 
 // Animated Counter Component
 interface AnimatedCounterProps {
@@ -334,87 +351,87 @@ function formatCurrency(v?: string | number | null) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
-  section: { marginBottom: 8, paddingHorizontal: 12 },
+  section: { marginBottom: moderateScale(8), paddingHorizontal: "3%" },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
-    marginTop: 12,
+    marginBottom: moderateScale(4),
+    marginTop: moderateScale(12),
   },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#222" },
+  sectionTitle: { fontSize: normalizeFontSize(17), fontWeight: "800", color: "#222" },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#888",
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
     fontStyle: "italic",
   },
-  sectionAction: { color: PRIMARY, fontWeight: "700", fontSize: 14 },
+  sectionAction: { color: PRIMARY, fontWeight: "700", fontSize: normalizeFontSize(13) },
 
   // Mission Section
   missionSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: "4%",
+    paddingVertical: moderateScale(18),
     backgroundColor: "#fff",
   },
   missionLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "700",
     color: PRIMARY,
     letterSpacing: 2,
-    marginBottom: 14,
+    marginBottom: moderateScale(12),
   },
   missionTitle: {
-    fontSize: 30,
+    fontSize: normalizeFontSize(26),
     fontWeight: "900",
     color: "#1a1a2e",
-    lineHeight: 40,
-    marginBottom: 18,
+    lineHeight: moderateScale(36),
+    marginBottom: moderateScale(16),
   },
   missionTitleHighlight: {
     color: "#16a34a",
     fontWeight: "900",
   },
   missionDesc: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: "#555",
-    lineHeight: 26,
-    marginBottom: 20,
+    lineHeight: moderateScale(24),
+    marginBottom: moderateScale(18),
   },
   missionStatsLine: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: moderateScale(20),
     backgroundColor: "#f8f9fa",
-    padding: 16,
-    borderRadius: 16,
+    padding: moderateScale(14),
+    borderRadius: moderateScale(14),
   },
   missionStatsText: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(14),
     color: "#444",
-    lineHeight: 28,
+    lineHeight: moderateScale(26),
   },
   missionStatsNumber: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "900",
     color: "#1a1a2e",
   },
   missionStatsLocation: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(14),
     fontWeight: "800",
     color: PRIMARY,
   },
   missionCards: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
+    gap: moderateScale(10),
+    marginBottom: moderateScale(18),
   },
   missionCard: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: moderateScale(12),
+    padding: moderateScale(14),
     borderWidth: 1,
     borderColor: "#eee",
     shadowColor: "#000",
@@ -424,56 +441,56 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   missionCardTitle: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
     color: "#1a1a2e",
-    marginBottom: 6,
+    marginBottom: moderateScale(5),
   },
   missionCardDesc: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#888",
-    lineHeight: 18,
+    lineHeight: moderateScale(16),
   },
   missionQuote: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#666",
-    lineHeight: 24,
+    lineHeight: moderateScale(22),
     fontStyle: "italic",
     textAlign: "center",
-    paddingHorizontal: 12,
-    marginTop: 8,
+    paddingHorizontal: moderateScale(10),
+    marginTop: moderateScale(8),
   },
 
   // Live Data Section
   liveDataTitle: {
-    fontSize: 26,
+    fontSize: normalizeFontSize(24),
     fontWeight: "600",
     color: "#222",
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: moderateScale(18),
+    marginBottom: moderateScale(10),
   },
   liveDataTitleBold: {
     fontWeight: "900",
     color: PRIMARY,
   },
   liveDataSubtitle: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#777",
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 24,
-    paddingHorizontal: 12,
+    marginBottom: moderateScale(20),
+    lineHeight: moderateScale(22),
+    paddingHorizontal: "3%",
   },
   liveDataCards: {
     flexDirection: "row",
-    gap: 12,
+    gap: moderateScale(10),
   },
   liveCard: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: moderateScale(18),
+    padding: moderateScale(14),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -486,62 +503,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: moderateScale(10),
   },
   liveIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(12),
     justifyContent: "center",
     alignItems: "center",
   },
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: moderateScale(4),
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
     backgroundColor: "#ef4444",
   },
   liveBadgeText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: "#ef4444",
     fontWeight: "600",
   },
   liveCardLabel: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#555",
-    marginBottom: 8,
+    marginBottom: moderateScale(6),
     fontWeight: "500",
   },
   liveCardValue: {
-    fontSize: 26,
+    fontSize: normalizeFontSize(22),
     fontWeight: "900",
-    marginBottom: 8,
+    marginBottom: moderateScale(6),
   },
   liveCardDesc: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#888",
-    lineHeight: 18,
+    lineHeight: moderateScale(16),
   },
   viewDetailsBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    marginTop: moderateScale(18),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(18),
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 25,
+    borderRadius: moderateScale(22),
     alignSelf: "center",
-    gap: 6,
+    gap: moderateScale(6),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   viewDetailsBtnText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#666",
     fontWeight: "600",
   },
@@ -550,8 +568,8 @@ const styles = StyleSheet.create({
   campaignCard: {
     width: CAMPAIGN_CARD_WIDTH,
     backgroundColor: "#fff",
-    borderRadius: 16,
-    marginRight: 14,
+    borderRadius: moderateScale(14),
+    marginRight: moderateScale(12),
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -563,35 +581,35 @@ const styles = StyleSheet.create({
   },
   campaignImage: {
     width: "100%",
-    height: 130,
+    height: moderateScale(120),
     backgroundColor: "#eee",
   },
   completedBadge: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: moderateScale(10),
+    right: moderateScale(10),
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#16a34a",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(10),
+    gap: moderateScale(4),
   },
   completedBadgeText: {
     color: "#fff",
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
   },
   campaignInfo: {
-    padding: 12,
+    padding: moderateScale(10),
   },
   campaignTitle: {
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#222",
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: moderateScale(6),
+    lineHeight: moderateScale(18),
   },
   campaignStats: {
     flexDirection: "row",
@@ -601,21 +619,21 @@ const styles = StyleSheet.create({
   campaignAmount: {
     fontWeight: "700",
     color: PRIMARY,
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   campaignDonors: {
     color: "#888",
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
   },
 
   // Empty state
   emptyState: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: moderateScale(28),
   },
   emptyText: {
     color: "#888",
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: moderateScale(8),
+    fontSize: normalizeFontSize(13),
   },
 });

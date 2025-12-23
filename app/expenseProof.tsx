@@ -10,6 +10,8 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +20,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 /** Helpers cho tiền VND */
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -353,9 +371,9 @@ const styles = StyleSheet.create({
   // layout
   container: { flex: 1, backgroundColor: BG },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 26,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(6),
+    paddingBottom: moderateScale(24),
   },
 
   // header
@@ -364,63 +382,64 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 150,
+    height: moderateScale(140),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: moderateScale(22),
+    borderBottomRightRadius: moderateScale(22),
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(12),
   },
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   backIcon: {
     color: "#fff",
-    fontSize: 22,
+    fontSize: normalizeFontSize(20),
     fontWeight: "700",
-    marginRight: 4,
+    marginRight: moderateScale(4),
   },
   backText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
   title: {
-    fontSize: 24,
+    fontSize: normalizeFontSize(22),
     fontWeight: "800",
     color: "#fff",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#ffe8d4",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   requestInfo: {
-    marginTop: 4,
-    fontSize: 13,
+    marginTop: moderateScale(4),
+    fontSize: normalizeFontSize(12),
     color: "#ffead0",
   },
   requestInfoBold: {
     fontWeight: "700",
   },
   requestInfoError: {
-    marginTop: 4,
-    fontSize: 13,
+    marginTop: moderateScale(4),
+    fontSize: normalizeFontSize(12),
     color: "#ffd1d1",
   },
 
   // card
   card: {
     backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    marginTop: 12,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(14),
+    marginTop: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -429,47 +448,49 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: "800",
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     color: PRIMARY,
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
 
   label: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#444",
     fontWeight: "600",
   },
   inputFull: {
-    marginTop: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    marginTop: moderateScale(6),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#fff",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: "#222",
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
 
   // upload
   pickBtn: {
-    marginTop: 6,
+    marginTop: moderateScale(6),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: PRIMARY,
-    paddingVertical: 11,
+    paddingVertical: moderateScale(10),
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   pickBtnText: {
     color: PRIMARY,
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
   noFileText: {
-    marginTop: 8,
-    fontSize: 13,
+    marginTop: moderateScale(8),
+    fontSize: normalizeFontSize(12),
     color: "#888",
   },
   fileChip: {
@@ -477,96 +498,97 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff7ed",
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginTop: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    marginTop: moderateScale(6),
   },
   fileChipIndex: {
     fontWeight: "700",
     color: PRIMARY,
-    marginRight: 8,
-    fontSize: 14,
+    marginRight: moderateScale(8),
+    fontSize: normalizeFontSize(13),
   },
   fileChipName: {
     flex: 1,
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#222",
   },
   fileChipType: {
-    marginLeft: 10,
-    fontSize: 12,
+    marginLeft: moderateScale(10),
+    fontSize: normalizeFontSize(11),
     fontWeight: "700",
     color: PRIMARY,
   },
 
   actionBtn: {
-    marginTop: 18,
+    marginTop: moderateScale(16),
     borderRadius: 999,
-    paddingVertical: 13,
+    paddingVertical: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(48), // Ensure minimum touch target
   },
   actionBtnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
 
   // debug urls
   noteText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#666",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   urlItem: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: moderateScale(8),
+    paddingTop: moderateScale(8),
     borderTopWidth: 1,
     borderTopColor: "#f1e4dd",
   },
   urlIndex: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "700",
     color: PRIMARY,
   },
   urlMeta: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#777",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   urlLabel: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#666",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   urlValue: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#222",
   },
 
   expectedBox: {
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    marginBottom: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: "#fed7aa",
     backgroundColor: "#fff7ed",
   },
   expectedLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#b45309",
     fontWeight: "600",
   },
   expectedValue: {
-    marginTop: 4,
-    fontSize: 16,
+    marginTop: moderateScale(4),
+    fontSize: normalizeFontSize(15),
     color: PRIMARY,
     fontWeight: "800",
   },
   expectedHint: {
-    marginTop: 4,
-    fontSize: 12,
+    marginTop: moderateScale(4),
+    fontSize: normalizeFontSize(11),
     color: "#6b7280",
   },
 });

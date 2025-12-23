@@ -20,7 +20,9 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     FlatList,
+    PixelRatio,
     ScrollView,
     StyleSheet,
     Text,
@@ -29,6 +31,22 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+    const newSize = scale(size);
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 /** Type for ingredient items from DISBURSED requests */
 type DisbursedIngredient = {
@@ -667,9 +685,9 @@ const styles = StyleSheet.create({
 
     // HEADER
     headerWrapper: {
-        paddingHorizontal: 16,
-        paddingTop: 4,
-        paddingBottom: 8,
+        paddingHorizontal: "4%",
+        paddingTop: moderateScale(4),
+        paddingBottom: moderateScale(8),
         backgroundColor: "#fff7ed", // cam rất nhạt
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: BORDER,
@@ -679,61 +697,62 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     headerBackBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: moderateScale(30),
+        height: moderateScale(30),
+        borderRadius: moderateScale(15),
         backgroundColor: "#fed7aa",
         alignItems: "center",
         justifyContent: "center",
+        minHeight: moderateScale(36), // Ensure minimum touch target
     },
     headerBackText: {
         color: PRIMARY_DARK,
-        fontSize: 20,
+        fontSize: normalizeFontSize(18),
         fontWeight: "800",
         marginTop: -2,
     },
     headerTextWrapper: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: moderateScale(10),
     },
     headerTitle: {
         color: STRONG_TEXT,
-        fontSize: 18,
+        fontSize: normalizeFontSize(17),
         fontWeight: "700",
     },
     headerSubtitle: {
-        marginTop: 2,
+        marginTop: moderateScale(2),
         color: MUTED_TEXT,
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
     },
     headerChipsRow: {
         flexDirection: "row",
-        marginTop: 12,
-        gap: 8,
+        marginTop: moderateScale(10),
+        gap: moderateScale(8),
     },
     chip: {
         flexDirection: "row",
         alignItems: "center",
         borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(6),
     },
     chipDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: moderateScale(7),
+        height: moderateScale(7),
+        borderRadius: moderateScale(4),
         backgroundColor: PRIMARY,
-        marginRight: 6,
+        marginRight: moderateScale(6),
     },
     chipText: {
-        fontSize: 11,
+        fontSize: normalizeFontSize(10),
         color: STRONG_TEXT,
-        maxWidth: 220,
+        maxWidth: moderateScale(200),
     },
 
     // BODY
     body: {
-        paddingHorizontal: 16,
+        paddingHorizontal: "4%",
         flex: 1,
     },
 
@@ -747,9 +766,9 @@ const styles = StyleSheet.create({
     card: {
         position: "relative",            // ✨ để đặt badge absolute
         backgroundColor: "#ffffff",
-        borderRadius: 16,
-        padding: 14,
-        marginTop: 14,
+        borderRadius: moderateScale(14),
+        padding: moderateScale(12),
+        marginTop: moderateScale(12),
         borderWidth: 1,
         borderColor: "#e5e7eb",
         shadowColor: "#000",
@@ -764,18 +783,18 @@ const styles = StyleSheet.create({
     },
 
     sectionTitle: {
-        fontSize: 15,
+        fontSize: normalizeFontSize(14),
         fontWeight: "700",
         color: STRONG_TEXT,
     },
     sectionDescription: {
-        marginTop: 4,
-        fontSize: 12,
+        marginTop: moderateScale(4),
+        fontSize: normalizeFontSize(11),
         color: MUTED_TEXT,
     },
 
     label: {
-        fontSize: 13,
+        fontSize: normalizeFontSize(12),
         fontWeight: "600",
         color: STRONG_TEXT,
     },
@@ -783,145 +802,148 @@ const styles = StyleSheet.create({
         color: DANGER,
     },
     helperText: {
-        marginTop: 4,
-        fontSize: 11,
+        marginTop: moderateScale(4),
+        fontSize: normalizeFontSize(10),
         color: MUTED_TEXT,
     },
 
     input: {
-        marginTop: 6,
+        marginTop: moderateScale(6),
         borderWidth: 1,
         borderColor: BORDER,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 9,
+        borderRadius: moderateScale(10),
+        paddingHorizontal: moderateScale(12),
+        paddingVertical: moderateScale(9),
         backgroundColor: "#f9fafb",
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         color: STRONG_TEXT,
+        minHeight: moderateScale(44), // Ensure minimum touch target
     },
 
     uploadPlaceholder: {
         // giữ lại block cũ nếu có, hoặc dùng lại style đã có
-        marginTop: 6,
-        borderRadius: 12,
+        marginTop: moderateScale(6),
+        borderRadius: moderateScale(10),
         borderWidth: 1,
         borderStyle: "dashed",
         borderColor: "#cbd5f5",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(10),
         backgroundColor: "#eff6ff",
     },
     uploadText: {
-        fontSize: 11,
+        fontSize: normalizeFontSize(10),
         color: ACCENT_BLUE,
     },
     pickBtn: {
-        marginTop: 6,
+        marginTop: moderateScale(6),
         borderRadius: 999,
         borderWidth: 1,
         borderColor: PRIMARY,
-        paddingVertical: 10,
+        paddingVertical: moderateScale(10),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#fff",
+        minHeight: moderateScale(42), // Ensure minimum touch target
     },
     pickBtnText: {
         color: PRIMARY,
         fontWeight: "700",
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
     },
     fileChip: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#fff7ed",
         borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginTop: 6,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(6),
+        marginTop: moderateScale(6),
     },
     fileChipIndex: {
         fontWeight: "700",
         color: PRIMARY,
-        marginRight: 6,
+        marginRight: moderateScale(6),
     },
     fileChipName: {
         flex: 1,
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
         color: STRONG_TEXT,
     },
     fileChipType: {
-        marginLeft: 8,
-        fontSize: 11,
+        marginLeft: moderateScale(8),
+        fontSize: normalizeFontSize(10),
         fontWeight: "600",
         color: PRIMARY,
     },
 
     // INGREDIENTS
     emptyText: {
-        marginTop: 10,
+        marginTop: moderateScale(10),
         color: MUTED_TEXT,
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
     },
     errorText: {
-        marginTop: 8,
+        marginTop: moderateScale(8),
         color: DANGER,
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
     },
     itemRow: {
         flexDirection: "row",
         alignItems: "flex-start",
-        paddingVertical: 10,
+        paddingVertical: moderateScale(10),
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: BORDER,
+        minHeight: moderateScale(44), // Ensure minimum touch target
     },
     itemRowSelected: {
         backgroundColor: "#f0fdf4",
-        borderRadius: 10,
-        marginHorizontal: -8,
-        paddingHorizontal: 8,
+        borderRadius: moderateScale(10),
+        marginHorizontal: -moderateScale(8),
+        paddingHorizontal: moderateScale(8),
     },
     itemName: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         color: STRONG_TEXT,
         fontWeight: "600",
     },
     itemQuantity: {
-        fontSize: 12,
+        fontSize: normalizeFontSize(11),
         color: MUTED_TEXT,
-        marginTop: 3,
+        marginTop: moderateScale(3),
     },
     itemRight: {
         alignItems: "flex-end",
-        gap: 4,
+        gap: moderateScale(4),
     },
     itemPrice: {
-        fontSize: 13,
+        fontSize: normalizeFontSize(12),
         color: ACCENT_GREEN,
         fontWeight: "600",
     },
     selectedBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: moderateScale(8),
+        paddingVertical: moderateScale(3),
         borderRadius: 999,
         backgroundColor: "#bbf7d0",
     },
     selectedBadgeText: {
-        fontSize: 10,
+        fontSize: normalizeFontSize(9),
         fontWeight: "600",
         color: "#166534",
     },
 
     badgeCount: {
         position: "absolute",
-        top: 10,
-        right: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        top: moderateScale(10),
+        right: moderateScale(10),
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateScale(4),
         borderRadius: 999,
         backgroundColor: "#e0f2fe",
     },
     badgeCountText: {
-        fontSize: 11,
+        fontSize: normalizeFontSize(10),
         color: "#4f8cff",
         fontWeight: "600",
     },
@@ -931,13 +953,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        borderRadius: 12,
+        paddingVertical: moderateScale(10),
+        paddingHorizontal: moderateScale(10),
+        borderRadius: moderateScale(10),
         borderWidth: 1,
         borderColor: BORDER,
         backgroundColor: "#f9fafb",
-        marginBottom: 8,
+        marginBottom: moderateScale(8),
+        minHeight: moderateScale(44), // Ensure minimum touch target
     },
     phaseItemActive: {
         borderColor: PRIMARY,
@@ -946,24 +969,24 @@ const styles = StyleSheet.create({
     phaseLeft: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: moderateScale(8),
     },
     phaseDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        width: moderateScale(10),
+        height: moderateScale(10),
+        borderRadius: moderateScale(5),
         backgroundColor: MUTED_TEXT,
     },
     phaseName: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         color: STRONG_TEXT,
     },
     phaseTag: {
-        fontSize: 11,
+        fontSize: normalizeFontSize(10),
         fontWeight: "600",
         color: PRIMARY_DARK,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: moderateScale(8),
+        paddingVertical: moderateScale(3),
         borderRadius: 999,
         backgroundColor: "#fed7aa",
     },
@@ -971,8 +994,8 @@ const styles = StyleSheet.create({
     // SUBMIT
     submitBtn: {
         borderRadius: 999,
-        paddingVertical: 14,
-        paddingHorizontal: 20,
+        paddingVertical: moderateScale(12),
+        paddingHorizontal: moderateScale(18),
         backgroundColor: PRIMARY,
         alignItems: "center",
         justifyContent: "center",
@@ -981,20 +1004,21 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.18,
         shadowRadius: 6,
         elevation: 3,
+        minHeight: moderateScale(48), // Ensure minimum touch target
     },
     submitText: {
         color: "#fff",
-        fontSize: 15,
+        fontSize: normalizeFontSize(14),
         fontWeight: "700",
     },
 
     // 👇 footer cố định đáy (2 nút)
     footerActions: {
         flexDirection: "column",
-        gap: 8,
-        paddingHorizontal: 16,
-        paddingTop: 10,
-        paddingBottom: 12,
+        gap: moderateScale(8),
+        paddingHorizontal: "4%",
+        paddingTop: moderateScale(10),
+        paddingBottom: moderateScale(10),
         backgroundColor: "#ffffff",
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: BORDER,
@@ -1003,17 +1027,18 @@ const styles = StyleSheet.create({
     // 👇 nút phụ xem danh sách suất ăn
     secondaryBtn: {
         borderRadius: 999,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        paddingVertical: moderateScale(10),
+        paddingHorizontal: moderateScale(18),
         borderWidth: 1,
         borderColor: PRIMARY,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#fff",
+        minHeight: moderateScale(44), // Ensure minimum touch target
     },
     secondaryBtnText: {
         color: PRIMARY,
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         fontWeight: "700",
     },
 
@@ -1021,25 +1046,25 @@ const styles = StyleSheet.create({
     plannedMealRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: moderateScale(10),
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: BORDER,
     },
     plannedMealBullet: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: moderateScale(7),
+        height: moderateScale(7),
+        borderRadius: moderateScale(4),
         backgroundColor: ACCENT_GREEN,
-        marginRight: 12,
+        marginRight: moderateScale(10),
     },
     plannedMealName: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         fontWeight: "600",
         color: STRONG_TEXT,
     },
     plannedMealQuantity: {
-        fontSize: 13,
+        fontSize: normalizeFontSize(12),
         color: MUTED_TEXT,
-        marginTop: 2,
+        marginTop: moderateScale(2),
     },
 });

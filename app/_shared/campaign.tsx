@@ -17,8 +17,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  Dimensions,
   FlatList,
   Modal,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +29,22 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -280,7 +298,7 @@ export default function HomePage() {
           )
           }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 16, paddingTop: 8 }}
+          contentContainerStyle={{ padding: moderateScale(14), paddingTop: moderateScale(8) }}
         />
       </View>
     </SafeAreaView>
@@ -292,34 +310,35 @@ const styles = StyleSheet.create({
 
   content: { flex: 1 },
   title: {
-    fontSize: 22,
+    fontSize: normalizeFontSize(20),
     fontWeight: '800',
-    marginBottom: 8,
-    paddingHorizontal: 16,
-    marginTop: 12,
+    marginBottom: moderateScale(8),
+    paddingHorizontal: '4%',
+    marginTop: moderateScale(10),
   },
 
   // block filter: 2 dòng
   filterBlock: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: '4%',
+    marginBottom: moderateScale(8),
   },
 
   // hàng status tags
   statusTabsRow: {
-    paddingVertical: 4,
+    paddingVertical: moderateScale(4),
   },
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    borderRadius: moderateScale(20),
     borderWidth: 1.5,
-    marginRight: 10,
+    marginRight: moderateScale(8),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   statusChipText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: '700',
   },
 
@@ -327,24 +346,25 @@ const styles = StyleSheet.create({
   filterRow2: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    gap: moderateScale(8),
+    marginTop: moderateScale(8),
   },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     borderWidth: 1,
     borderColor: '#eee',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 6,
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    gap: moderateScale(6),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   filterBtnText: {
     color: '#ad4e28',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
 
   popupOverlay: {
@@ -354,11 +374,11 @@ const styles = StyleSheet.create({
   popupBox: {
     position: 'absolute',
     top: '25%',
-    left: 24,
-    right: 24,
+    left: '6%',
+    right: '6%',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(16),
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -368,29 +388,30 @@ const styles = StyleSheet.create({
   },
   popupTitle: {
     fontWeight: '800',
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     color: '#ad4e28',
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
     textAlign: 'center',
   },
   popupItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    marginBottom: 8,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(8),
+    borderRadius: moderateScale(10),
+    marginBottom: moderateScale(8),
     backgroundColor: '#f7f7f7',
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   popupItemActive: {
     backgroundColor: '#ffe3d1',
   },
   popupItemTitle: {
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: '#ad4e28',
-    marginBottom: 2,
+    marginBottom: moderateScale(2),
   },
   popupItemDesc: {
     color: '#444',
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
   },
 });

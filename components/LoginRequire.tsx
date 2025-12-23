@@ -1,6 +1,16 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Modal, PixelRatio, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+// Responsive scaling functions
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BASE_WIDTH = 375;
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 type Props = {
   visible: boolean;
@@ -43,48 +53,50 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: "7%",
   },
   box: {
     width: "100%",
-    maxWidth: 340,
+    maxWidth: moderateScale(320),
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 24,
+    borderRadius: moderateScale(12),
+    padding: moderateScale(22),
     alignItems: "center",
   },
   title: {
     fontWeight: "900",
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     color: PRIMARY,
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   desc: {
     color: "#333",
-    fontSize: 15,
-    marginBottom: 18,
+    fontSize: normalizeFontSize(14),
+    marginBottom: moderateScale(16),
     textAlign: "center",
   },
   loginBtn: {
     backgroundColor: PRIMARY,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    marginBottom: 8,
+    borderRadius: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(28),
+    marginBottom: moderateScale(8),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   loginBtnText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
   cancelBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 24,
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(22),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   cancelBtnText: {
     color: "#ad4e28",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
 });
 

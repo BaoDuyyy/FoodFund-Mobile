@@ -9,7 +9,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   Image,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +20,22 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -231,39 +249,40 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(8),
     backgroundColor: '#fff',
   },
   backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     borderWidth: 1,
     borderColor: '#f3e1d6',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: '700',
     color: PRIMARY,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(22),
   },
 
   sectionLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: '700',
     color: PRIMARY,
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(4),
   },
 
   // avatar
@@ -272,49 +291,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarImgBig: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: moderateScale(72),
+    height: moderateScale(72),
+    borderRadius: moderateScale(36),
     backgroundColor: '#eee',
   },
   avatarBtn: {
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: PRIMARY,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   avatarBtnText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: normalizeFontSize(12),
+    marginLeft: moderateScale(6),
   },
 
   input: {
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
     backgroundColor: '#fff',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: '#111827',
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
 
   saveBtn: {
-    marginTop: 20,
+    marginTop: moderateScale(18),
     backgroundColor: PRIMARY,
     borderRadius: 999,
-    paddingVertical: 14,
+    paddingVertical: moderateScale(12),
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: moderateScale(48), // Ensure minimum touch target
   },
   saveBtnText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: '800',
   },
 });

@@ -2,7 +2,17 @@ import { useNotificationPolling } from "@/hooks";
 import { Feather, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, PixelRatio, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+// Responsive scaling functions
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BASE_WIDTH = 375;
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFontSize = (size: number) => {
+    const newSize = scale(size);
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 const PRIMARY = "#ad4e28";
 
@@ -52,7 +62,7 @@ export default function AppHeader({
                         style={styles.iconButton}
                         onPress={() => router.push("/search" as any)}
                     >
-                        <Feather name="search" size={20} color={PRIMARY} />
+                        <Feather name="search" size={moderateScale(18)} color={PRIMARY} />
                     </TouchableOpacity>
                 )}
 
@@ -61,7 +71,7 @@ export default function AppHeader({
                         style={styles.iconButton}
                         onPress={() => router.push("/notifications" as any)}
                     >
-                        <Ionicons name="notifications-outline" size={20} color={PRIMARY} />
+                        <Ionicons name="notifications-outline" size={moderateScale(18)} color={PRIMARY} />
                         {unreadCount > 0 && (
                             <View style={styles.badge}>
                                 <Text style={styles.badgeText}>
@@ -77,7 +87,7 @@ export default function AppHeader({
                         style={styles.iconButton}
                         onPress={() => router.push("/profile" as any)}
                     >
-                        <FontAwesome name="user-circle" size={20} color={PRIMARY} />
+                        <FontAwesome name="user-circle" size={moderateScale(18)} color={PRIMARY} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -90,8 +100,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: "4%",
+        paddingVertical: moderateScale(10),
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#f3f3f3",
@@ -102,24 +112,24 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     logo: {
-        width: 48,
-        height: 48,
-        marginRight: 10,
+        width: moderateScale(44),
+        height: moderateScale(44),
+        marginRight: moderateScale(10),
     },
     title: {
-        fontSize: 18,
+        fontSize: normalizeFontSize(17),
         fontWeight: "800",
         color: "#222",
     },
     rightSection: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: moderateScale(8),
     },
     iconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: moderateScale(38),
+        height: moderateScale(38),
+        borderRadius: moderateScale(10),
         backgroundColor: "#f7f7f7",
         alignItems: "center",
         justifyContent: "center",
@@ -130,22 +140,23 @@ const styles = StyleSheet.create({
         elevation: 1,
         borderWidth: 1,
         borderColor: "#f3f3f3",
+        minHeight: moderateScale(38), // Ensure minimum touch target
     },
     badge: {
         position: "absolute",
-        top: 2,
-        right: 2,
-        minWidth: 16,
-        height: 16,
-        borderRadius: 8,
+        top: moderateScale(2),
+        right: moderateScale(2),
+        minWidth: moderateScale(14),
+        height: moderateScale(14),
+        borderRadius: moderateScale(7),
         backgroundColor: "#dc2626",
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 3,
+        paddingHorizontal: moderateScale(3),
     },
     badgeText: {
         color: "#fff",
-        fontSize: 9,
+        fontSize: normalizeFontSize(8),
         fontWeight: "700",
     },
 });

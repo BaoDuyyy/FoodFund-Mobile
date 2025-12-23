@@ -11,8 +11,10 @@ import type { Post } from "@/types/api/post";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   Image,
+  PixelRatio,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -30,6 +32,22 @@ import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PRIMARY = "#ad4e28";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -471,87 +489,90 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(8),
+    paddingBottom: moderateScale(4),
     backgroundColor: "#fff",
     zIndex: 10,
   },
   backBtn: {
     alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
     borderRadius: 999,
     backgroundColor: PRIMARY,
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   backText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "700",
   },
 
   scroll: {
-    paddingBottom: 32,
+    paddingBottom: moderateScale(28),
   },
 
   sectionTitle: {
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     fontWeight: "800",
-    marginTop: 18,
-    marginBottom: 8,
+    marginTop: moderateScale(16),
+    marginBottom: moderateScale(8),
     color: PRIMARY,
     letterSpacing: 0.2,
   },
   description: {
     color: "#444",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
+    fontSize: normalizeFontSize(14),
+    lineHeight: moderateScale(20),
+    marginBottom: moderateScale(10),
     fontWeight: "400",
   },
   descriptionHtml: {
     color: "#444",
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: normalizeFontSize(14),
+    lineHeight: moderateScale(20),
     fontWeight: "400",
   },
 
   image: {
     width: "100%",
-    height: 230,
+    height: moderateScale(210),
     backgroundColor: "#eee",
   },
 
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(14),
   },
 
   title: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   creatorRow: {
     flexDirection: "row",
-    marginBottom: 12,
+    marginBottom: moderateScale(10),
   },
   creatorLabel: {
     color: "#777",
     fontWeight: "600",
-    marginRight: 4,
+    marginRight: moderateScale(4),
+    fontSize: normalizeFontSize(13),
   },
   creatorName: {
     color: "#333",
     fontWeight: "600",
+    fontSize: normalizeFontSize(13),
   },
 
   campaignCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 18,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(14),
+    marginBottom: moderateScale(16),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -561,59 +582,59 @@ const styles = StyleSheet.create({
   orgRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   orgName: {
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: "#ff8800",
   },
   orgLink: {
     color: "#ff8800",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   infoTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-    marginTop: 2,
+    marginBottom: moderateScale(6),
+    marginTop: moderateScale(2),
   },
   infoTitle2: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#222",
-    marginLeft: 6,
+    marginLeft: moderateScale(6),
   },
   campaignMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   campaignMetaCol: {
     flexDirection: "column",
     alignItems: "flex-start",
-    gap: 2,
+    gap: moderateScale(2),
   },
   campaignMetaLabel: {
     color: "#888",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "500",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   campaignMetaValue: {
     color: "#222",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
   campaignProgressBarBg: {
-    height: 8,
+    height: moderateScale(7),
     backgroundColor: "#f3f3f3",
     borderRadius: 999,
     overflow: "hidden",
-    marginBottom: 8,
-    marginTop: 2,
+    marginBottom: moderateScale(8),
+    marginTop: moderateScale(2),
   },
   campaignProgressBarFill: {
     height: "100%",
@@ -623,58 +644,61 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   campaignAchievedText: {
     color: "#ad4e28",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
   campaignAchievedPercent: {
     color: "#888",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
   campaignDonateBtn: {
     backgroundColor: "#ad4e28",
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     alignItems: "center",
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingVertical: moderateScale(12),
+    marginBottom: moderateScale(8),
+    minHeight: moderateScale(48), // Ensure minimum touch target
   },
   campaignDonateBtnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
   campaignDirectionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: "#eee",
-    paddingVertical: 10,
-    marginBottom: 8,
+    paddingVertical: moderateScale(10),
+    marginBottom: moderateScale(8),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   campaignDirectionBtnText: {
     color: "#ad4e28",
     fontWeight: "700",
-    fontSize: 15,
-    marginLeft: 6,
+    fontSize: normalizeFontSize(14),
+    marginLeft: moderateScale(6),
   },
   campaignShareBtn: {
     alignItems: "center",
-    marginTop: 2,
+    marginTop: moderateScale(2),
+    minHeight: moderateScale(32), // Ensure minimum touch target
   },
   campaignShareText: {
     color: "#ff8800",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
   },
 
-  center: { padding: 24, alignItems: "center" },
-  errorText: { color: "red" },
-  placeholder: { color: "#666" },
+  center: { padding: moderateScale(22), alignItems: "center" },
+  errorText: { color: "red", fontSize: normalizeFontSize(13) },
+  placeholder: { color: "#666", fontSize: normalizeFontSize(13) },
 });

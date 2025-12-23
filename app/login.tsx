@@ -12,8 +12,10 @@ import * as SecureStore from 'expo-secure-store';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
+  Dimensions,
   Easing,
   Image,
+  PixelRatio,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +23,26 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
+
+// Responsive logo size
+const LOGO_WIDTH = Math.min(Math.max(SCREEN_WIDTH * 0.6, 180), 280);
+const LOGO_HEIGHT = LOGO_WIDTH * 0.28; // maintain aspect ratio
 
 function isNetworkError(err: any) {
   const msg = String(err?.message || '');
@@ -261,26 +283,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(8),
   },
   backBtn: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
     borderRadius: 999,
     backgroundColor: PRIMARY,
   },
   backText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: '700',
   },
 
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingHorizontal: '6%', // Use percentage for horizontal padding
+    paddingBottom: moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -288,64 +310,67 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
 
   title: {
-    fontSize: 26,
+    fontSize: normalizeFontSize(24),
     fontWeight: '800',
     color: PRIMARY,
-    marginBottom: 20,
+    marginBottom: moderateScale(18),
   },
 
   input: {
     width: '100%',
     backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    fontSize: 15,
+    borderRadius: moderateScale(10),
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
+    marginBottom: moderateScale(12),
+    fontSize: normalizeFontSize(14),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: moderateScale(44), // Ensure minimum touch target size
   },
 
   passwordWrap: {
     width: '100%',
-    marginBottom: 20,
+    marginBottom: moderateScale(18),
   },
   forgotBtn: {
     alignSelf: 'flex-end',
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   forgotText: {
     color: PRIMARY,
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: '600',
   },
 
   primaryButton: {
     width: '100%',
     backgroundColor: PRIMARY,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: moderateScale(14),
+    borderRadius: moderateScale(10),
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'center',
+    marginTop: moderateScale(4),
+    minHeight: moderateScale(48), // Ensure minimum touch target size
   },
   primaryButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
 
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginVertical: 20,
+    marginVertical: moderateScale(18),
   },
   divider: {
     flex: 1,
@@ -353,9 +378,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0d6cf',
   },
   dividerText: {
-    marginHorizontal: 10,
+    marginHorizontal: moderateScale(10),
     color: '#999',
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
   },
 
   googleButton: {
@@ -363,7 +388,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: moderateScale(12),
     borderRadius: 999,
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -373,29 +398,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: moderateScale(48), // Ensure minimum touch target size
   },
   googleIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   googleText: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: '#333',
     fontWeight: '500',
   },
 
   signupPrompt: {
-    marginTop: 14,
+    marginTop: moderateScale(14),
     alignItems: 'center',
+    paddingHorizontal: moderateScale(10),
   },
   signupPromptText: {
     color: '#555',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     textAlign: 'center',
   },
   signupLink: {
@@ -403,11 +430,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   logoWrapper: {
-    width: 250,
-    height: 70,
-    borderRadius: 12,
+    width: LOGO_WIDTH,
+    height: LOGO_HEIGHT,
+    borderRadius: moderateScale(12),
     overflow: 'hidden',
-    marginBottom: 12,
-    marginTop: -4,
+    marginBottom: moderateScale(12),
+    marginTop: moderateScale(-4),
   },
 });

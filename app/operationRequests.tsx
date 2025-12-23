@@ -5,13 +5,31 @@ import type { OperationRequest } from "@/types/api/operationRequest";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   FlatList,
+  PixelRatio,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function OperationRequestsPage() {
   const router = useRouter();
@@ -153,10 +171,10 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 120,                // tăng nhẹ để chữ thoáng
+    height: moderateScale(110),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: moderateScale(26),
+    borderBottomRightRadius: moderateScale(26),
   },
 
   loadingBox: {
@@ -165,65 +183,66 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   loadingText: {
-    marginTop: 8,
+    marginTop: moderateScale(8),
     color: "#6b7280",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(12),
   },
   backBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(16),
     backgroundColor: "#ffe6d8",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   backIcon: {
     color: PRIMARY,
-    fontSize: 22,
+    fontSize: normalizeFontSize(20),
     fontWeight: "900",
   },
 
-  headerTextWrap: { flex: 1, marginLeft: 10 },
+  headerTextWrap: { flex: 1, marginLeft: moderateScale(10) },
   headerTitle: {
-    fontSize: 20,               // bigger
+    fontSize: normalizeFontSize(19),
     fontWeight: "800",
     color: "#fff",
   },
   headerSubtitle: {
-    fontSize: 14,               // bigger
+    fontSize: normalizeFontSize(13),
     color: "#ffead4",
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
 
   legendRow: {
     flexDirection: "row",
-    paddingHorizontal: 18,
-    paddingTop: 6,
-    paddingBottom: 6,
-    gap: 16,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(6),
+    paddingBottom: moderateScale(6),
+    gap: moderateScale(14),
   },
   legendItem: { flexDirection: "row", alignItems: "center" },
-  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
-  legendText: { fontSize: 14, color: "#374151" },
+  legendDot: { width: moderateScale(10), height: moderateScale(10), borderRadius: moderateScale(5), marginRight: moderateScale(6) },
+  legendText: { fontSize: normalizeFontSize(13), color: "#374151" },
 
   listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 40,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(36),
   },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,                // tăng padding
-    marginTop: 14,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(14),
+    marginTop: moderateScale(12),
     borderWidth: 1,
     borderColor: "#f0d6c7",
     shadowColor: "#000",
@@ -235,54 +254,54 @@ const styles = StyleSheet.create({
   cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   cardTitle: {
     flex: 1,
-    fontSize: 17,               // bigger
+    fontSize: normalizeFontSize(16),
     fontWeight: "800",
     color: PRIMARY,
   },
 
   statusChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    minWidth: 80,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(10),
+    minWidth: moderateScale(70),
     alignItems: "center",
   },
   statusChipText: {
-    fontSize: 13,               // bigger
+    fontSize: normalizeFontSize(12),
     fontWeight: "700",
   },
 
   metaRow: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 6,
+    gap: moderateScale(10),
+    marginBottom: moderateScale(6),
     flexWrap: "wrap",
   },
   metaChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(8),
     backgroundColor: "#f9fafb",
   },
   metaChipLabel: {
-    fontSize: 13,               // bigger
+    fontSize: normalizeFontSize(12),
     color: "#6b7280",
   },
   metaChipValue: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "600",
     color: "#111827",
   },
 
   metaText: {
-    fontSize: 14,               // bigger
+    fontSize: normalizeFontSize(13),
     color: "#374151",
-    marginTop: 6,
-    lineHeight: 20,
+    marginTop: moderateScale(6),
+    lineHeight: moderateScale(18),
   },
   metaStrong: {
     fontWeight: "700",
@@ -293,16 +312,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: "6%",
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   emptyDesc: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#6b7280",
     textAlign: "center",
   },

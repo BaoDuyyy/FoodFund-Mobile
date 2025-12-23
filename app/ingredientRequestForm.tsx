@@ -7,7 +7,9 @@ import type { Phase, PlannedIngredient } from "@/types/api/campaign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   Modal,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +18,22 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 type PhaseOption = {
   id: string;
@@ -755,15 +773,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: moderateScale(12),
+    fontSize: normalizeFontSize(13),
     color: "#8a7b6e",
   },
 
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(10),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f0e4da",
@@ -771,41 +789,42 @@ const styles = StyleSheet.create({
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   backIcon: {
     color: PRIMARY,
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
-    marginRight: 4,
+    marginRight: moderateScale(4),
   },
   backText: {
     color: PRIMARY,
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: normalizeFontSize(20),
     fontWeight: "800",
     color: "#222",
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#8a7b6e",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 24,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(12),
+    paddingBottom: moderateScale(22),
   },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(14),
+    marginBottom: moderateScale(12),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -813,32 +832,32 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#8c8c8c",
-    marginBottom: 12,
+    marginBottom: moderateScale(10),
   },
   cardHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
     position: "relative",
   },
   badgeCount: {
     position: "absolute",
     top: 0,
     right: 0,
-    marginTop: 2,
-    marginRight: 4,
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
+    marginTop: moderateScale(2),
+    marginRight: moderateScale(4),
+    minWidth: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
     backgroundColor: "#fff5ee",
     alignItems: "center",
     justifyContent: "center",
@@ -846,58 +865,60 @@ const styles = StyleSheet.create({
   badgeCountText: {
     color: PRIMARY,
     fontWeight: "800",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
 
   chipsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: moderateScale(8),
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2d5c8",
     backgroundColor: "#fff",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   chipActive: {
     borderColor: PRIMARY,
     backgroundColor: "#fff5ee",
   },
   chipText: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#4a4a4a",
-    maxWidth: 200,
+    maxWidth: moderateScale(180),
   },
   chipTextActive: {
     color: PRIMARY,
     fontWeight: "700",
   },
   emptyPhaseText: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#999",
   },
 
   input: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: "#eee",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    fontSize: 15,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    marginBottom: moderateScale(10),
+    fontSize: normalizeFontSize(14),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
 
   itemBox: {
     backgroundColor: "#fffdf9",
-    borderRadius: 14,
+    borderRadius: moderateScale(12),
     borderWidth: 1,
     borderColor: "#f4e3d6",
-    padding: 12,
-    marginBottom: 10,
+    padding: moderateScale(10),
+    marginBottom: moderateScale(10),
   },
   itemBoxFromPlan: {
     borderColor: "#a7d9c7",
@@ -907,60 +928,61 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   itemTitle: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: PRIMARY,
   },
   planBadge: {
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    marginLeft: moderateScale(8),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(2),
     borderRadius: 999,
     backgroundColor: "#dcfce7",
   },
   planBadgeText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "600",
     color: "#16a34a",
   },
   removeText: {
     color: "#d64545",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "700",
   },
   itemLabel: {
     fontWeight: "600",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#b06437",
-    marginBottom: 4,
-    marginTop: 6,
+    marginBottom: moderateScale(4),
+    marginTop: moderateScale(6),
   },
 
   inlineRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: moderateScale(10),
   },
   inlineCol: {
     flex: 1,
   },
 
   addBtn: {
-    marginTop: 6,
-    paddingVertical: 12,
+    marginTop: moderateScale(6),
+    paddingVertical: moderateScale(10),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   addBtnText: {
     color: PRIMARY,
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
 
   buttonRow: {
@@ -968,37 +990,38 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 18,
-    paddingTop: 10,
+    paddingHorizontal: "4%",
+    paddingBottom: moderateScale(16),
+    paddingTop: moderateScale(10),
     backgroundColor: BG,
     flexDirection: "column",
-    gap: 10,
+    gap: moderateScale(10),
     borderTopWidth: 1,
     borderTopColor: "#e7ddd3",
   },
 
   summaryBar: {
     flexDirection: "row",
-    paddingHorizontal: 4,
-    marginBottom: 2,
+    paddingHorizontal: moderateScale(4),
+    marginBottom: moderateScale(2),
   },
   summaryLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#8a7b6e",
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: "800",
     color: PRIMARY,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   actionBtn: {
     borderRadius: 999,
-    paddingVertical: 12,
+    paddingVertical: moderateScale(10),
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(48), // Ensure minimum touch target
   },
   primaryBtn: {
     backgroundColor: PRIMARY,
@@ -1011,38 +1034,38 @@ const styles = StyleSheet.create({
   actionBtnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
   secondaryBtnText: {
     color: PRIMARY,
     fontWeight: "800",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
   },
 
   budgetInfoBox: {
-    borderRadius: 12,
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: "#f4c39a",
     backgroundColor: "#fff7ec",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    marginBottom: moderateScale(10),
   },
   budgetLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: "#b06437",
     fontWeight: "600",
   },
   budgetValue: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: PRIMARY,
     fontWeight: "800",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   budgetHint: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#8c8c8c",
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 
   // Unit picker button styles
@@ -1052,11 +1075,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   unitPickerText: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#333",
   },
   unitPickerArrow: {
-    fontSize: 10,
+    fontSize: normalizeFontSize(9),
     color: "#999",
   },
 
@@ -1068,62 +1091,63 @@ const styles = StyleSheet.create({
   },
   unitModalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: moderateScale(22),
+    borderTopRightRadius: moderateScale(22),
     maxHeight: "70%",
   },
   unitModalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(14),
     borderBottomWidth: 1,
     borderBottomColor: "#f0e4da",
   },
   unitModalTitle: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: PRIMARY,
   },
   unitModalClose: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     color: "#999",
-    padding: 4,
+    padding: moderateScale(4),
   },
   unitModalScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: moderateScale(18),
   },
   unitGroup: {
-    marginTop: 16,
+    marginTop: moderateScale(14),
   },
   unitGroupLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "700",
     color: "#8a7b6e",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   unitChipsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: moderateScale(8),
   },
   unitChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: moderateScale(10),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e2d5c8",
     backgroundColor: "#fff",
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   unitChipActive: {
     borderColor: PRIMARY,
     backgroundColor: "#fff5ee",
   },
   unitChipText: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#4a4a4a",
   },
   unitChipTextActive: {
@@ -1133,30 +1157,30 @@ const styles = StyleSheet.create({
 
   // Planned ingredients section
   plannedList: {
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   plannedItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
     backgroundColor: "#fafafa",
-    borderRadius: 10,
-    marginBottom: 8,
+    borderRadius: moderateScale(10),
+    marginBottom: moderateScale(8),
     borderLeftWidth: 3,
     borderLeftColor: PRIMARY,
   },
   plannedName: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "600",
     color: "#333",
     flex: 1,
   },
   plannedQty: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
     color: PRIMARY,
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
   },
 });

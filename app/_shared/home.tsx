@@ -9,12 +9,30 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Dimensions, FlatList, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, FlatList, Image, Linking, PixelRatio, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const CAMPAIGN_CARD_WIDTH = SCREEN_WIDTH * 0.75;
-const CAMPAIGN_CARD_HEIGHT = 220;
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
+
+// Responsive card dimensions
+const CAMPAIGN_CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.72, 320);
+const CAMPAIGN_CARD_HEIGHT = moderateScale(200);
+const ORG_CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.48, 200);
+
 const WEB_REGISTER_URL = process.env.EXPO_PUBLIC_WEB_REGISTER_URL || "https://food-fund.vercel.app/register";
 
 export default function DiscoverPage() {
@@ -198,31 +216,31 @@ const ORANGE_GRADIENT = ["#d16b2b", "#ad4e28"];
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
-  section: { marginBottom: 18, paddingHorizontal: 12 },
+  section: { marginBottom: moderateScale(16), paddingHorizontal: "3%" },
   divider: {
-    height: 5,
+    height: moderateScale(5),
     backgroundColor: "#e5e5e5",
     marginHorizontal: 0,
-    marginVertical: 8,
+    marginVertical: moderateScale(8),
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
-    marginTop: 8,
+    marginBottom: moderateScale(8),
+    marginTop: moderateScale(8),
   },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#222" },
-  sectionAction: { color: PRIMARY, fontWeight: "700", fontSize: 15 },
+  sectionTitle: { fontSize: normalizeFontSize(17), fontWeight: "800", color: "#222" },
+  sectionAction: { color: PRIMARY, fontWeight: "700", fontSize: normalizeFontSize(14) },
 
   // Organization card styles
   orgCard: {
-    width: 200,
-    minHeight: 210,
+    width: ORG_CARD_WIDTH,
+    minHeight: moderateScale(190),
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 18,
-    marginRight: 18,
+    borderRadius: moderateScale(18),
+    padding: moderateScale(16),
+    marginRight: moderateScale(14),
     alignItems: "center",
     justifyContent: "space-between",
     shadowColor: "#000",
@@ -234,13 +252,13 @@ const styles = StyleSheet.create({
     borderColor: "#f3f3f3",
   },
   orgAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: moderateScale(56),
+    height: moderateScale(56),
+    borderRadius: moderateScale(28),
     backgroundColor: "#d16b2b",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: moderateScale(10),
     shadowColor: "#ad4e28",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
@@ -250,21 +268,21 @@ const styles = StyleSheet.create({
   orgAvatarText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 28,
+    fontSize: normalizeFontSize(24),
   },
   orgName: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#222",
     textAlign: "center",
     flex: 1,
   },
   orgFollowBtn: {
     backgroundColor: "#ffa63a",
-    borderRadius: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-    width: 120,
+    borderRadius: moderateScale(24),
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(16),
+    minWidth: moderateScale(100),
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#ffa63a",
@@ -272,11 +290,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 2,
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   orgFollowText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(13),
     letterSpacing: 0.2,
   },
 
@@ -285,8 +304,8 @@ const styles = StyleSheet.create({
     width: CAMPAIGN_CARD_WIDTH,
     height: CAMPAIGN_CARD_HEIGHT,
     backgroundColor: "#fff",
-    borderRadius: 18,
-    marginRight: 16,
+    borderRadius: moderateScale(16),
+    marginRight: moderateScale(14),
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -298,51 +317,51 @@ const styles = StyleSheet.create({
   },
   campaignImage: {
     width: "100%",
-    height: 120,
+    height: moderateScale(110),
     backgroundColor: "#eee",
   },
   campaignInfo: {
-    padding: 12,
+    padding: moderateScale(10),
     flex: 1,
     justifyContent: "center",
   },
   campaignTitle: {
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: normalizeFontSize(14),
     color: "#222",
-    marginBottom: 6,
+    marginBottom: moderateScale(5),
   },
   campaignAmount: {
     fontWeight: "700",
     color: PRIMARY,
-    fontSize: 15,
-    marginBottom: 2,
+    fontSize: normalizeFontSize(13),
+    marginBottom: moderateScale(2),
   },
   campaignMeta: {
     color: "#888",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
   },
   campaignProgressBg: {
-    height: 6,
+    height: moderateScale(5),
     backgroundColor: "#f0f0f0",
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
     overflow: "hidden",
-    marginBottom: 6,
+    marginBottom: moderateScale(5),
   },
   campaignProgressFill: {
     height: "100%",
     backgroundColor: PRIMARY,
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
   },
 
   // Welcome Banner
   welcomeBanner: {
-    marginHorizontal: 12,
-    marginTop: 8,
-    marginBottom: 16,
+    marginHorizontal: "3%",
+    marginTop: moderateScale(8),
+    marginBottom: moderateScale(14),
     backgroundColor: "#fff",
-    borderRadius: 18,
+    borderRadius: moderateScale(16),
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -354,7 +373,7 @@ const styles = StyleSheet.create({
   },
   welcomeImagePlaceholder: {
     width: "100%",
-    height: 140,
+    height: moderateScale(130),
     backgroundColor: "#e5e5e5",
   },
   welcomeImage: {
@@ -362,25 +381,25 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   welcomeContent: {
-    padding: 16,
+    padding: moderateScale(14),
   },
   welcomeTitle: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 6,
+    marginBottom: moderateScale(5),
   },
   welcomeText: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#666",
-    lineHeight: 20,
+    lineHeight: moderateScale(18),
   },
 
   // CTA Banner
   ctaBanner: {
-    marginHorizontal: 12,
-    marginBottom: 16,
-    borderRadius: 20,
+    marginHorizontal: "3%",
+    marginBottom: moderateScale(14),
+    borderRadius: moderateScale(18),
     overflow: "hidden",
     shadowColor: "#ff7e5f",
     shadowOffset: { width: 0, height: 4 },
@@ -389,40 +408,40 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   ctaGradient: {
-    padding: 20,
+    padding: moderateScale(18),
     position: "relative",
   },
   ctaDecorCircle1: {
     position: "absolute",
-    top: -30,
-    right: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    top: moderateScale(-28),
+    right: moderateScale(-28),
+    width: moderateScale(90),
+    height: moderateScale(90),
+    borderRadius: moderateScale(45),
     backgroundColor: "rgba(255,255,255,0.15)",
   },
   ctaDecorCircle2: {
     position: "absolute",
-    bottom: -20,
-    left: -20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    bottom: moderateScale(-18),
+    left: moderateScale(-18),
+    width: moderateScale(55),
+    height: moderateScale(55),
+    borderRadius: moderateScale(28),
     backgroundColor: "rgba(255,255,255,0.1)",
   },
   ctaContent: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: moderateScale(14),
   },
   ctaIconBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(14),
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: moderateScale(12),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -433,15 +452,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ctaTitle: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(16),
     fontWeight: "800",
     color: "#fff",
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   ctaSubtitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "rgba(255,255,255,0.9)",
-    lineHeight: 20,
+    lineHeight: moderateScale(18),
   },
   ctaButtonRow: {
     alignItems: "flex-start",
@@ -450,13 +469,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    gap: 8,
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(22),
+    gap: moderateScale(8),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   ctaButtonText: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
     color: "#ff7e5f",
   },

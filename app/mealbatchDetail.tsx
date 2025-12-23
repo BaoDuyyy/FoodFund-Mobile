@@ -10,7 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   Image,
+  PixelRatio,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +20,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function MealBatchDetailPage() {
   const router = useRouter();
@@ -274,39 +292,40 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: "4%",
+    paddingVertical: moderateScale(10),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   headerBackBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerTitleDark: {
     flex: 1,
     color: TEXT,
-    fontSize: 17,
+    fontSize: normalizeFontSize(16),
     fontWeight: "700",
     textAlign: "center",
   },
 
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(14),
+    paddingBottom: moderateScale(22),
   },
 
   // Hero Card
   heroCard: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: moderateScale(18),
+    padding: moderateScale(18),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -316,49 +335,49 @@ const styles = StyleSheet.create({
   heroHeader: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginBottom: 12,
+    marginBottom: moderateScale(10),
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(18),
+    gap: moderateScale(6),
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(4),
   },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "700",
     textTransform: "uppercase",
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: normalizeFontSize(22),
     fontWeight: "800",
     color: TEXT,
-    marginBottom: 20,
+    marginBottom: moderateScale(18),
   },
   heroStats: {
     flexDirection: "row",
-    gap: 16,
+    gap: moderateScale(14),
   },
   heroStatItem: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fef7f0",
-    padding: 14,
-    borderRadius: 14,
-    gap: 12,
+    padding: moderateScale(12),
+    borderRadius: moderateScale(12),
+    gap: moderateScale(10),
   },
   heroStatIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
@@ -369,22 +388,22 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   heroStatValue: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: "700",
     color: TEXT,
   },
   heroStatLabel: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   // Info Card
   infoCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(14),
+    marginTop: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -394,20 +413,20 @@ const styles = StyleSheet.create({
   infoCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: moderateScale(12),
   },
   infoCardIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(10),
     backgroundColor: "#fff7ed",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: moderateScale(10),
   },
   infoCardTitle: {
     flex: 1,
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "700",
     color: TEXT,
   },
@@ -417,83 +436,83 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f9fafb",
-    padding: 12,
-    borderRadius: 12,
+    padding: moderateScale(10),
+    borderRadius: moderateScale(10),
   },
   staffAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(19),
     backgroundColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: moderateScale(10),
   },
   staffAvatarText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: "700",
   },
   staffName: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "600",
     color: TEXT,
   },
 
   // Ingredient List
   ingredientList: {
-    gap: 10,
+    gap: moderateScale(10),
   },
   ingredientItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f9fafb",
-    padding: 12,
-    borderRadius: 10,
+    padding: moderateScale(10),
+    borderRadius: moderateScale(10),
   },
   ingredientDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(4),
     backgroundColor: "#22c55e",
-    marginRight: 10,
+    marginRight: moderateScale(10),
   },
   ingredientName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: TEXT,
   },
   ingredientQty: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "600",
     color: PRIMARY,
     backgroundColor: "#fff7ed",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(8),
   },
 
   // Media
   mediaBadge: {
     backgroundColor: PRIMARY,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(2),
+    borderRadius: moderateScale(10),
   },
   mediaBadgeText: {
     color: "#fff",
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
   },
   mediaGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: moderateScale(10),
   },
   mediaThumb: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
+    width: moderateScale(90),
+    height: moderateScale(90),
+    borderRadius: moderateScale(10),
     overflow: "hidden",
     position: "relative",
   },
@@ -507,31 +526,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: "rgba(0,0,0,0.5)",
-    padding: 6,
-    borderTopLeftRadius: 10,
+    padding: moderateScale(6),
+    borderTopLeftRadius: moderateScale(10),
   },
 
   // ID Card
   idCard: {
     backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 12,
+    borderRadius: moderateScale(10),
+    padding: moderateScale(12),
+    marginTop: moderateScale(10),
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderStyle: "dashed",
   },
   idLabel: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: MUTED,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   idValue: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#6b7280",
     fontFamily: "monospace",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   // Error State
@@ -539,33 +558,34 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: "8%",
   },
   errorIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: moderateScale(70),
+    height: moderateScale(70),
+    borderRadius: moderateScale(35),
     backgroundColor: "#fef2f2",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: moderateScale(14),
   },
   errorText: {
     textAlign: "center",
     color: "#dc2626",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "600",
-    marginBottom: 20,
+    marginBottom: moderateScale(18),
   },
   retryBtn: {
     backgroundColor: PRIMARY,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: moderateScale(22),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(22),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   retryBtnText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "700",
   },
 
@@ -597,21 +617,22 @@ const styles = StyleSheet.create({
   zoomImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 12,
+    borderRadius: moderateScale(10),
   },
   zoomCloseBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
+    marginTop: moderateScale(14),
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(22),
     backgroundColor: "#fff",
-    gap: 6,
+    gap: moderateScale(6),
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   zoomCloseText: {
     color: PRIMARY,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
 });

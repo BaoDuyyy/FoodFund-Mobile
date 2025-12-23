@@ -10,7 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   FlatList,
+  PixelRatio,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +20,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export type KOrganizationPageProps = {
   initialOrgId?: string | null;
@@ -401,59 +419,60 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: moderateScale(12),
     color: "#555",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   headerBg: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 180,
+    height: moderateScale(170),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: moderateScale(22),
+    borderBottomRightRadius: moderateScale(22),
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(8),
+    paddingBottom: moderateScale(10),
   },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: moderateScale(4),
+    paddingHorizontal: moderateScale(8),
     borderRadius: 999,
     backgroundColor: "#fff",
+    minHeight: moderateScale(32), // Ensure minimum touch target
   },
   backText: {
     color: PRIMARY,
     fontWeight: "700",
-    marginLeft: 4,
-    fontSize: 13,
+    marginLeft: moderateScale(4),
+    fontSize: normalizeFontSize(12),
   },
   headerTitle: {
     flex: 1,
     textAlign: "center",
     color: "#fff",
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
-    marginHorizontal: 12,
+    marginHorizontal: moderateScale(10),
   },
   orgCard: {
-    marginTop: 4,
+    marginTop: moderateScale(4),
     backgroundColor: "#fff",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: moderateScale(12),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -461,49 +480,49 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   orgIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(14),
     backgroundColor: "#fff5ee",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   orgName: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: "#222",
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   orgDesc: {
     color: "#666",
-    fontSize: 13,
-    marginBottom: 10,
+    fontSize: normalizeFontSize(12),
+    marginBottom: moderateScale(10),
   },
   orgStatsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginTop: 2,
+    gap: moderateScale(6),
+    marginTop: moderateScale(2),
   },
   orgStatItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
     borderRadius: 999,
     backgroundColor: "#fcece3",
   },
   orgStatText: {
-    marginLeft: 4,
+    marginLeft: moderateScale(4),
     color: PRIMARY,
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "600",
   },
   content: {
     flex: 1,
-    marginTop: 8,
-    paddingHorizontal: 16,
+    marginTop: moderateScale(8),
+    paddingHorizontal: "4%",
   },
 
   // Tabs
@@ -511,22 +530,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#fff",
     borderRadius: 999,
-    padding: 3,
-    marginBottom: 10,
+    padding: moderateScale(3),
+    marginBottom: moderateScale(10),
     alignItems: "center",
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: moderateScale(8),
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   tabButtonActive: {
     backgroundColor: "#fcece3",
   },
   tabButtonText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: "#7a5b4a",
   },
@@ -540,38 +560,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 10,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(6),
+    marginBottom: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    paddingVertical: 4,
+    fontSize: normalizeFontSize(12),
+    paddingVertical: moderateScale(4),
     color: "#333",
   },
 
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: moderateScale(6),
+    marginBottom: moderateScale(4),
   },
   sectionTitle: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: PRIMARY,
   },
   campaignCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: moderateScale(12),
+    padding: moderateScale(12),
+    marginBottom: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -581,69 +602,69 @@ const styles = StyleSheet.create({
   campaignHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   campaignTitle: {
     flex: 1,
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: "#222",
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(3),
     borderRadius: 999,
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
     textTransform: "uppercase",
   },
   campaignCategory: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#888",
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   campaignMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   campaignMetaLabel: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: "#888",
   },
   campaignMetaValue: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: PRIMARY,
     fontWeight: "700",
   },
   emptyBox: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 28,
+    paddingVertical: moderateScale(26),
   },
   emptyTitle: {
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: PRIMARY,
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
     textAlign: "center",
   },
   emptyDesc: {
     color: "#888",
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     textAlign: "center",
   },
   memberCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginTop: 8,
+    borderRadius: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    marginTop: moderateScale(8),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
@@ -651,41 +672,41 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   memberAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
     backgroundColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: moderateScale(10),
   },
   memberAvatarText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
   },
   memberName: {
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: "#222",
   },
   memberMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   memberRole: {
     color: PRIMARY,
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
   },
   memberDot: {
     color: "#999",
-    fontSize: 12,
-    marginHorizontal: 6,
+    fontSize: normalizeFontSize(11),
+    marginHorizontal: moderateScale(6),
   },
   memberDate: {
     color: "#888",
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
   },
 });

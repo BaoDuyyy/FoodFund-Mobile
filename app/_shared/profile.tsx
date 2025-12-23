@@ -11,7 +11,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Dimensions,
   Image,
+  PixelRatio,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,6 +23,22 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -454,11 +472,11 @@ const styles = StyleSheet.create({
 
   coverWrap: {
     width: '100%',
-    height: 170,
+    height: moderateScale(160),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginBottom: 50, // Space for avatar to overlap
+    borderBottomLeftRadius: moderateScale(22),
+    borderBottomRightRadius: moderateScale(22),
+    marginBottom: moderateScale(45), // Space for avatar to overlap
   },
   coverImg: {
     width: '100%',
@@ -471,13 +489,13 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     position: 'absolute',
-    bottom: -40,
+    bottom: moderateScale(-38),
     alignSelf: 'center',
   },
   avatarCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: moderateScale(85),
+    height: moderateScale(85),
+    borderRadius: moderateScale(43),
     backgroundColor: '#fff',
     borderWidth: 3,
     borderColor: '#fff',
@@ -498,17 +516,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 10, // Reduced since header has marginBottom now
-    paddingBottom: 24,
+    paddingHorizontal: '5%',
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(22),
   },
 
   profileCard: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 20,
+    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: moderateScale(16),
+    paddingBottom: moderateScale(18),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
@@ -516,149 +534,153 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   fullName: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: '800',
     color: '#222',
     textAlign: 'center',
   },
   username: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: '#888',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: moderateScale(10),
   },
   infoText: {
-    marginLeft: 6,
+    marginLeft: moderateScale(6),
     color: '#555',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
 
   badgeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    marginTop: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
     backgroundColor: '#fff7eb',
-    borderRadius: 14,
+    borderRadius: moderateScale(12),
     borderWidth: 1,
     borderColor: '#fed7aa',
   },
   badgeIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(8),
   },
   badgeName: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: '700',
     color: ACCENT,
   },
   badgeDesc: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: '#6b7280',
   },
 
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: moderateScale(14),
   },
   editBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: PRIMARY,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
     borderRadius: 999,
     justifyContent: 'center',
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   editBtnText: {
     color: '#fff',
     fontWeight: '700',
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: moderateScale(8),
+    fontSize: normalizeFontSize(13),
   },
   shareBtn: {
-    marginLeft: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    marginLeft: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
     borderRadius: 999,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ffe1cc',
   },
   logoutBtn: {
-    marginLeft: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    marginLeft: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
     borderRadius: 999,
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fecaca',
+    minHeight: moderateScale(44), // Ensure minimum touch target
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   summaryCard: {
-    marginTop: 18,
+    marginTop: moderateScale(16),
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
     borderWidth: 1,
     borderColor: '#ffe3c2',
   },
   summaryIconWrapMoney: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(10),
     backgroundColor: '#ffedd5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: moderateScale(12),
   },
   summaryIconText: {
     color: PRIMARY,
     fontWeight: '800',
-    fontSize: 18,
+    fontSize: normalizeFontSize(16),
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: '800',
     color: '#111',
   },
   summaryLabel: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: '#6b7280',
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   historyCard: {
-    marginTop: 16,
+    marginTop: moderateScale(14),
     backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: moderateScale(16),
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
     borderWidth: 1,
     borderColor: '#edf0f5',
   },
   historyTitle: {
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     fontWeight: '800',
     color: PRIMARY,
   },
   historySubtitle: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: '#6b7280',
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   historyHeader: {
     flexDirection: 'row',
@@ -668,20 +690,21 @@ const styles = StyleSheet.create({
   filterToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(18),
     backgroundColor: '#fff7ed',
     borderWidth: 1,
     borderColor: '#fed7aa',
-    gap: 4,
+    gap: moderateScale(4),
+    minHeight: moderateScale(32), // Ensure minimum touch target
   },
   filterToggleBtnActive: {
     backgroundColor: PRIMARY,
     borderColor: PRIMARY,
   },
   filterToggleText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: '600',
     color: PRIMARY,
   },
@@ -689,52 +712,54 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   filterPanel: {
-    marginTop: 12,
-    padding: 12,
+    marginTop: moderateScale(10),
+    padding: moderateScale(10),
     backgroundColor: '#fefce8',
-    borderRadius: 12,
+    borderRadius: moderateScale(10),
     borderWidth: 1,
     borderColor: '#fef08a',
   },
   filterLabel: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: '600',
     color: '#854d0e',
-    marginBottom: 6,
-    marginTop: 8,
+    marginBottom: moderateScale(6),
+    marginTop: moderateScale(8),
   },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: moderateScale(8),
   },
   filterInput: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
+    fontSize: normalizeFontSize(13),
     borderWidth: 1,
     borderColor: '#e5e7eb',
     color: '#111',
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   filterDash: {
     color: '#9ca3af',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   filterClearBtn: {
     alignSelf: 'flex-end',
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    marginTop: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    minHeight: moderateScale(32), // Ensure minimum touch target
   },
   filterClearText: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: '#6b7280',
     fontWeight: '500',
   },
@@ -743,76 +768,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    gap: 6,
+    gap: moderateScale(6),
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   filterDateText: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: '#111',
   },
   filterDatePlaceholder: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: '#999',
   },
   historyDivider: {
     height: 1,
     backgroundColor: '#edf0f5',
-    marginHorizontal: -16,
-    marginTop: 12,
-    marginBottom: 18,
+    marginHorizontal: moderateScale(-14),
+    marginTop: moderateScale(10),
+    marginBottom: moderateScale(16),
   },
   historyEmpty: {
     alignItems: 'center',
   },
   historyEmptyText: {
-    marginTop: 10,
-    fontSize: 14,
+    marginTop: moderateScale(10),
+    fontSize: normalizeFontSize(13),
     color: '#6b7280',
   },
   exploreBtn: {
-    marginTop: 14,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
+    marginTop: moderateScale(12),
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(10),
     borderRadius: 999,
     backgroundColor: PRIMARY,
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   exploreBtnText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   historyItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 10,
+    paddingVertical: moderateScale(10),
     borderTopWidth: 1,
     borderTopColor: '#edf0f5',
   },
   historyItemTitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: '700',
     color: PRIMARY,
   },
   historyItemCampaign: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: '#4b5563',
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   historyItemMeta: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: '#6b7280',
-    marginTop: 1,
+    marginTop: moderateScale(1),
   },
   historyItemAmountWrap: {
-    marginLeft: 10,
+    marginLeft: moderateScale(10),
     alignItems: 'flex-end',
   },
   historyItemAmount: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: '800',
     color: '#111827',
   },
@@ -820,11 +847,11 @@ const styles = StyleSheet.create({
   // Notification bell styles
   notificationBtn: {
     position: 'absolute',
-    top: 12,
-    right: 16,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    top: moderateScale(12),
+    right: moderateScale(14),
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -834,17 +861,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    minWidth: moderateScale(15),
+    height: moderateScale(15),
+    borderRadius: moderateScale(8),
     backgroundColor: '#dc2626',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: moderateScale(3),
   },
   notiBadgeText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: normalizeFontSize(8),
     fontWeight: '700',
   },
 });

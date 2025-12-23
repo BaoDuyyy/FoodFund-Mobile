@@ -2,8 +2,24 @@ import OrganizationService from "@/services/organizationService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Dimensions, FlatList, Image, PixelRatio, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 export default function OrganizationsPage() {
   const [search, setSearch] = useState("");
@@ -89,55 +105,58 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(8),
+    paddingBottom: moderateScale(10),
     backgroundColor: "#fff",
   },
   backBtn: {
-    marginRight: 8,
-    padding: 4,
+    marginRight: moderateScale(8),
+    padding: moderateScale(4),
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: normalizeFontSize(19),
     fontWeight: "800",
     color: "#222",
     flex: 1,
     textAlign: "center",
-    marginRight: 32,
+    marginRight: moderateScale(30),
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fafafa",
-    borderRadius: 18,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    borderRadius: moderateScale(16),
+    marginHorizontal: "4%",
+    marginBottom: moderateScale(8),
+    paddingVertical: moderateScale(8),
+    paddingHorizontal: moderateScale(8),
     borderWidth: 1,
     borderColor: "#f3f3f3",
+    minHeight: moderateScale(42), // Ensure minimum touch target
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: "#222",
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
     fontWeight: "500",
     backgroundColor: "transparent",
   },
   orgRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: moderateScale(12),
+    paddingHorizontal: "4%",
     backgroundColor: "#fff",
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   orgAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
+    width: moderateScale(42),
+    height: moderateScale(42),
+    borderRadius: moderateScale(21),
+    marginRight: moderateScale(10),
     backgroundColor: "#eee",
   },
   orgInfo: {
@@ -146,28 +165,29 @@ const styles = StyleSheet.create({
   },
   orgName: {
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: normalizeFontSize(15),
     color: "#222",
-    marginBottom: 2,
+    marginBottom: moderateScale(2),
   },
   orgDesc: {
     color: "#666",
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: normalizeFontSize(12),
+    marginTop: moderateScale(2),
   },
   orgAction: {
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
     backgroundColor: "#fff7f2",
-    borderRadius: 18,
-    padding: 8,
+    borderRadius: moderateScale(16),
+    padding: moderateScale(8),
     borderWidth: 1,
     borderColor: "#ffe3d1",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   separator: {
     height: 1,
     backgroundColor: "#f3f3f3",
-    marginLeft: 72,
+    marginLeft: moderateScale(62),
   },
 });

@@ -27,7 +27,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   FlatList,
+  PixelRatio,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,6 +38,22 @@ import {
 } from "react-native";
 import RenderHtml from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 type UserRole = "KITCHEN_STAFF" | "DELIVERY_STAFF" | string;
 
@@ -392,82 +410,83 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 120,
+    height: moderateScale(110),
     backgroundColor: PRIMARY,
     opacity: 0.95,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: moderateScale(22),
+    borderBottomRightRadius: moderateScale(22),
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(8),
+    paddingBottom: moderateScale(10),
   },
   headerBackBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     backgroundColor: "#ffe4d5",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   headerBackText: {
     color: PRIMARY,
-    fontSize: 20,
+    fontSize: normalizeFontSize(18),
     fontWeight: "800",
     marginTop: -2,
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "700",
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
   },
   headerSubtitle: {
     color: "#fed7aa",
-    fontSize: 11,
-    marginLeft: 12,
-    marginTop: 2,
+    fontSize: normalizeFontSize(10),
+    marginLeft: moderateScale(10),
+    marginTop: moderateScale(2),
   },
 
   listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 150,
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(140),
   },
 
   metaChipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 12,
+    gap: moderateScale(8),
+    marginTop: moderateScale(10),
   },
   metaChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
     borderRadius: 999,
   },
   metaChipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(4),
+    marginRight: moderateScale(6),
   },
   metaChipText: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: MUTED,
   },
 
   // Card
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 14,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(12),
+    marginTop: moderateScale(12),
     borderWidth: 1,
     borderColor: BORDER,
     shadowColor: "#000",
@@ -477,48 +496,48 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
     fontWeight: "800",
     color: PRIMARY,
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   cardSubTitle: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: "600",
     color: MUTED,
-    marginBottom: 2,
+    marginBottom: moderateScale(2),
   },
   cardDesc: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     color: MUTED,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 
   horizontalCards: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 8,
+    gap: moderateScale(10),
+    marginTop: moderateScale(8),
   },
   halfCard: {
     flex: 1,
   },
   highlightValue: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "700",
     color: TEXT,
   },
 
   desc: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: TEXT,
-    lineHeight: 22,
+    lineHeight: moderateScale(20),
   },
 
   // Phases
   phaseBox: {
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 14,
+    marginTop: moderateScale(10),
+    padding: moderateScale(10),
+    borderRadius: moderateScale(12),
     backgroundColor: "#fff7ed",
     borderWidth: 1,
     borderColor: "#fed7aa",
@@ -526,101 +545,102 @@ const styles = StyleSheet.create({
   phaseHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   phaseIndexCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
     backgroundColor: "#ffedd5",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   phaseIndexText: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     fontWeight: "700",
     color: PRIMARY,
   },
   phaseTitle: {
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
     fontWeight: "700",
     color: PRIMARY,
   },
   phaseRow: {
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   phaseLabel: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "600",
     color: "#b45309",
   },
   phaseValue: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: TEXT,
   },
   phaseDatesRow: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 6,
+    gap: moderateScale(8),
+    marginTop: moderateScale(6),
   },
   phaseDateItem: {
     flex: 1,
-    padding: 6,
-    borderRadius: 10,
+    padding: moderateScale(6),
+    borderRadius: moderateScale(8),
     backgroundColor: "#fefce8",
   },
   phaseDateLabel: {
-    fontSize: 11,
+    fontSize: normalizeFontSize(10),
     color: "#854d0e",
     fontWeight: "600",
   },
   phaseDateValue: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: TEXT,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   errorText: {
     textAlign: "center",
-    marginTop: 40,
+    marginTop: moderateScale(36),
     color: "#dc2626",
     fontWeight: "600",
+    fontSize: normalizeFontSize(14),
   },
 
   // Planned Meals styles
   plannedMealsSection: {
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: moderateScale(10),
+    paddingTop: moderateScale(10),
     borderTopWidth: 1,
     borderTopColor: "#fde68a",
   },
   plannedMealsSectionTitle: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     fontWeight: "700",
     color: PRIMARY,
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
   },
   plannedMealItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: moderateScale(6),
   },
   plannedMealDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
     backgroundColor: ACCENT_GREEN,
-    marginRight: 10,
+    marginRight: moderateScale(10),
   },
   plannedMealName: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     fontWeight: "600",
     color: TEXT,
   },
   plannedMealQty: {
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
     color: MUTED,
-    marginTop: 1,
+    marginTop: moderateScale(1),
   },
 });

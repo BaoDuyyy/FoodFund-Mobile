@@ -3,7 +3,24 @@ import DonationService from "@/services/donationService";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Dimensions, FlatList, PixelRatio, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
+
 const PRIMARY = "#ad4e28";
 
 export default function DonorListPage() {
@@ -46,7 +63,7 @@ export default function DonorListPage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color="#222" />
+          <Ionicons name="arrow-back" size={moderateScale(18)} color="#222" />
           <Text style={styles.backText}>Quay lại</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Danh sách người ủng hộ</Text>
@@ -57,6 +74,7 @@ export default function DonorListPage() {
         <TextInput
           style={styles.searchInput}
           placeholder="Tìm kiếm người ủng hộ..."
+          placeholderTextColor="#999"
           value={search}
           onChangeText={text => { setSearch(text); setPage(1); }}
         />
@@ -65,7 +83,7 @@ export default function DonorListPage() {
           onPress={() => setSort(sort === "desc" ? "asc" : "desc")}
         >
           <Text style={styles.sortText}>{sort === "desc" ? "Mới nhất" : "Cũ nhất"}</Text>
-          <Ionicons name="chevron-down" size={16} color="#222" />
+          <Ionicons name="chevron-down" size={moderateScale(14)} color="#222" />
         </TouchableOpacity>
       </View>
 
@@ -103,7 +121,7 @@ export default function DonorListPage() {
               <Text style={styles.emptyText}>Chưa có lượt ủng hộ nào</Text>
             </View>
           }
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: moderateScale(22) }}
         />
       )}
 
@@ -132,42 +150,75 @@ export default function DonorListPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f6f4", padding: 16 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  backBtn: { flexDirection: "row", alignItems: "center", marginRight: 8 },
-  backText: { color: "#222", fontWeight: "600", marginLeft: 4, fontSize: 14 },
-  title: { fontWeight: "800", fontSize: 18, color: "#222" },
-  searchRow: { flexDirection: "row", marginBottom: 12 },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f6f4",
+    paddingHorizontal: "4%",
+    paddingTop: moderateScale(14),
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: moderateScale(12),
+  },
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: moderateScale(8),
+    minHeight: moderateScale(36), // Ensure minimum touch target
+  },
+  backText: {
+    color: "#222",
+    fontWeight: "600",
+    marginLeft: moderateScale(4),
+    fontSize: normalizeFontSize(13),
+  },
+  title: {
+    fontWeight: "800",
+    fontSize: normalizeFontSize(17),
+    color: "#222",
+  },
+  searchRow: {
+    flexDirection: "row",
+    marginBottom: moderateScale(12),
+  },
   searchInput: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    marginRight: 8,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(8),
+    fontSize: normalizeFontSize(13),
+    marginRight: moderateScale(8),
     borderWidth: 1,
     borderColor: "#eee",
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
   sortBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(8),
     borderWidth: 1,
     borderColor: "#eee",
+    minHeight: moderateScale(40), // Ensure minimum touch target
   },
-  sortText: { color: "#222", fontWeight: "600", fontSize: 13, marginRight: 4 },
+  sortText: {
+    color: "#222",
+    fontWeight: "600",
+    fontSize: normalizeFontSize(12),
+    marginRight: moderateScale(4),
+  },
   card: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginBottom: 10,
+    borderRadius: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    marginBottom: moderateScale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
@@ -175,38 +226,79 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: "#ffb46b",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: moderateScale(10),
   },
-  avatarText: { color: "#fff", fontWeight: "700", fontSize: 20 },
-  name: { fontWeight: "700", fontSize: 16, color: "#111" },
-  date: { color: "#888", fontSize: 13, marginTop: 2 },
-  amountBox: { alignItems: "flex-end", marginLeft: 12 },
-  amount: { color: "#ad4e28", fontWeight: "800", fontSize: 17 },
-  amountUnit: { color: "#888", fontSize: 12, fontWeight: "600" },
-  emptyBox: { alignItems: "center", justifyContent: "center", paddingVertical: 24 },
-  emptyText: { color: "#888", fontSize: 15, fontWeight: "600" },
+  avatarText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: normalizeFontSize(18),
+  },
+  name: {
+    fontWeight: "700",
+    fontSize: normalizeFontSize(15),
+    color: "#111",
+  },
+  date: {
+    color: "#888",
+    fontSize: normalizeFontSize(12),
+    marginTop: moderateScale(2),
+  },
+  amountBox: {
+    alignItems: "flex-end",
+    marginLeft: moderateScale(10),
+  },
+  amount: {
+    color: "#ad4e28",
+    fontWeight: "800",
+    fontSize: normalizeFontSize(16),
+  },
+  amountUnit: {
+    color: "#888",
+    fontSize: normalizeFontSize(11),
+    fontWeight: "600",
+  },
+  emptyBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: moderateScale(22),
+  },
+  emptyText: {
+    color: "#888",
+    fontSize: normalizeFontSize(14),
+    fontWeight: "600",
+  },
   pagingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    gap: 12,
+    marginTop: moderateScale(8),
+    gap: moderateScale(10),
   },
   pagingBtn: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: moderateScale(6),
     borderWidth: 1,
     borderColor: "#eee",
+    minHeight: moderateScale(36), // Ensure minimum touch target
   },
   pagingBtnDisabled: { opacity: 0.5 },
-  pagingText: { color: PRIMARY, fontWeight: "700", fontSize: 14 },
-  pagingInfo: { color: "#222", fontWeight: "600", fontSize: 14 },
+  pagingText: {
+    color: PRIMARY,
+    fontWeight: "700",
+    fontSize: normalizeFontSize(13),
+  },
+  pagingInfo: {
+    color: "#222",
+    fontWeight: "600",
+    fontSize: normalizeFontSize(13),
+  },
 });
+

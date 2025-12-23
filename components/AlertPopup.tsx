@@ -1,12 +1,24 @@
 import React, { FC, useEffect, useRef } from "react";
 import {
     Animated,
+    Dimensions,
     Modal,
+    PixelRatio,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+
+// Responsive scaling functions
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BASE_WIDTH = 375;
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFontSize = (size: number) => {
+    const newSize = scale(size);
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 type Props = {
     visible?: boolean;
@@ -88,15 +100,15 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.5)",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 28,
+        paddingHorizontal: "7%",
     },
     box: {
         width: "100%",
-        maxWidth: 300,
+        maxWidth: moderateScale(280),
         backgroundColor: "#fff",
-        borderRadius: 24,
-        paddingVertical: 28,
-        paddingHorizontal: 24,
+        borderRadius: moderateScale(22),
+        paddingVertical: moderateScale(26),
+        paddingHorizontal: moderateScale(22),
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 8 },
@@ -106,29 +118,30 @@ const styles = StyleSheet.create({
     },
     title: {
         color: PRIMARY,
-        fontSize: 20,
+        fontSize: normalizeFontSize(19),
         fontWeight: "700",
         textAlign: "center",
-        marginBottom: 16,
+        marginBottom: moderateScale(14),
     },
     message: {
         color: "#333",
-        fontSize: 16,
+        fontSize: normalizeFontSize(15),
         fontWeight: "500",
         textAlign: "center",
-        lineHeight: 24,
-        marginBottom: 20,
+        lineHeight: moderateScale(22),
+        marginBottom: moderateScale(18),
     },
     button: {
         backgroundColor: PRIMARY,
-        paddingVertical: 12,
-        paddingHorizontal: 32,
-        borderRadius: 12,
-        marginTop: 4,
+        paddingVertical: moderateScale(10),
+        paddingHorizontal: moderateScale(28),
+        borderRadius: moderateScale(10),
+        marginTop: moderateScale(4),
+        minHeight: moderateScale(44), // Ensure minimum touch target
     },
     buttonText: {
         color: "#fff",
-        fontSize: 16,
+        fontSize: normalizeFontSize(15),
         fontWeight: "600",
     },
 });

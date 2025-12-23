@@ -3,8 +3,24 @@ import OrganizationService from '@/services/organizationService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, PixelRatio, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Base width for scaling (based on standard phone width ~375px)
+const BASE_WIDTH = 375;
+
+// Responsive scaling functions
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+// Normalize font size based on pixel ratio for consistency across devices
+const normalizeFontSize = (size: number) => {
+  const newSize = scale(size);
+  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 const PRIMARY = '#ad4e28';
 
@@ -198,8 +214,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: '4%',
+    paddingVertical: moderateScale(10),
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f3f3',
@@ -209,41 +225,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginRight: 10,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    marginRight: moderateScale(10),
+    minHeight: moderateScale(42), // Ensure minimum touch target
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     color: '#333',
     padding: 0,
   },
   closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(10),
     backgroundColor: '#f7f7f7',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#f3f3f3',
+    minHeight: moderateScale(38), // Ensure minimum touch target
   },
 
   // Tabs
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
+    paddingHorizontal: '4%',
+    paddingVertical: moderateScale(10),
+    gap: moderateScale(10),
   },
   tabButton: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(10),
     alignItems: 'center',
+    minHeight: moderateScale(42), // Ensure minimum touch target
   },
   tabActive: {
     backgroundColor: PRIMARY,
@@ -251,7 +270,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: '#666',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: normalizeFontSize(13),
   },
   tabTextActive: {
     color: '#fff',
@@ -260,21 +279,21 @@ const styles = StyleSheet.create({
   // Content
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: '4%',
   },
 
   // Campaign Item
   campaignItem: {
     flexDirection: 'row',
-    paddingVertical: 14,
+    paddingVertical: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
     alignItems: 'flex-start',
   },
   thumb: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+    width: moderateScale(75),
+    height: moderateScale(75),
+    borderRadius: moderateScale(10),
     backgroundColor: '#f5f5f5',
     overflow: 'hidden',
     alignItems: 'center',
@@ -286,58 +305,59 @@ const styles = StyleSheet.create({
   },
   campaignInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
   },
   campaignTitle: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: '700',
     color: '#222',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: moderateScale(6),
   },
   metaText: {
     color: '#999',
-    fontSize: 12,
+    fontSize: normalizeFontSize(11),
   },
   metaDot: {
     color: '#ccc',
-    marginHorizontal: 6,
+    marginHorizontal: moderateScale(6),
   },
   amount: {
     color: PRIMARY,
     fontWeight: '700',
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: normalizeFontSize(13),
+    marginBottom: moderateScale(6),
   },
   progressBar: {
     width: '100%',
-    height: 6,
+    height: moderateScale(6),
     backgroundColor: '#f0f0f0',
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
     overflow: 'hidden',
   },
   progressFill: {
-    height: 6,
+    height: moderateScale(6),
     backgroundColor: PRIMARY,
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
   },
 
   // Organization Item
   orgItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: moderateScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
+    minHeight: moderateScale(44), // Ensure minimum touch target
   },
   orgAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(12),
     backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
@@ -345,34 +365,34 @@ const styles = StyleSheet.create({
   orgAvatarText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 18,
+    fontSize: normalizeFontSize(17),
   },
   orgInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: moderateScale(10),
   },
   orgName: {
-    fontSize: 15,
+    fontSize: normalizeFontSize(14),
     fontWeight: '700',
     color: '#222',
   },
   orgMeta: {
-    fontSize: 13,
+    fontSize: normalizeFontSize(12),
     color: '#999',
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   // Empty state
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: moderateScale(50),
   },
   emptyText: {
     color: '#999',
     textAlign: 'center',
-    marginTop: 12,
-    fontSize: 15,
+    marginTop: moderateScale(10),
+    fontSize: normalizeFontSize(14),
   },
 });
 

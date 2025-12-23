@@ -1,7 +1,14 @@
 import React from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, PixelRatio, StyleSheet, Text, View } from "react-native";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BASE_WIDTH = 375;
+const scale = (size: number) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const normalizeFontSize = (size: number) => {
+    const newSize = scale(size);
+    return Math.round(PixelRatio.roundToNearestPixel(newSize));
+};
 
 interface EmptyStateProps {
     /** Custom message to display (default: "Không có dữ liệu") */
@@ -21,11 +28,12 @@ export default function EmptyState({
     subMessage,
     logoSize = 120,
 }: EmptyStateProps) {
+    const scaledLogoSize = moderateScale(logoSize);
     return (
         <View style={styles.container}>
             <Image
                 source={require("@/assets/images/empty.png")}
-                style={[styles.logo, { width: logoSize, height: logoSize }]}
+                style={[styles.logo, { width: scaledLogoSize, height: scaledLogoSize }]}
                 resizeMode="contain"
             />
             <Text style={styles.message}>{message}</Text>
@@ -39,24 +47,24 @@ const styles = StyleSheet.create({
         width: SCREEN_WIDTH,
         justifyContent: "center",
         alignItems: "center",
-        paddingVertical: 32,
-        paddingHorizontal: 24,
+        paddingVertical: moderateScale(28),
+        paddingHorizontal: "6%",
     },
     logo: {
-        marginBottom: 20,
+        marginBottom: moderateScale(18),
         opacity: 0.6,
     },
     message: {
-        fontSize: 16,
+        fontSize: normalizeFontSize(15),
         fontWeight: "600",
         color: "#666",
         textAlign: "center",
-        marginBottom: 8,
+        marginBottom: moderateScale(8),
     },
     subMessage: {
-        fontSize: 14,
+        fontSize: normalizeFontSize(13),
         color: "#999",
         textAlign: "center",
-        lineHeight: 20,
+        lineHeight: moderateScale(18),
     },
 });
