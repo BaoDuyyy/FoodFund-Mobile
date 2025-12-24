@@ -113,6 +113,7 @@ export default function KitchenWorkflowCard({
                         deliveryFundsAmount: p.deliveryFundsAmount,
                     }))
                 ),
+                expenseType: "COOKING",
             },
         });
     };

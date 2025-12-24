@@ -78,6 +78,7 @@ export default function DeliveryWorkflowCard({
                         deliveryFundsAmount: p.deliveryFundsAmount,
                     }))
                 ),
+                expenseType: "DELIVERY",
             },
         });
     };

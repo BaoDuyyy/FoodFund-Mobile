@@ -40,8 +40,7 @@ type Phase = {
   deliveryFundsAmount?: number | string | null;
 };
 
-const EXPENSE_TYPES = ["COOKING", "DELIVERY"] as const;
-type ExpenseType = (typeof EXPENSE_TYPES)[number];
+type ExpenseType = "COOKING" | "DELIVERY";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -55,9 +54,34 @@ const formatVnd = (value: string | number | null | undefined) => {
   return n.toLocaleString("vi-VN");
 };
 
+// Get label and description based on expense type
+const getExpenseTypeInfo = (type: ExpenseType) => {
+  if (type === "COOKING") {
+    return {
+      label: "Nấu ăn",
+      headerTitle: "Giải ngân chi phí nấu ăn",
+      headerSubtitle: "Nhân viên bếp – Yêu cầu giải ngân cho chi phí nấu",
+      budgetLabel: "Ngân sách chi phí nấu ăn",
+    };
+  }
+  return {
+    label: "Vận chuyển",
+    headerTitle: "Giải ngân chi phí vận chuyển",
+    headerSubtitle: "Nhân viên giao hàng – Yêu cầu giải ngân cho vận chuyển",
+    budgetLabel: "Ngân sách chi phí vận chuyển",
+  };
+};
+
 export default function OperationRequestPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phases?: string }>();
+  const params = useLocalSearchParams<{ phases?: string; expenseType?: string }>();
+
+  // Get expense type from URL params (passed from caller)
+  const expenseType: ExpenseType = (params.expenseType === "COOKING" || params.expenseType === "DELIVERY")
+    ? params.expenseType
+    : "COOKING"; // default fallback
+
+  const expenseTypeInfo = getExpenseTypeInfo(expenseType);
 
   const phases: Phase[] = useMemo(() => {
     try {
@@ -83,7 +107,6 @@ export default function OperationRequestPage() {
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>(
     phases[0]?.id || ""
   );
-  const [expenseType, setExpenseType] = useState<ExpenseType>("COOKING");
   const [title, setTitle] = useState("Chi phí");
   const [totalCost, setTotalCost] = useState<string>(""); // lưu digits "20000"
   const [submitting, setSubmitting] = useState(false);
@@ -115,7 +138,7 @@ export default function OperationRequestPage() {
     } else {
       setTotalCost("");
     }
-  }, [expenseType, selectedPhaseId]);
+  }, [selectedPhaseId]);
 
   const showAlert = (message: string) => {
     setAlertMessage(message);
@@ -177,9 +200,9 @@ export default function OperationRequestPage() {
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Tạo yêu cầu giải ngân</Text>
+          <Text style={styles.headerTitle}>{expenseTypeInfo.headerTitle}</Text>
           <Text style={styles.headerSubtitle}>
-            Minh bạch – rõ ràng – chuẩn xác trong từng khoản chi
+            {expenseTypeInfo.headerSubtitle}
           </Text>
         </View>
         <View style={{ width: 32 }} />
@@ -194,7 +217,7 @@ export default function OperationRequestPage() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Thông tin chung</Text>
           <Text style={styles.cardDesc}>
-            Chọn giai đoạn chiến dịch và loại chi phí bạn muốn xin giải ngân.
+            Chọn giai đoạn chiến dịch để yêu cầu giải ngân chi phí {expenseTypeInfo.label.toLowerCase()}.
           </Text>
 
           {/* Chọn phase */}
@@ -225,34 +248,18 @@ export default function OperationRequestPage() {
             </View>
           )}
 
-          {/* Expense type */}
+          {/* Expense type display (read-only) */}
           <Text style={styles.label}>Loại chi phí</Text>
-          <View style={styles.chipRow}>
-            {EXPENSE_TYPES.map((t) => {
-              const active = t === expenseType;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.chip, active && styles.chipActiveSoft]}
-                  onPress={() => setExpenseType(t)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      active && styles.chipTextActiveSoft,
-                    ]}
-                  >
-                    {t === "COOKING" ? "Nấu ăn" : "Vận chuyển"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={[styles.chip, styles.chipActiveSoft, { alignSelf: 'flex-start' }]}>
+            <Text style={[styles.chipText, styles.chipTextActiveSoft]}>
+              {expenseTypeInfo.label}
+            </Text>
           </View>
 
           {currentBudget > 0 && (
             <View style={styles.budgetBox}>
               <Text style={styles.budgetLabel}>
-                Ngân sách cho loại chi phí này
+                {expenseTypeInfo.budgetLabel}
               </Text>
               <Text style={styles.budgetValue}>
                 {formatVnd(currentBudget)} VND
@@ -264,6 +271,7 @@ export default function OperationRequestPage() {
             </View>
           )}
         </View>
+
 
         {/* Card 2: chi tiết yêu cầu */}
         <View style={styles.card}>
