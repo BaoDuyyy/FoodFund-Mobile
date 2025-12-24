@@ -32,7 +32,7 @@ export default function FundingProgressCard({
             <View style={styles.progressRow}>
                 <View style={styles.progressNumbers}>
                     <Text style={styles.amountText}>
-                        {receivedAmount} / {targetAmount} VND
+                        {Number(receivedAmount || 0).toLocaleString("vi-VN")} / {Number(targetAmount || 0).toLocaleString("vi-VN")} đ
                     </Text>
                     <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
                 </View>

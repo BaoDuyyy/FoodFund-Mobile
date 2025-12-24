@@ -7,7 +7,7 @@
 // STATUS FILTERS
 // ============================================================================
 
-export type CampaignStatusKey = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'PROCESSING' | 'APPROVED';
+export type CampaignStatusKey = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'PROCESSING' | 'APPROVED' | 'CANCELLED';
 
 export interface StatusOption {
     key: CampaignStatusKey;
@@ -22,8 +22,9 @@ export const CAMPAIGN_STATUS_OPTIONS: StatusOption[] = [
     { key: 'ALL', label: 'Tất cả', backendStatus: null, color: '#6b7280', bgColor: '#f3f4f6', icon: 'apps' },
     { key: 'ACTIVE', label: 'Đang gây quỹ', backendStatus: 'ACTIVE', color: '#16a34a', bgColor: '#dcfce7', icon: 'flame' },
     { key: 'COMPLETED', label: 'Hoàn thành', backendStatus: 'COMPLETED', color: '#2563eb', bgColor: '#dbeafe', icon: 'checkmark-circle' },
-    { key: 'PROCESSING', label: 'Đang xử lý', backendStatus: 'PROCESSING', color: '#f59e0b', bgColor: '#fef3c7', icon: 'time' },
+    { key: 'PROCESSING', label: 'Đang tiến hành', backendStatus: 'PROCESSING', color: '#f59e0b', bgColor: '#fef3c7', icon: 'time' },
     { key: 'APPROVED', label: 'Đã duyệt', backendStatus: 'APPROVED', color: '#8b5cf6', bgColor: '#ede9fe', icon: 'shield-checkmark' },
+    { key: 'CANCELLED', label: 'Đã hủy', backendStatus: 'CANCELLED', color: '#dc2626', bgColor: '#fee2e2', icon: 'close-circle' },
 ];
 
 // ============================================================================

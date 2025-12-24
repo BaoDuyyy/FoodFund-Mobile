@@ -2,6 +2,7 @@ import AlertPopup from "@/components/AlertPopup";
 import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -185,7 +186,7 @@ export default function OperationRequestPage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Loading visible={submitting} message="Đang gửi yêu cầu..." />
       <AlertPopup
         visible={alertVisible}
@@ -196,16 +197,18 @@ export default function OperationRequestPage() {
       {/* HEADER */}
       <View style={styles.headerBg} />
       <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
+        <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>{expenseTypeInfo.headerTitle}</Text>
-          <Text style={styles.headerSubtitle}>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {expenseTypeInfo.headerTitle}
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
             {expenseTypeInfo.headerSubtitle}
           </Text>
         </View>
-        <View style={{ width: 32 }} />
+        <View style={{ width: moderateScale(36) }} />
       </View>
 
       <ScrollView
@@ -340,46 +343,52 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: moderateScale(100),
+    height: moderateScale(120),
     backgroundColor: PRIMARY,
-    borderBottomLeftRadius: moderateScale(22),
-    borderBottomRightRadius: moderateScale(22),
+    borderBottomLeftRadius: moderateScale(28),
+    borderBottomRightRadius: moderateScale(28),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: "4%",
-    paddingTop: moderateScale(8),
-    paddingBottom: moderateScale(10),
+    paddingTop: moderateScale(50),
+    paddingBottom: moderateScale(14),
   },
-  backBtn: {
-    width: moderateScale(30),
-    height: moderateScale(30),
-    borderRadius: moderateScale(15),
-    backgroundColor: "#ffe4d5",
+  headerBackBtn: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(12),
+    backgroundColor: "rgba(255,255,255,0.95)",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: moderateScale(36), // Ensure minimum touch target
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  backIcon: {
-    color: PRIMARY,
-    fontSize: normalizeFontSize(18),
-    fontWeight: "800",
-    marginTop: -2,
-  },
-  headerTextWrap: {
+  headerCenter: {
     flex: 1,
-    marginLeft: moderateScale(10),
+    marginHorizontal: moderateScale(12),
+    alignItems: "center",
   },
   headerTitle: {
-    fontSize: normalizeFontSize(17),
+    fontSize: normalizeFontSize(16),
     fontWeight: "700",
     color: "#fff",
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: normalizeFontSize(11),
     color: "#fed7aa",
     marginTop: moderateScale(2),
+    textAlign: "center",
   },
 
   content: {

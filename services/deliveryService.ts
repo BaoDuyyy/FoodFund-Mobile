@@ -1,10 +1,14 @@
 import { getGraphqlUrl } from "@/config/api";
 import { UPDATE_DELIVERY_TASK_STATUS } from "@/graphql/mutation/updateDeliveryTaskStatus";
+import { DELIVERY_TASKS } from "@/graphql/query/deliveryTasks";
 import { GET_DELIVERY_TASK } from "@/graphql/query/getDeliveryTask";
 import { MY_DELIVERY_TASKS } from "@/graphql/query/myDeliveryTasks";
 import type {
   DeliveryTask,
   DeliveryTaskDetail,
+  DeliveryTaskFilterInput,
+  DeliveryTasksResponse,
+  DeliveryTaskWithStaff,
   GetDeliveryTaskResponse,
   MyDeliveryTasksResponse,
   UpdateDeliveryTaskStatusInput,
@@ -97,6 +101,33 @@ const DeliveryService = {
     const payload = response.data?.myDeliveryTasks;
     if (!Array.isArray(payload)) {
       throw new Error("Empty or invalid myDeliveryTasks response");
+    }
+
+    return payload;
+  },
+
+  /**
+   * Fetch delivery tasks with filter (campaignId, campaignPhaseId, etc.)
+   */
+  async listDeliveryTasks(
+    filter: DeliveryTaskFilterInput,
+    overrideUrl?: string
+  ): Promise<DeliveryTaskWithStaff[]> {
+    const response = await graphqlRequest<DeliveryTasksResponse>(
+      DELIVERY_TASKS,
+      { filter },
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
+    }
+
+    const payload = response.data?.deliveryTasks;
+    if (!Array.isArray(payload)) {
+      throw new Error("Empty or invalid deliveryTasks response");
     }
 
     return payload;

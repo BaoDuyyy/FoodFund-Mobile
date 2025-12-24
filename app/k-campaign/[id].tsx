@@ -18,15 +18,18 @@ import {
   PRIMARY,
   STRONG_TEXT as TEXT
 } from "@/constants/colors";
+import { getPhaseStatusLabel } from "@/constants/phaseStatusLabels";
 import CampaignService from "@/services/campaignService";
 import ExpenseProofService from "@/services/expenseProofService";
 import UserService from "@/services/userService";
 import type { CampaignDetail } from "@/types/api/campaign";
 import type { ExpenseProof } from "@/types/api/expenseProof";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   PixelRatio,
@@ -57,29 +60,6 @@ const normalizeFontSize = (size: number) => {
 
 type UserRole = "KITCHEN_STAFF" | "DELIVERY_STAFF" | string;
 
-// Map phase status code -> Vietnamese label
-const phaseStatusLabels: Record<string, string> = {
-  PLANNING: "Đang lên kế hoạch",
-  AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân nguyên liệu",
-  INGREDIENT_PURCHASE: "Đang mua nguyên liệu",
-  AWAITING_AUDIT: "Chờ kiểm tra chứng từ",
-  AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí nấu ăn",
-  COOKING: "Đang nấu ăn",
-  AWAITING_DELIVERY_DISBURSEMENT: "Chờ giải ngân chi phí vận chuyển",
-  DELIVERY: "Đang vận chuyển",
-  COMPLETED: "Hoàn thành",
-  CANCELLED: "Đã hủy",
-  FAILED: "Thất bại",
-  NULL: "Chưa xác định",
-  DEFAULT: "Không xác định",
-};
-
-function getPhaseStatusLabel(status?: string | null): string {
-  if (!status) return "Không xác định";
-  const key = status.toUpperCase().trim();
-  return phaseStatusLabels[key] || "Không xác định";
-}
-
 // Get campaign status label from constants
 function getCampaignStatusLabel(status?: string | null): string {
   if (!status) return "Không xác định";
@@ -99,6 +79,37 @@ export default function CampaignDetailPage() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const { width } = useWindowDimensions();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Reload function
+  const reloadCampaign = useCallback(async () => {
+    if (!id) return;
+    setRefreshing(true);
+    try {
+      // Reload campaign
+      const detail = await CampaignService.getCampaign(id as string);
+      setCampaign(detail);
+
+      // Reload expense proofs
+      if (detail?.id) {
+        const proofs = await ExpenseProofService.getExpenseProofs({
+          filter: {
+            campaignId: detail.id,
+            campaignPhaseId: null,
+            requestId: null,
+            status: null,
+          },
+          limit: 5,
+          offset: 0,
+        });
+        setExpenseProofs(proofs || []);
+      }
+    } catch (err) {
+      console.error("Error reloading campaign:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -187,15 +198,24 @@ export default function CampaignDetailPage() {
       <View style={styles.headerBg} />
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBackBtn}>
-          <Text style={styles.headerBackText}>‹</Text>
+          <Ionicons name="chevron-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            Chi tiết chiến dịch
+            {campaign.title || "Chi tiết chiến dịch"}
           </Text>
-          <Text style={styles.headerSubtitle}>Minh bạch – Nhân ái – Kết nối</Text>
         </View>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity
+          onPress={reloadCampaign}
+          style={styles.headerRefreshBtn}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={PRIMARY} />
+          ) : (
+            <Ionicons name="refresh" size={18} color={PRIMARY} />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* BODY */}
@@ -312,11 +332,11 @@ export default function CampaignDetailPage() {
                         <Text style={styles.phaseLabel}>Ngân sách</Text>
                         <Text style={styles.phaseValue}>
                           Nguyên liệu {phase.ingredientBudgetPercentage}% (
-                          {phase.ingredientFundsAmount} VND){"\n"}
+                          {Number(phase.ingredientFundsAmount || 0).toLocaleString("vi-VN")} đ){"\n"}
                           Nấu ăn {phase.cookingBudgetPercentage}% (
-                          {phase.cookingFundsAmount} VND){"\n"}
+                          {Number(phase.cookingFundsAmount || 0).toLocaleString("vi-VN")} đ){"\n"}
                           Vận chuyển {phase.deliveryBudgetPercentage}% (
-                          {phase.deliveryFundsAmount} VND)
+                          {Number(phase.deliveryFundsAmount || 0).toLocaleString("vi-VN")} đ)
                         </Text>
                       </View>
 
@@ -410,45 +430,77 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: moderateScale(110),
+    height: moderateScale(120),
     backgroundColor: PRIMARY,
-    opacity: 0.95,
-    borderBottomLeftRadius: moderateScale(22),
-    borderBottomRightRadius: moderateScale(22),
+    borderBottomLeftRadius: moderateScale(28),
+    borderBottomRightRadius: moderateScale(28),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: "4%",
-    paddingTop: moderateScale(8),
-    paddingBottom: moderateScale(10),
+    paddingTop: moderateScale(10),
+    paddingBottom: moderateScale(14),
   },
   headerBackBtn: {
-    width: moderateScale(30),
-    height: moderateScale(30),
-    borderRadius: moderateScale(15),
-    backgroundColor: "#ffe4d5",
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(12),
+    backgroundColor: "rgba(255,255,255,0.95)",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: moderateScale(36), // Ensure minimum touch target
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  headerBackText: {
-    color: PRIMARY,
-    fontSize: normalizeFontSize(18),
-    fontWeight: "800",
-    marginTop: -2,
+  headerCenter: {
+    flex: 1,
+    marginHorizontal: moderateScale(12),
+    alignItems: "center",
   },
   headerTitle: {
     color: "#fff",
-    fontSize: normalizeFontSize(17),
+    fontSize: normalizeFontSize(15),
     fontWeight: "700",
-    marginLeft: moderateScale(10),
+    textAlign: "center",
+    marginBottom: moderateScale(4),
   },
-  headerSubtitle: {
-    color: "#fed7aa",
+  headerStatusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
+    borderRadius: 999,
+  },
+  headerStatusDot: {
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
+    marginRight: moderateScale(5),
+  },
+  headerStatusText: {
     fontSize: normalizeFontSize(10),
-    marginLeft: moderateScale(10),
-    marginTop: moderateScale(2),
+    fontWeight: "600",
+  },
+  headerRefreshBtn: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(12),
+    backgroundColor: "rgba(255,255,255,0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   listContent: {

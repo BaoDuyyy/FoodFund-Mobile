@@ -209,7 +209,7 @@ export default function IngredientRequestPage() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header với nền cong nhẹ */}
       <View style={styles.headerBg} />
 
@@ -349,14 +349,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: moderateScale(120),
+    height: moderateScale(180),
     backgroundColor: PRIMARY,
     borderBottomLeftRadius: moderateScale(24),
     borderBottomRightRadius: moderateScale(24),
   },
   header: {
     paddingHorizontal: "4%",
-    paddingTop: moderateScale(10),
+    paddingTop: moderateScale(50),
     paddingBottom: moderateScale(12),
   },
   backBtn: {

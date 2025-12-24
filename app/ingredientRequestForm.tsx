@@ -72,8 +72,8 @@ const UNIT_GROUPS: { label: string; units: string[] }[] = [
   { label: "Khác", units: ["suất", "phần", "bộ", "cặp", "tá"] },
 ];
 
-// helpers VND
-const digitsOnly = (value: string) => value.replace(/\D/g, "");
+// helpers VND - convert comma to period for Vietnamese locale support
+const digitsOnly = (value: string) => value.replace(/,/g, ".").replace(/[^0-9]/g, "");
 
 const formatVnd = (value: string | number | null | undefined) => {
   if (value === null || value === undefined) return "";
@@ -574,7 +574,7 @@ export default function IngredientRequestFormPage() {
                         handleChangeItem(
                           idx,
                           "quantityValue",
-                          v.replace(/[^0-9.]/g, "")
+                          v.replace(/,/g, ".").replace(/[^0-9.]/g, "")
                         )
                       }
                       placeholder="Ví dụ: 3"

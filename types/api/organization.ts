@@ -5,6 +5,7 @@ export interface OrganizationMember {
   status?: string;
   member: {
     id: string;
+    cognito_id?: string;
     full_name: string;
     phone_number: string;
     user_name: string;
@@ -58,4 +59,12 @@ export interface ListActiveOrganizationsResponse {
     total: number;
     organizations: Organization[];
   };
+}
+
+export interface MyOrganizationResponse {
+  myOrganization: Organization;
+}
+
+export interface GetMyOrganizationResponse {
+  getMyOrganization: Organization;
 }

@@ -5,33 +5,11 @@ import {
     PRIMARY,
     STRONG_TEXT as TEXT
 } from "@/constants/colors";
+import { getPhaseStatusLabel } from "@/constants/phaseStatusLabels";
 import type { Phase } from "@/types/api/campaign";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-// Map phase status code -> Vietnamese label
-const phaseStatusLabels: Record<string, string> = {
-    PLANNING: "Đang lên kế hoạch",
-    AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân tiền nguyên liệu",
-    INGREDIENT_PURCHASE: "Đang mua nguyên liệu",
-    AWAITING_AUDIT: "Chờ kiểm tra chứng từ",
-    AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí nấu và vận chuyển",
-    COOKING: "Đang nấu ăn",
-    AWAITING_DELIVERY_DISBURSEMENT: "Chờ cập nhật suất ăn",
-    DELIVERY: "Đang vận chuyển",
-    COMPLETED: "Hoàn thành",
-    CANCELLED: "Đã hủy",
-    FAILED: "Thất bại",
-    NULL: "Chưa xác định",
-    DEFAULT: "Không xác định",
-};
-
-function getPhaseStatusLabel(status?: string | null): string {
-    if (!status) return "Không xác định";
-    const key = status.toUpperCase().trim();
-    return phaseStatusLabels[key] || "Không xác định";
-}
 
 interface KitchenWorkflowCardProps {
     campaignId: string;
@@ -149,6 +127,11 @@ export default function KitchenWorkflowCard({
                 campaignPhaseId: selectedPhaseId,
                 campaignPhaseName: selectedPhaseName,
                 plannedMeals: JSON.stringify(plannedMeals),
+                phases: JSON.stringify(phases.map(p => ({
+                    id: p.id,
+                    phaseName: p.phaseName,
+                    location: p.location,
+                }))),
             },
         });
     };
@@ -385,5 +368,77 @@ const styles = StyleSheet.create({
         height: 12,
         backgroundColor: "#e5e7eb",
         marginLeft: 17,
+    },
+
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "flex-end",
+    },
+    modalContent: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingHorizontal: 18,
+        paddingTop: 18,
+        paddingBottom: 30,
+        maxHeight: "70%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: TEXT,
+    },
+    modalClose: {
+        fontSize: 20,
+        color: MUTED,
+        padding: 4,
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: MUTED,
+        marginBottom: 16,
+    },
+    modalScroll: {
+        maxHeight: 300,
+    },
+    modalPhaseItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff7ed",
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: "#fed7aa",
+    },
+    modalPhaseDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: PRIMARY,
+        marginRight: 12,
+    },
+    modalPhaseName: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: TEXT,
+    },
+    modalPhaseStatus: {
+        fontSize: 12,
+        color: MUTED,
+        marginTop: 2,
+    },
+    modalPhaseArrow: {
+        fontSize: 22,
+        color: MUTED,
+        fontWeight: "300",
     },
 });

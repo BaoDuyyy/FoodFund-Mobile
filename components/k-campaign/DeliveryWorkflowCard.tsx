@@ -5,33 +5,11 @@ import {
     PRIMARY,
     STRONG_TEXT as TEXT
 } from "@/constants/colors";
+import { getPhaseStatusLabel } from "@/constants/phaseStatusLabels";
 import type { Phase } from "@/types/api/campaign";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-// Map phase status code -> Vietnamese label
-const phaseStatusLabels: Record<string, string> = {
-    PLANNING: "Đang lên kế hoạch",
-    AWAITING_INGREDIENT_DISBURSEMENT: "Chờ giải ngân tiền nguyên liệu",
-    INGREDIENT_PURCHASE: "Đang mua nguyên liệu",
-    AWAITING_AUDIT: "Chờ kiểm tra chứng từ",
-    AWAITING_COOKING_DISBURSEMENT: "Chờ giải ngân chi phí",
-    COOKING: "Đang nấu ăn",
-    AWAITING_DELIVERY_DISBURSEMENT: "Chờ giải ngân chi phí",
-    DELIVERY: "Đang vận chuyển",
-    COMPLETED: "Hoàn thành",
-    CANCELLED: "Đã hủy",
-    FAILED: "Thất bại",
-    NULL: "Chưa xác định",
-    DEFAULT: "Không xác định",
-};
-
-function getPhaseStatusLabel(status?: string | null): string {
-    if (!status) return "Không xác định";
-    const key = status.toUpperCase().trim();
-    return phaseStatusLabels[key] || "Không xác định";
-}
 
 interface DeliveryWorkflowCardProps {
     campaignId: string;
@@ -87,7 +65,10 @@ export default function DeliveryWorkflowCard({
     const handleDeliveryOrders = () => {
         router.push({
             pathname: "/deliveryOrders",
-            params: { campaignId: campaignId },
+            params: {
+                campaignId: campaignId,
+                campaignPhaseId: currentPhase?.id || "",
+            },
         });
     };
 

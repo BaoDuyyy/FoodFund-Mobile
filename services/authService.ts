@@ -201,14 +201,15 @@ const SecureStoreHelper = {
   },
 
   async getUserInfo(): Promise<UserInfo> {
-    const [id, email, name, role] = await Promise.all([
+    const [id, email, name, userName, role] = await Promise.all([
       SecureStore.getItemAsync(STORE_KEYS.USER_ID),
       SecureStore.getItemAsync(STORE_KEYS.USER_EMAIL),
       SecureStore.getItemAsync(STORE_KEYS.USER_NAME),
+      SecureStore.getItemAsync(STORE_KEYS.USER_NAME), // userName is stored under USER_NAME key
       SecureStore.getItemAsync(STORE_KEYS.USER_ROLE),
     ]);
 
-    return { id, email, name, role };
+    return { id, email, name, userName, role };
   },
 
   /**

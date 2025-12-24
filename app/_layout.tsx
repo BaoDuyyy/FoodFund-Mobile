@@ -14,6 +14,8 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       {/* hide native headers for all stack screens here so page-level headerShown isn't ignored */}
       <Stack screenOptions={{ headerShown: false }}>
+        {/* index redirects to welcome */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         {/* welcome screen first */}
         <Stack.Screen name="welcome" />
         {/* entry screens */}
@@ -21,6 +23,7 @@ export default function RootLayout() {
         {/* groups */}
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(kitchen-tabs)" />
+        <Stack.Screen name="(delivery-tabs)" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

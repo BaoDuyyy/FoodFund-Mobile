@@ -214,14 +214,16 @@ export default function MealBatchListPage() {
           </View>
         </View>
 
-        <View style={styles.cardRowBottom}>
-          <TouchableOpacity
-            style={styles.updateBtn}
-            onPress={() => handleUpdateStatus(item)}
-          >
-            <Text style={styles.updateBtnText}>Cập nhật trạng thái</Text>
-          </TouchableOpacity>
-        </View>
+        {item.status !== "READY" && item.status !== "DELIVERED" && (
+          <View style={styles.cardRowBottom}>
+            <TouchableOpacity
+              style={styles.updateBtn}
+              onPress={() => handleUpdateStatus(item)}
+            >
+              <Text style={styles.updateBtnText}>Cập nhật trạng thái</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );

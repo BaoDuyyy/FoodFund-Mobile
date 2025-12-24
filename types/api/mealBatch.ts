@@ -1,6 +1,6 @@
 // Các type dùng cho MealBatch và mutation liên quan
 
-export type MealBatchStatus = "PENDING" | "COOKING" | "READY"; // chỉnh lại enum theo backend nếu khác
+export type MealBatchStatus = "PENDING" | "COOKING" | "READY" | "DELIVERED"; // chỉnh lại enum theo backend nếu khác
 
 export interface MealBatchKitchenStaff {
   id: string;

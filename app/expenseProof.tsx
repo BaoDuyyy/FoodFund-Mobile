@@ -263,7 +263,7 @@ export default function ExpenseProofPage() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <AlertPopup
         visible={alertVisible}
         message={alertMessage}
@@ -382,14 +382,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: moderateScale(140),
+    height: moderateScale(200),
     backgroundColor: PRIMARY,
     borderBottomLeftRadius: moderateScale(22),
     borderBottomRightRadius: moderateScale(22),
   },
   header: {
     paddingHorizontal: "4%",
-    paddingTop: moderateScale(10),
+    paddingTop: moderateScale(50),
     paddingBottom: moderateScale(12),
   },
   backBtn: {

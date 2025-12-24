@@ -5,8 +5,9 @@ import {
   getDeliveryStatusColors,
   getDeliveryStatusLabel
 } from "@/constants/deliveryStatus";
+import { useAuth } from "@/hooks/useAuth";
 import DeliveryService from "@/services/deliveryService";
-import type { DeliveryTask } from "@/types/api/delivery";
+import type { DeliveryTaskWithStaff } from "@/types/api/delivery";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,13 +15,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
   PixelRatio,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,14 +47,22 @@ const normalizeFontSize = (size: number) => {
 
 export default function DeliveryOrdersPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ campaignId?: string }>();
+  const params = useLocalSearchParams<{
+    campaignId?: string;
+    campaignPhaseId?: string;
+  }>();
   const campaignId = useMemo(
-    () =>
-      Array.isArray(params.campaignId) ? params.campaignId[0] : params.campaignId,
+    () => Array.isArray(params.campaignId) ? params.campaignId[0] : params.campaignId,
     [params.campaignId]
   );
+  const campaignPhaseId = useMemo(
+    () => Array.isArray(params.campaignPhaseId) ? params.campaignPhaseId[0] : params.campaignPhaseId,
+    [params.campaignPhaseId]
+  );
 
-  const [tasks, setTasks] = useState<DeliveryTask[]>([]);
+  const { user } = useAuth();
+
+  const [tasks, setTasks] = useState<DeliveryTaskWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -60,6 +73,11 @@ export default function DeliveryOrdersPage() {
   const [filterToDate, setFilterToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+
+  // Cancel modal state
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [taskToCancel, setTaskToCancel] = useState<DeliveryTaskWithStaff | null>(null);
 
   const formatDate = (date: Date | null) => {
     if (!date) return '';
@@ -105,16 +123,38 @@ export default function DeliveryOrdersPage() {
     async function load() {
       setLoading(true);
       try {
-        const data = await DeliveryService.listMyDeliveryTasks({
-          limit: 20,
-          offset: 0,
-        });
+        // Use filter-based query if campaignPhaseId is provided
+        if (campaignPhaseId) {
+          // Fetch all tasks for the campaign phase, then filter by current user
+          const allTasks = await DeliveryService.listDeliveryTasks({
+            campaignId: campaignId || null,
+            campaignPhaseId: campaignPhaseId,
+            mealBatchId: null,
+            deliveryStaffId: null,
+            status: null,
+            limit: 50,
+            offset: 0,
+          });
+          if (!mounted) return;
 
-        if (!mounted) return;
-
-        setTasks(data);
+          // Filter tasks by deliveryStaff.full_name matching current user's name
+          const myTasks = allTasks.filter(
+            (task) => task.deliveryStaff?.full_name === user?.userName
+          );
+          console.log("Current user:", user?.userName);
+          console.log("Total tasks:", allTasks.length, "My tasks:", myTasks.length);
+          setTasks(myTasks);
+        } else {
+          // Fallback to myDeliveryTasks
+          const data = await DeliveryService.listMyDeliveryTasks({
+            limit: 20,
+            offset: 0,
+          });
+          if (!mounted) return;
+          setTasks(data as DeliveryTaskWithStaff[]);
+        }
       } catch (err) {
-        console.error("Error loading my delivery tasks:", err);
+        console.error("Error loading delivery tasks:", err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -123,10 +163,10 @@ export default function DeliveryOrdersPage() {
     return () => {
       mounted = false;
     };
-  }, [campaignId]);
+  }, [campaignId, campaignPhaseId]);
 
   const handleUpdateTaskStatus = async (
-    task: DeliveryTask,
+    task: DeliveryTaskWithStaff,
     nextStatus: "ACCEPTED" | "REJECTED" | "OUT_FOR_DELIVERY" | "COMPLETED"
   ) => {
     if (updatingId) return;
@@ -148,7 +188,41 @@ export default function DeliveryOrdersPage() {
     }
   };
 
-  const renderItem = ({ item }: { item: DeliveryTask }) => {
+  // Handle cancel task with reason
+  const handleCancelTask = async () => {
+    if (!taskToCancel || updatingId) return;
+    if (!cancelReason.trim()) {
+      return; // Require reason
+    }
+    setUpdatingId(taskToCancel.id);
+    setCancelModalVisible(false);
+    try {
+      const updated = await DeliveryService.updateDeliveryTaskStatus({
+        taskId: taskToCancel.id,
+        status: "FAILED",
+        note: cancelReason.trim(),
+      });
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === updated.id ? { ...t, status: updated.status } : t
+        )
+      );
+    } catch (err) {
+      console.error("Error canceling delivery task:", err);
+    } finally {
+      setUpdatingId(null);
+      setCancelReason("");
+      setTaskToCancel(null);
+    }
+  };
+
+  const openCancelModal = (task: DeliveryTaskWithStaff) => {
+    setTaskToCancel(task);
+    setCancelReason("");
+    setCancelModalVisible(true);
+  };
+
+  const renderItem = ({ item }: { item: DeliveryTaskWithStaff }) => {
     const createdAt = item.created_at
       ? new Date(item.created_at).toLocaleString("vi-VN")
       : "—";
@@ -292,16 +366,27 @@ export default function DeliveryOrdersPage() {
             )}
 
             {status === DELIVERY_STATUS.OUT_FOR_DELIVERY && (
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.completeBtn, isUpdating && styles.disabledBtn]}
-                disabled={isUpdating}
-                onPress={() => handleUpdateTaskStatus(item, "COMPLETED")}
-              >
-                <Ionicons name="checkmark-done" size={16} color="#fff" />
-                <Text style={styles.actionBtnText}>
-                  {isUpdating ? "..." : "Hoàn thành"}
-                </Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.completeBtn, isUpdating && styles.disabledBtn]}
+                  disabled={isUpdating}
+                  onPress={() => handleUpdateTaskStatus(item, "COMPLETED")}
+                >
+                  <Ionicons name="checkmark-done" size={16} color="#fff" />
+                  <Text style={styles.actionBtnText}>
+                    {isUpdating ? "..." : "Hoàn thành"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.cancelBtn, isUpdating && styles.disabledBtn]}
+                  disabled={isUpdating}
+                  onPress={() => openCancelModal(item)}
+                >
+                  <Ionicons name="close-circle-outline" size={16} color="#dc2626" />
+                  <Text style={styles.cancelBtnText}>Hủy</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
@@ -458,6 +543,65 @@ export default function DeliveryOrdersPage() {
           showsVerticalScrollIndicator={false}
         />
       ) : null}
+
+      {/* Cancel Reason Modal */}
+      <Modal
+        visible={cancelModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCancelModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.modalKeyboardView}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Hủy đơn giao hàng</Text>
+                  <TouchableOpacity onPress={() => setCancelModalVisible(false)}>
+                    <Ionicons name="close" size={24} color={MUTED} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.modalSubtitle}>
+                  Vui lòng nhập lý do hủy đơn giao hàng này
+                </Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  placeholder="Nhập lý do hủy đơn..."
+                  placeholderTextColor={MUTED}
+                  value={cancelReason}
+                  onChangeText={setCancelReason}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                />
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.modalCancelBtn}
+                    onPress={() => setCancelModalVisible(false)}
+                  >
+                    <Text style={styles.modalCancelBtnText}>Đóng</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalConfirmBtn,
+                      !cancelReason.trim() && styles.modalConfirmBtnDisabled,
+                    ]}
+                    onPress={handleCancelTask}
+                    disabled={!cancelReason.trim()}
+                  >
+                    <Text style={styles.modalConfirmBtnText}>Xác nhận hủy</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -820,5 +964,98 @@ const styles = StyleSheet.create({
     color: MUTED,
     textAlign: "center",
     lineHeight: moderateScale(18),
+  },
+
+  // Cancel button styles
+  cancelBtn: {
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  cancelBtnText: {
+    fontSize: normalizeFontSize(12),
+    fontWeight: "600",
+    color: "#dc2626",
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: "4%",
+  },
+  modalKeyboardView: {
+    width: "100%",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(18),
+    paddingBottom: moderateScale(20),
+    width: "100%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: moderateScale(8),
+  },
+  modalTitle: {
+    fontSize: normalizeFontSize(18),
+    fontWeight: "700",
+    color: TEXT,
+  },
+  modalSubtitle: {
+    fontSize: normalizeFontSize(13),
+    color: MUTED,
+    marginBottom: moderateScale(16),
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: moderateScale(12),
+    padding: moderateScale(12),
+    fontSize: normalizeFontSize(14),
+    color: TEXT,
+    minHeight: moderateScale(100),
+    backgroundColor: "#fafafa",
+  },
+  modalActions: {
+    flexDirection: "row",
+    marginTop: moderateScale(16),
+    gap: moderateScale(10),
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelBtnText: {
+    fontSize: normalizeFontSize(14),
+    fontWeight: "600",
+    color: MUTED,
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(10),
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalConfirmBtnDisabled: {
+    opacity: 0.5,
+  },
+  modalConfirmBtnText: {
+    fontSize: normalizeFontSize(14),
+    fontWeight: "600",
+    color: "#fff",
   },
 });

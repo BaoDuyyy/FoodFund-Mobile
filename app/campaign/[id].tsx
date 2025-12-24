@@ -266,11 +266,17 @@ export default function CampaignDetailPage() {
 
     return (
       <>
-        {/* Cover */}
-        <Image
-          source={{ uri: campaign.coverImage || undefined }}
-          style={styles.image}
-        />
+        {/* Cover with overlay back button */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: campaign.coverImage || undefined }}
+            style={styles.image}
+          />
+          <TouchableOpacity onPress={() => router.back()} style={styles.overlayBackBtn}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Text style={styles.overlayBackText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.content}>
           {/* Tiêu đề + tổ chức */}
@@ -354,21 +360,27 @@ export default function CampaignDetailPage() {
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.campaignDonateBtn}
-              onPress={handleDonatePress}
-            >
-              <Text style={styles.campaignDonateBtnText}>Ủng hộ</Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.campaignDonateBtn}
+                onPress={handleDonatePress}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="heart" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.campaignDonateBtnText}>Ủng hộ ngay</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.campaignDirectionBtn}>
-              <Ionicons name="navigate" size={18} color={PRIMARY} />
-              <Text style={styles.campaignDirectionBtnText}>Chỉ đường</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.campaignDirectionBtn} activeOpacity={0.7}>
+                <Ionicons name="navigate" size={16} color={PRIMARY} />
+                <Text style={styles.campaignDirectionBtnText}>Chỉ đường</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.campaignShareBtn}>
+            <TouchableOpacity style={styles.campaignShareBtn} activeOpacity={0.7}>
+              <Ionicons name="share-social-outline" size={16} color="#ff8800" style={{ marginRight: 4 }} />
               <Text style={styles.campaignShareText}>
-                Chia sẻ chiến dịch để lan tỏa yêu thương
+                Chia sẻ chiến dịch
               </Text>
             </TouchableOpacity>
           </View>
@@ -428,17 +440,11 @@ export default function CampaignDetailPage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Loading
         visible={loading || donating}
         message={donating ? "Đang tạo giao dịch..." : "Loading campaign..."}
       />
-
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>‹ Quay lại</Text>
-        </TouchableOpacity>
-      </View>
 
       <FlatList
         data={[1]}
@@ -488,29 +494,35 @@ function getDaysLeft(endDate?: string | null) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
-  header: {
-    paddingHorizontal: "4%",
-    paddingTop: moderateScale(8),
-    paddingBottom: moderateScale(4),
-    backgroundColor: "#fff",
-    zIndex: 10,
-  },
-  backBtn: {
-    alignSelf: "flex-start",
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: moderateScale(6),
-    borderRadius: 999,
-    backgroundColor: PRIMARY,
-    minHeight: moderateScale(36), // Ensure minimum touch target
-  },
-  backText: {
-    color: "#fff",
-    fontSize: normalizeFontSize(13),
-    fontWeight: "700",
-  },
-
   scroll: {
     paddingBottom: moderateScale(28),
+  },
+
+  // Image with overlay back button
+  imageContainer: {
+    position: "relative",
+  },
+  image: {
+    width: "100%",
+    height: moderateScale(240),
+    backgroundColor: "#ddd",
+  },
+  overlayBackBtn: {
+    position: "absolute",
+    top: moderateScale(44),
+    left: moderateScale(12),
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(20),
+  },
+  overlayBackText: {
+    color: "#fff",
+    fontSize: normalizeFontSize(13),
+    fontWeight: "600",
+    marginLeft: moderateScale(2),
   },
 
   sectionTitle: {
@@ -533,12 +545,6 @@ const styles = StyleSheet.create({
     fontSize: normalizeFontSize(14),
     lineHeight: moderateScale(20),
     fontWeight: "400",
-  },
-
-  image: {
-    width: "100%",
-    height: moderateScale(210),
-    backgroundColor: "#eee",
   },
 
   content: {
@@ -656,45 +662,57 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: normalizeFontSize(14),
   },
+  // Action buttons row
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+    marginBottom: moderateScale(10),
+  },
   campaignDonateBtn: {
-    backgroundColor: "#ad4e28",
-    borderRadius: moderateScale(10),
+    flex: 2,
+    flexDirection: "row",
+    backgroundColor: PRIMARY,
+    borderRadius: moderateScale(12),
     alignItems: "center",
-    paddingVertical: moderateScale(12),
-    marginBottom: moderateScale(8),
-    minHeight: moderateScale(48), // Ensure minimum touch target
+    justifyContent: "center",
+    paddingVertical: moderateScale(14),
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   campaignDonateBtnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: normalizeFontSize(14),
+    fontSize: normalizeFontSize(15),
   },
   campaignDirectionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
-    borderRadius: moderateScale(10),
-    borderWidth: 1,
-    borderColor: "#eee",
-    paddingVertical: moderateScale(10),
-    marginBottom: moderateScale(8),
-    minHeight: moderateScale(44), // Ensure minimum touch target
+    borderRadius: moderateScale(12),
+    borderWidth: 1.5,
+    borderColor: PRIMARY,
+    paddingVertical: moderateScale(14),
   },
   campaignDirectionBtnText: {
-    color: "#ad4e28",
+    color: PRIMARY,
     fontWeight: "700",
-    fontSize: normalizeFontSize(14),
-    marginLeft: moderateScale(6),
+    fontSize: normalizeFontSize(13),
+    marginLeft: moderateScale(4),
   },
   campaignShareBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: moderateScale(2),
-    minHeight: moderateScale(32), // Ensure minimum touch target
+    justifyContent: "center",
+    paddingVertical: moderateScale(8),
   },
   campaignShareText: {
     color: "#ff8800",
-    fontSize: normalizeFontSize(12),
+    fontSize: normalizeFontSize(13),
     fontWeight: "600",
   },
 

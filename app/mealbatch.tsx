@@ -22,6 +22,7 @@ import {
     Alert,
     Dimensions,
     FlatList,
+    Modal,
     PixelRatio,
     ScrollView,
     StyleSheet,
@@ -67,12 +68,13 @@ type SelectedFile = {
 
 export default function MealBatchPage() {
     const router = useRouter();
-    const { campaignId, campaignPhaseId, campaignPhaseName, plannedMeals: plannedMealsParam } =
+    const { campaignId, campaignPhaseId, campaignPhaseName, plannedMeals: plannedMealsParam, phases: phasesParam } =
         useLocalSearchParams<{
             campaignId?: string;
             campaignPhaseId?: string;
             campaignPhaseName?: string;
             plannedMeals?: string;
+            phases?: string;
         }>();
 
     const [loadingRequests, setLoadingRequests] = useState(false);
@@ -90,6 +92,25 @@ export default function MealBatchPage() {
     const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [phaseModalVisible, setPhaseModalVisible] = useState(false);
+
+    // All phases from campaign (for phase selection modal)
+    type AllPhase = { id: string; phaseName?: string | null; location?: string | null };
+    const [allPhases, setAllPhases] = useState<AllPhase[]>([]);
+
+    // Parse phases from params
+    useEffect(() => {
+        if (phasesParam) {
+            try {
+                const parsed = JSON.parse(
+                    Array.isArray(phasesParam) ? phasesParam[0] : phasesParam
+                ) as AllPhase[];
+                setAllPhases(parsed);
+            } catch (e) {
+                console.error("Error parsing phases:", e);
+            }
+        }
+    }, [phasesParam]);
 
     const showAlert = (message: string) => {
         setAlertMessage(message);
@@ -163,17 +184,19 @@ export default function MealBatchPage() {
         };
     }, [campaignId, campaignPhaseId, campaignPhaseName]);
 
-    // Lấy ingredients từ DISBURSED requests
+    // Lấy ingredients từ DISBURSED requests - theo phase đang chọn
     useEffect(() => {
-        if (!campaignId || !campaignPhaseId) return;
+        if (!campaignId || !selectedPhaseId) return;
         let mounted = true;
         const fetchDisbursedIngredients = async () => {
             setLoadingRequests(true);
             setError(null);
+            // Reset selected ingredients when phase changes
+            setSelectedIngredientIds(new Set());
             try {
                 const requests = await IngredientService.getIngredientRequests({
                     filter: {
-                        campaignPhaseId: campaignPhaseId,
+                        campaignPhaseId: selectedPhaseId,
                         status: "DISBURSED",
                         sortBy: "NEWEST_FIRST",
                     },
@@ -208,7 +231,7 @@ export default function MealBatchPage() {
         return () => {
             mounted = false;
         };
-    }, [campaignId, campaignPhaseId]);
+    }, [campaignId, selectedPhaseId]);
 
     const toggleIngredient = (id: string) => {
         setSelectedIngredientIds((prev) => {
@@ -455,11 +478,11 @@ export default function MealBatchPage() {
                             Chọn phase tương ứng để hệ thống gắn suất ăn với đúng tiến độ.
                         </Text>
 
-                        {phases.length === 0 ? (
+                        {allPhases.length === 0 ? (
                             <Text style={styles.emptyText}>Chưa có phase nào.</Text>
                         ) : (
                             <View style={{ marginTop: 10 }}>
-                                {phases.map((phase) => {
+                                {allPhases.map((phase) => {
                                     const active = phase.id === selectedPhaseId;
                                     return (
                                         <TouchableOpacity
@@ -483,7 +506,7 @@ export default function MealBatchPage() {
                                                         active && { color: PRIMARY_DARK },
                                                     ]}
                                                 >
-                                                    {phase.name}
+                                                    {phase.phaseName || "Giai đoạn"}
                                                 </Text>
                                             </View>
                                             {active && (
@@ -644,7 +667,6 @@ export default function MealBatchPage() {
                     </View>
                 </ScrollView>
 
-                {/* Footer: nút tạo + xem danh sách suất ăn (cố định đáy) */}
                 <View style={styles.footerActions}>
                     <TouchableOpacity
                         style={[styles.submitBtn, loadingCreate && { opacity: 0.7 }]}
@@ -660,15 +682,20 @@ export default function MealBatchPage() {
 
                     <TouchableOpacity
                         style={styles.secondaryBtn}
-                        onPress={() =>
-                            router.push({
-                                pathname: "/mealbatchList",
-                                params: {
-                                    campaignId: campaignId || "",
-                                    campaignPhaseId: campaignPhaseId || "",
-                                },
-                            })
-                        }
+                        onPress={() => {
+                            // Show modal if multiple phases, otherwise navigate directly
+                            if (allPhases.length > 1) {
+                                setPhaseModalVisible(true);
+                            } else {
+                                router.push({
+                                    pathname: "/mealbatchList",
+                                    params: {
+                                        campaignId: campaignId || "",
+                                        campaignPhaseId: campaignPhaseId || "",
+                                    },
+                                });
+                            }
+                        }}
                     >
                         <Text style={styles.secondaryBtnText}>
                             Xem danh sách suất ăn
@@ -676,6 +703,55 @@ export default function MealBatchPage() {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {/* Phase Selection Modal */}
+            <Modal
+                visible={phaseModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setPhaseModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Chọn giai đoạn</Text>
+                            <TouchableOpacity onPress={() => setPhaseModalVisible(false)}>
+                                <Text style={styles.modalClose}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSubtitle}>
+                            Chọn giai đoạn bạn muốn xem danh sách suất ăn
+                        </Text>
+                        <ScrollView style={styles.modalScroll}>
+                            {allPhases.map((phase) => (
+                                <TouchableOpacity
+                                    key={phase.id}
+                                    style={styles.modalPhaseItem}
+                                    onPress={() => {
+                                        setPhaseModalVisible(false);
+                                        router.push({
+                                            pathname: "/mealbatchList",
+                                            params: {
+                                                campaignId: campaignId || "",
+                                                campaignPhaseId: phase.id,
+                                            },
+                                        });
+                                    }}
+                                >
+                                    <View style={styles.modalPhaseDot} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalPhaseName}>{phase.phaseName || "Giai đoạn"}</Text>
+                                        {phase.location && (
+                                            <Text style={styles.modalPhaseLocation}>{phase.location}</Text>
+                                        )}
+                                    </View>
+                                    <Text style={styles.modalPhaseArrow}>›</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -1066,5 +1142,77 @@ const styles = StyleSheet.create({
         fontSize: normalizeFontSize(12),
         color: MUTED_TEXT,
         marginTop: moderateScale(2),
+    },
+
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "flex-end",
+    },
+    modalContent: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: moderateScale(20),
+        borderTopRightRadius: moderateScale(20),
+        paddingHorizontal: moderateScale(18),
+        paddingTop: moderateScale(18),
+        paddingBottom: moderateScale(30),
+        maxHeight: "70%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: moderateScale(8),
+    },
+    modalTitle: {
+        fontSize: normalizeFontSize(18),
+        fontWeight: "700",
+        color: STRONG_TEXT,
+    },
+    modalClose: {
+        fontSize: normalizeFontSize(20),
+        color: MUTED_TEXT,
+        padding: moderateScale(4),
+    },
+    modalSubtitle: {
+        fontSize: normalizeFontSize(13),
+        color: MUTED_TEXT,
+        marginBottom: moderateScale(16),
+    },
+    modalScroll: {
+        maxHeight: moderateScale(300),
+    },
+    modalPhaseItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff7ed",
+        borderRadius: moderateScale(12),
+        padding: moderateScale(14),
+        marginBottom: moderateScale(10),
+        borderWidth: 1,
+        borderColor: "#fed7aa",
+    },
+    modalPhaseDot: {
+        width: moderateScale(10),
+        height: moderateScale(10),
+        borderRadius: moderateScale(5),
+        backgroundColor: PRIMARY,
+        marginRight: moderateScale(12),
+    },
+    modalPhaseName: {
+        fontSize: normalizeFontSize(15),
+        fontWeight: "600",
+        color: STRONG_TEXT,
+    },
+    modalPhaseLocation: {
+        fontSize: normalizeFontSize(12),
+        color: MUTED_TEXT,
+        marginTop: moderateScale(2),
+    },
+    modalPhaseArrow: {
+        fontSize: normalizeFontSize(22),
+        color: MUTED_TEXT,
+        fontWeight: "300",
     },
 });

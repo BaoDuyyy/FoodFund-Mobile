@@ -2,14 +2,18 @@ import Loading from "@/components/Loading";
 import { BG_KITCHEN as BG, PRIMARY } from "@/constants/colors";
 import OperationService from "@/services/operationService";
 import type { OperationRequest } from "@/types/api/operationRequest";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   FlatList,
   PixelRatio,
+  Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -35,6 +39,60 @@ export default function OperationRequestsPage() {
   const router = useRouter();
   const [items, setItems] = useState<OperationRequest[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterFromDate, setFilterFromDate] = useState<Date | null>(null);
+  const [filterToDate, setFilterToDate] = useState<Date | null>(null);
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "";
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  // Filtered items
+  const filteredItems = useMemo(() => {
+    let result = items;
+
+    // Filter by date range
+    if (filterFromDate) {
+      result = result.filter((item) => {
+        if (!item.created_at) return false;
+        return new Date(item.created_at) >= filterFromDate;
+      });
+    }
+    if (filterToDate) {
+      const toDateEnd = new Date(filterToDate);
+      toDateEnd.setHours(23, 59, 59, 999);
+      result = result.filter((item) => {
+        if (!item.created_at) return false;
+        return new Date(item.created_at) <= toDateEnd;
+      });
+    }
+
+    // Filter by price range
+    const minAmt = parseFloat(filterMinAmount.replace(/[^0-9]/g, "")) || 0;
+    const maxAmt = parseFloat(filterMaxAmount.replace(/[^0-9]/g, "")) || Infinity;
+    if (filterMinAmount || filterMaxAmount) {
+      result = result.filter((item) => {
+        const cost = Number(item.totalCost || 0);
+        return cost >= minAmt && cost <= maxAmt;
+      });
+    }
+
+    return result;
+  }, [items, filterFromDate, filterToDate, filterMinAmount, filterMaxAmount]);
+
+  const clearFilters = () => {
+    setFilterFromDate(null);
+    setFilterToDate(null);
+    setFilterMinAmount("");
+    setFilterMaxAmount("");
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -77,7 +135,7 @@ export default function OperationRequestsPage() {
                 getStatusChipTextStyle(item.status),
               ]}
             >
-              {item.status}
+              {getStatusLabel(item.status)}
             </Text>
           </View>
         </View>
@@ -125,8 +183,97 @@ export default function OperationRequestsPage() {
             Theo dõi các khoản chi đã gửi xét duyệt
           </Text>
         </View>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity
+          style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Ionicons name="filter" size={18} color={showFilters ? "#fff" : PRIMARY} />
+        </TouchableOpacity>
       </View>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <View style={styles.filterPanel}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Bộ lọc</Text>
+            {(filterFromDate || filterToDate || filterMinAmount || filterMaxAmount) && (
+              <TouchableOpacity onPress={clearFilters}>
+                <Text style={styles.filterClearText}>Xóa lọc</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Date Range */}
+          <Text style={styles.filterLabel}>Khoảng ngày</Text>
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={styles.filterDateBtn}
+              onPress={() => setShowFromPicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+              <Text style={filterFromDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                {filterFromDate ? formatDate(filterFromDate) : "Từ ngày"}
+              </Text>
+            </TouchableOpacity>
+            <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
+            <TouchableOpacity
+              style={styles.filterDateBtn}
+              onPress={() => setShowToPicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+              <Text style={filterToDate ? styles.filterDateText : styles.filterDatePlaceholder}>
+                {filterToDate ? formatDate(filterToDate) : "Đến ngày"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Price Range */}
+          <Text style={styles.filterLabel}>Khoảng giá tiền (đ)</Text>
+          <View style={styles.filterRow}>
+            <TextInput
+              style={styles.filterPriceInput}
+              placeholder="Từ"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+              value={filterMinAmount}
+              onChangeText={setFilterMinAmount}
+            />
+            <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
+            <TextInput
+              style={styles.filterPriceInput}
+              placeholder="Đến"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+              value={filterMaxAmount}
+              onChangeText={setFilterMaxAmount}
+            />
+          </View>
+
+          {/* Date Pickers */}
+          {showFromPicker && (
+            <DateTimePicker
+              value={filterFromDate || new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, date) => {
+                setShowFromPicker(Platform.OS === "ios");
+                if (date) setFilterFromDate(date);
+              }}
+            />
+          )}
+          {showToPicker && (
+            <DateTimePicker
+              value={filterToDate || new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, date) => {
+                setShowToPicker(Platform.OS === "ios");
+                if (date) setFilterToDate(date);
+              }}
+            />
+          )}
+        </View>
+      )}
 
       {!loading && items.length === 0 ? (
         <View style={styles.emptyBox}>
@@ -138,7 +285,7 @@ export default function OperationRequestsPage() {
         </View>
       ) : !loading ? (
         <FlatList
-          data={items}
+          data={filteredItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
@@ -149,10 +296,21 @@ export default function OperationRequestsPage() {
   );
 }
 
+function getStatusLabel(status: string): string {
+  const s = status.toUpperCase();
+  if (s === "APPROVED") return "Đã duyệt";
+  if (s === "REJECTED") return "Từ chối";
+  if (s === "DISBURSED") return "Đã giải ngân";
+  if (s === "PENDING") return "Chờ duyệt";
+  return status;
+}
+
 function getStatusChipStyle(status: string) {
   const s = status.toUpperCase();
   if (s === "APPROVED") return { backgroundColor: "#dcfce7" };
   if (s === "REJECTED") return { backgroundColor: "#fee2e2" };
+  if (s === "DISBURSED") return { backgroundColor: "#dbeafe" };
+  if (s === "PENDING") return { backgroundColor: "#fef3c7" };
   return { backgroundColor: "#e5e7eb" };
 }
 
@@ -160,6 +318,8 @@ function getStatusChipTextStyle(status: string) {
   const s = status.toUpperCase();
   if (s === "APPROVED") return { color: "#16a34a" };
   if (s === "REJECTED") return { color: "#b91c1c" };
+  if (s === "DISBURSED") return { color: "#2563eb" };
+  if (s === "PENDING") return { color: "#d97706" };
   return { color: "#4b5563" };
 }
 
@@ -219,6 +379,94 @@ const styles = StyleSheet.create({
     fontSize: normalizeFontSize(13),
     color: "#ffead4",
     marginTop: moderateScale(3),
+  },
+
+  // Filter styles
+  filterBtn: {
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(10),
+    backgroundColor: "#ffe6d8",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: moderateScale(36),
+  },
+  filterBtnActive: {
+    backgroundColor: PRIMARY,
+  },
+  filterPanel: {
+    backgroundColor: "#fff",
+    marginHorizontal: "4%",
+    marginTop: moderateScale(8),
+    borderRadius: moderateScale(14),
+    padding: moderateScale(14),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: moderateScale(10),
+  },
+  filterTitle: {
+    fontSize: normalizeFontSize(14),
+    fontWeight: "700",
+    color: "#111827",
+  },
+  filterClearText: {
+    fontSize: normalizeFontSize(12),
+    color: PRIMARY,
+    fontWeight: "600",
+  },
+  filterLabel: {
+    fontSize: normalizeFontSize(12),
+    fontWeight: "600",
+    color: "#6b7280",
+    marginTop: moderateScale(8),
+    marginBottom: moderateScale(6),
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+  },
+  filterDateBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff7ed",
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(10),
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    gap: moderateScale(6),
+    minHeight: moderateScale(40),
+  },
+  filterDateText: {
+    fontSize: normalizeFontSize(12),
+    color: "#111827",
+    fontWeight: "500",
+  },
+  filterDatePlaceholder: {
+    fontSize: normalizeFontSize(12),
+    color: "#9ca3af",
+  },
+  filterPriceInput: {
+    flex: 1,
+    backgroundColor: "#fff7ed",
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(10),
+    fontSize: normalizeFontSize(12),
+    color: "#111827",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    minHeight: moderateScale(40),
   },
 
   legendRow: {

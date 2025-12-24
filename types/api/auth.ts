@@ -41,5 +41,6 @@ export type UserInfo = {
   id: string | null;
   email: string | null;
   name: string | null;
+  userName: string | null;
   role: string | null;
 };

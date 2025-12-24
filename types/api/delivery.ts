@@ -1,3 +1,20 @@
+// Filter input for deliveryTasks query
+export type DeliveryTaskFilterInput = {
+  campaignId?: string | null;
+  campaignPhaseId?: string | null;
+  mealBatchId?: string | null;
+  deliveryStaffId?: string | null;
+  status?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
+// Delivery staff info in task
+export type DeliveryTaskStaffInfo = {
+  id: string;
+  full_name?: string | null;
+};
+
 export type DeliveryTaskMealBatchSummary = {
   id: string;
   foodName: string;
@@ -11,6 +28,20 @@ export type DeliveryTask = {
   mealBatch: DeliveryTaskMealBatchSummary;
   status: string;
   created_at: string;
+};
+
+// DeliveryTask with staff info (from deliveryTasks query)
+export type DeliveryTaskWithStaff = {
+  id: string;
+  deliveryStaff?: DeliveryTaskStaffInfo | null;
+  mealBatch?: DeliveryTaskMealBatchSummary | null;
+  mealBatchId?: string | null;
+  status: string;
+  created_at: string;
+};
+
+export type DeliveryTasksResponse = {
+  deliveryTasks: DeliveryTaskWithStaff[];
 };
 
 export type MyDeliveryTasksResponse = {
@@ -55,6 +86,7 @@ export type GetDeliveryTaskResponse = {
 export type UpdateDeliveryTaskStatusInput = {
   taskId: string;
   status: string;
+  note?: string | null;
 };
 
 // Response types for mutations

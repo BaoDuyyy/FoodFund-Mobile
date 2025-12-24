@@ -1,5 +1,5 @@
 import Loading from "@/components/Loading";
-import { CAMPAIGN_STATUS_OPTIONS } from "@/constants/campaignFilters";
+import { CAMPAIGN_STATUS_OPTIONS, type CampaignStatusKey } from "@/constants/campaignFilters";
 import { BG_WARM as BG, PRIMARY } from "@/constants/colors";
 import { useAuth } from "@/hooks";
 import CampaignService from "@/services/campaignService";
@@ -75,9 +75,10 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // tab + search state
+  // tab + search + filter state
   const [activeTab, setActiveTab] = useState<TabType>("CAMPAIGNS");
   const [campaignSearch, setCampaignSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CampaignStatusKey>("ALL");
 
   useEffect(() => {
     let mounted = true;
@@ -155,14 +156,26 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
     };
   }, [initialOrgId, user]);
 
-  // Filter campaigns by search text
-  const visibleCampaigns = campaigns.filter((c) => {
-    const keyword = campaignSearch.trim().toLowerCase();
-    if (!keyword) return true;
-    const title = c.title?.toLowerCase() ?? "";
-    const category = c.category?.title?.toLowerCase() ?? "";
-    return title.includes(keyword) || category.includes(keyword);
-  });
+  // Filter campaigns by search text and status, then sort by start date (latest first)
+  const visibleCampaigns = campaigns
+    .filter((c) => {
+      // Filter by status
+      if (statusFilter !== "ALL") {
+        const campaignStatus = c.status?.toUpperCase();
+        if (campaignStatus !== statusFilter) return false;
+      }
+      // Filter by search text
+      const keyword = campaignSearch.trim().toLowerCase();
+      if (!keyword) return true;
+      const title = c.title?.toLowerCase() ?? "";
+      const category = c.category?.title?.toLowerCase() ?? "";
+      return title.includes(keyword) || category.includes(keyword);
+    })
+    .sort((a, b) => {
+      const dateA = a.fundraisingStartDate ? new Date(a.fundraisingStartDate).getTime() : 0;
+      const dateB = b.fundraisingStartDate ? new Date(b.fundraisingStartDate).getTime() : 0;
+      return dateB - dateA; // Latest first
+    });
 
   // Sort members: FUNDRAISER on top
   const sortedMembers = (org?.members || []).slice().sort((a, b) => {
@@ -293,6 +306,29 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
               />
             </View>
 
+            {/* Status filter chips */}
+            <View style={styles.filterChipsRow}>
+              {CAMPAIGN_STATUS_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.filterChip,
+                    statusFilter === opt.key && { backgroundColor: opt.bgColor, borderColor: opt.color },
+                  ]}
+                  onPress={() => setStatusFilter(opt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      statusFilter === opt.key && { color: opt.color },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <FlatList
               data={visibleCampaigns}
               keyExtractor={(item) => item.id}
@@ -337,13 +373,21 @@ export default function KOrganizationPage({ initialOrgId }: KOrganizationPagePro
                     <View style={styles.campaignMetaRow}>
                       <Text style={styles.campaignMetaLabel}>Mục tiêu</Text>
                       <Text style={styles.campaignMetaValue}>
-                        {item.targetAmount} VND
+                        {Number(item.targetAmount || 0).toLocaleString("vi-VN")} đ
                       </Text>
                     </View>
                     <View style={styles.campaignMetaRow}>
                       <Text style={styles.campaignMetaLabel}>Đã nhận</Text>
                       <Text style={styles.campaignMetaValue}>
-                        {item.receivedAmount} VND
+                        {Number(item.receivedAmount || 0).toLocaleString("vi-VN")} đ
+                      </Text>
+                    </View>
+                    <View style={styles.campaignMetaRow}>
+                      <Text style={styles.campaignMetaLabel}>Ngày bắt đầu</Text>
+                      <Text style={styles.campaignMetaValue}>
+                        {item.fundraisingStartDate
+                          ? new Date(item.fundraisingStartDate).toLocaleDateString("vi-VN")
+                          : "—"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -575,6 +619,27 @@ const styles = StyleSheet.create({
     fontSize: normalizeFontSize(12),
     paddingVertical: moderateScale(4),
     color: "#333",
+  },
+
+  // Filter chips
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: moderateScale(6),
+    marginBottom: moderateScale(10),
+  },
+  filterChip: {
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(6),
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  filterChipText: {
+    fontSize: normalizeFontSize(11),
+    fontWeight: "600",
+    color: "#6b7280",
   },
 
   sectionHeaderRow: {

@@ -1,10 +1,14 @@
 import { getGraphqlUrl } from "../config/api";
+import { GET_MY_ORGANIZATION } from "../graphql/query/getMyOrganization";
 import { GET_ORGANIZATION_BY_ID_QUERY } from "../graphql/query/getOrganizationById";
 import { LIST_ACTIVE_ORGANIZATIONS_QUERY } from "../graphql/query/listActiveOrganizations";
+import { MY_ORGANIZATION } from "../graphql/query/myOrganization";
 import type {
+  GetMyOrganizationResponse,
   GetOrganizationByIdResponse,
   ListActiveOrganizationsResponse,
-  Organization,
+  MyOrganizationResponse,
+  Organization
 } from "../types/api/organization";
 import type { GraphQLResponse } from "../types/graphql";
 import AuthService from "./authService";
@@ -142,6 +146,56 @@ export const OrganizationService = {
     }
 
     throw new Error("No organization found for current user");
+  },
+
+  /**
+   * Get the current user's organization with full member details
+   */
+  async getMyOrganization(overrideUrl?: string): Promise<Organization> {
+    const response = await graphqlRequest<MyOrganizationResponse>(
+      MY_ORGANIZATION,
+      {},
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
+    }
+
+    const payload = response.data?.myOrganization;
+    if (!payload) {
+      throw new Error("Organization not found for current user");
+    }
+
+    return payload;
+  },
+
+  /**
+   * Get organization for staff (kitchen/delivery) with full member details
+   * Uses getMyOrganization query - different from myOrganization
+   * Includes cognito_id for filtering delivery tasks
+   */
+  async getStaffOrganization(overrideUrl?: string): Promise<Organization> {
+    const response = await graphqlRequest<GetMyOrganizationResponse>(
+      GET_MY_ORGANIZATION,
+      {},
+      overrideUrl
+    );
+
+    // Handle GraphQL errors
+    const errorMsg = extractErrorMessage(response.errors);
+    if (errorMsg) {
+      throw new Error(errorMsg);
+    }
+
+    const payload = response.data?.getMyOrganization;
+    if (!payload) {
+      throw new Error("Organization not found for staff user");
+    }
+
+    return payload;
   },
 };
 

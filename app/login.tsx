@@ -40,8 +40,8 @@ const normalizeFontSize = (size: number) => {
   return Math.round(PixelRatio.roundToNearestPixel(newSize));
 };
 
-// Responsive logo size
-const LOGO_WIDTH = Math.min(Math.max(SCREEN_WIDTH * 0.6, 180), 280);
+// Responsive logo size (doubled)
+const LOGO_WIDTH = Math.min(Math.max(SCREEN_WIDTH * 0.8, 280), 400);
 const LOGO_HEIGHT = LOGO_WIDTH * 0.28; // maintain aspect ratio
 
 function isNetworkError(err: any) {

@@ -4,9 +4,8 @@ import { MY_OPERATION_REQUESTS } from "@/graphql/query/myOperationRequests";
 import type {
   CreateOperationRequestInput,
   CreateOperationRequestPayload,
-  ListOperationRequestsOptions,
   MyOperationRequestsPayload,
-  OperationRequest,
+  OperationRequest
 } from "@/types/api/operationRequest";
 import type { GraphQLResponse } from "@/types/graphql";
 import AuthService from "./authService";
@@ -99,13 +98,17 @@ const OperationService = {
    * Get operation requests for the current user with pagination
    */
   async listMyOperationRequests(
-    params: ListOperationRequestsOptions = {},
+    params: {
+      limit?: number;
+      offset?: number;
+      sortBy?: "NEWEST_FIRST" | "OLDEST_FIRST";
+    } = {},
     overrideUrl?: string
   ): Promise<OperationRequest[]> {
     const variables = {
-      limit: params.limit ?? 10,
-      offset: params.offset ?? 0,
-      sortBy: params.sortBy ?? "NEWEST_FIRST",
+      limit: params.limit,
+      offset: params.offset,
+      sortBy: params.sortBy || "NEWEST_FIRST", // default
     };
 
     const response = await graphqlRequest<MyOperationRequestsPayload>(
@@ -128,5 +131,7 @@ const OperationService = {
     return payload;
   },
 };
+
+
 
 export default OperationService;
